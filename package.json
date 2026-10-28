@@ -9,7 +9,7 @@
     "android": "expo run:android",
     "build:apk": "npx eas-cli build --platform android --profile preview",
     "build:dev": "npx eas-cli build --platform android --profile development",
-    "postinstall": "jetify"
+    "postinstall": "node scripts/patch-printer.js && jetify"
   },
   "dependencies": {
     "@expo/metro-runtime": "~3.2.3",
