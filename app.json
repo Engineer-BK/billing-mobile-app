@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "SC588-Billing-MVP",
+    "slug": "sc588-billing-mvp",
+    "owner": "basirexpos-team",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "android": {
+      "package": "com.aftabrental.billingapp",
+      "permissions": [
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 31
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "d799a663-b1dc-48fd-9d51-66c81c912ea0"
+      }
+    }
+  }
+}
