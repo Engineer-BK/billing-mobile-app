@@ -6,8 +6,16 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#1A1A24"
+    },
     "android": {
       "package": "com.aftabrental.billingapp",
+      "splash": {
+        "resizeMode": "contain",
+        "backgroundColor": "#1A1A24"
+      },
       "permissions": [
         "android.permission.BLUETOOTH",
         "android.permission.BLUETOOTH_ADMIN",
