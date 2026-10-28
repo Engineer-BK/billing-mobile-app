@@ -103,7 +103,7 @@ export const PRINTER_PROFILES: Record<PrinterProfileId, PrinterProfile> = {
       BluetoothEscposPrinter.ALIGN.LEFT,
       BluetoothEscposPrinter.ALIGN.RIGHT,
     ],
-    feedLines: '\n\n\n\n', // Feed paper past physical serrated tear teeth
+    feedLines: '\n\n\n', // Optimal feed past physical serrated tear teeth
   },
   EZO80: {
     id: 'EZO80',
@@ -129,9 +129,25 @@ export const PRINTER_PROFILES: Record<PrinterProfileId, PrinterProfile> = {
       BluetoothEscposPrinter.ALIGN.LEFT,
       BluetoothEscposPrinter.ALIGN.RIGHT,
     ],
-    feedLines: '\n\n', // Minimal feed before motorized blade cut
+    feedLines: '\n\n\n', // Optimal feed past motorized guillotine blade
   },
 };
+
+// Edge-to-edge clipped dashed receipt separator
+function DashedDivider(): React.JSX.Element {
+  return (
+    <View style={styles.dividerBox}>
+      <Text
+        allowFontScaling={false}
+        style={styles.dividerTxt}
+        numberOfLines={1}
+        ellipsizeMode="clip"
+      >
+        {'-'.repeat(80)}
+      </Text>
+    </View>
+  );
+}
 
 export default function App(): React.JSX.Element {
   const [selectedProfile, setSelectedProfile] = useState<PrinterProfileId>('SC588');
@@ -404,31 +420,6 @@ export default function App(): React.JSX.Element {
 
   const isEzo = selectedProfile === 'EZO80';
 
-  const previewHeaderText =
-    selectedProfile === 'SC588'
-      ? '#  Name        Qty   Pri    Amt'
-      : `${'#'.padEnd(4)}${'Item Description'.padEnd(20)}${'Qty'.padStart(6)}${'Price'.padStart(8)}${'Amount'.padStart(10)}`;
-
-  const formatItemRow = (it: (typeof SAMPLE_INVOICE.items)[0]) => {
-    if (selectedProfile === 'SC588') {
-      return `${it.sNo.padEnd(3)}${it.name.substring(0, 11).padEnd(11)}${it.qty.padStart(5)}${it.price.padStart(6)}${it.amt.padStart(7)}`;
-    }
-    return `${it.sNo.padEnd(4)}${it.name.substring(0, 20).padEnd(20)}${it.qty.padStart(6)}${it.price.padStart(8)}${it.amt.padStart(10)}`;
-  };
-
-  const previewTotalQtyText =
-    selectedProfile === 'SC588'
-      ? `${'Total Items/Qty:'.padEnd(20)}${SAMPLE_INVOICE.totalQty.padStart(12)}`
-      : `${'Total Items/Qty:'.padEnd(30)}${SAMPLE_INVOICE.totalQty.padStart(18)}`;
-
-  const previewGrandTotalText =
-    selectedProfile === 'SC588'
-      ? `${'Grand Total Amount:'.padEnd(20)}${SAMPLE_INVOICE.grandTotal.padStart(12)}`
-      : `${'Grand Total Amount:'.padEnd(30)}${SAMPLE_INVOICE.grandTotal.padStart(18)}`;
-
-  const monoStyle = [styles.paperMono, isEzo && styles.paperMonoEzo];
-  const monoBoldStyle = [styles.paperMonoBold, isEzo && styles.paperMonoBoldEzo];
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor="#1A1A24" />
@@ -594,79 +585,180 @@ export default function App(): React.JSX.Element {
               <Text style={styles.paperWidthTag}>{activeConfig.paperWidth}</Text>
             </View>
 
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.receiptScrollContainer}
+            <View
+              style={[
+                styles.receiptPaper,
+                selectedProfile === 'SC588'
+                  ? styles.receiptPaper58
+                  : styles.receiptPaper80,
+              ]}
             >
-              <View style={[styles.receiptPaper, isEzo && styles.receiptPaperEzo]}>
-                <Text
-                  allowFontScaling={false}
-                  style={[styles.paperCenterBold, isEzo && styles.paperCenterBoldEzo]}
-                >
-                  {SAMPLE_INVOICE.shopName}
-                </Text>
-                <Text allowFontScaling={false} style={monoStyle}>
-                  {'-'.repeat(activeConfig.lineWidth)}
-                </Text>
-                <Text allowFontScaling={false} style={monoStyle}>
+              {/* Header: Shop Name */}
+              <Text allowFontScaling={false} style={styles.paperCenterBold}>
+                {SAMPLE_INVOICE.shopName}
+              </Text>
+
+              <DashedDivider />
+
+              {/* Metadata Row */}
+              <View style={styles.metaRow}>
+                <Text allowFontScaling={false} style={styles.metaTxt}>
                   Date: {SAMPLE_INVOICE.date}
                 </Text>
-                <Text allowFontScaling={false} style={monoStyle}>
-                  Invoice No: {SAMPLE_INVOICE.invoiceNo}
+                <Text allowFontScaling={false} style={styles.metaTxt}>
+                  Inv No: {SAMPLE_INVOICE.invoiceNo}
                 </Text>
-                <Text allowFontScaling={false} style={monoStyle}>
-                  {'-'.repeat(activeConfig.lineWidth)}
-                </Text>
-
-                {/* Dynamic Table Header */}
-                <Text allowFontScaling={false} style={monoStyle}>
-                  {previewHeaderText}
-                </Text>
-
-                <Text allowFontScaling={false} style={monoStyle}>
-                  {'-'.repeat(activeConfig.lineWidth)}
-                </Text>
-
-                {/* Dynamic Items Rows */}
-                {SAMPLE_INVOICE.items.map((it) => (
-                  <Text key={it.sNo} allowFontScaling={false} style={monoStyle}>
-                    {formatItemRow(it)}
-                  </Text>
-                ))}
-
-                <Text allowFontScaling={false} style={monoStyle}>
-                  {'-'.repeat(activeConfig.lineWidth)}
-                </Text>
-
-                {/* Dynamic Summary Block */}
-                <Text allowFontScaling={false} style={monoStyle}>
-                  {previewTotalQtyText}
-                </Text>
-                <Text allowFontScaling={false} style={monoBoldStyle}>
-                  {previewGrandTotalText}
-                </Text>
-
-                <Text allowFontScaling={false} style={monoStyle}>
-                  {'-'.repeat(activeConfig.lineWidth)}
-                </Text>
-
-                {/* Cutter Indicator on Paper */}
-                {activeConfig.hasAutoCutter ? (
-                  <View style={styles.cutLineBox}>
-                    <Text allowFontScaling={false} style={styles.cutLineTxt}>
-                      - - - - - - - - ✂️ AUTO-CUT - - - - - - - -
-                    </Text>
-                  </View>
-                ) : (
-                  <View style={styles.tearLineBox}>
-                    <Text allowFontScaling={false} style={styles.tearLineTxt}>
-                      ▲ ▲ ▲ TEAR AGAINST SERRATED EDGE ▲ ▲ ▲
-                    </Text>
-                  </View>
-                )}
               </View>
-            </ScrollView>
+
+              <DashedDivider />
+
+              {/* Dynamic Table Header */}
+              <View style={styles.tableRow}>
+                <Text
+                  allowFontScaling={false}
+                  style={[
+                    styles.colHeader,
+                    { flex: activeConfig.gridMetrics[0] },
+                  ]}
+                >
+                  #
+                </Text>
+                <Text
+                  allowFontScaling={false}
+                  style={[
+                    styles.colHeader,
+                    { flex: activeConfig.gridMetrics[1] },
+                  ]}
+                >
+                  {selectedProfile === 'SC588' ? 'Name' : 'Item Description'}
+                </Text>
+                <Text
+                  allowFontScaling={false}
+                  style={[
+                    styles.colHeader,
+                    styles.txtRight,
+                    { flex: activeConfig.gridMetrics[2] },
+                  ]}
+                >
+                  Qty
+                </Text>
+                <Text
+                  allowFontScaling={false}
+                  style={[
+                    styles.colHeader,
+                    styles.txtRight,
+                    { flex: activeConfig.gridMetrics[3] },
+                  ]}
+                >
+                  {selectedProfile === 'SC588' ? 'Pri' : 'Price'}
+                </Text>
+                <Text
+                  allowFontScaling={false}
+                  style={[
+                    styles.colHeader,
+                    styles.txtRight,
+                    { flex: activeConfig.gridMetrics[4] },
+                  ]}
+                >
+                  {selectedProfile === 'SC588' ? 'Amt' : 'Amount'}
+                </Text>
+              </View>
+
+              <DashedDivider />
+
+              {/* Dynamic Items Rows */}
+              {SAMPLE_INVOICE.items.map((it) => (
+                <View key={it.sNo} style={styles.tableRow}>
+                  <Text
+                    allowFontScaling={false}
+                    style={[
+                      styles.colCell,
+                      { flex: activeConfig.gridMetrics[0] },
+                    ]}
+                  >
+                    {it.sNo}
+                  </Text>
+                  <Text
+                    allowFontScaling={false}
+                    numberOfLines={1}
+                    style={[
+                      styles.colCell,
+                      { flex: activeConfig.gridMetrics[1] },
+                    ]}
+                  >
+                    {it.name.substring(0, activeConfig.nameCharLimit)}
+                  </Text>
+                  <Text
+                    allowFontScaling={false}
+                    style={[
+                      styles.colCell,
+                      styles.txtRight,
+                      { flex: activeConfig.gridMetrics[2] },
+                    ]}
+                  >
+                    {it.qty}
+                  </Text>
+                  <Text
+                    allowFontScaling={false}
+                    style={[
+                      styles.colCell,
+                      styles.txtRight,
+                      { flex: activeConfig.gridMetrics[3] },
+                    ]}
+                  >
+                    {it.price}
+                  </Text>
+                  <Text
+                    allowFontScaling={false}
+                    style={[
+                      styles.colCell,
+                      styles.txtRight,
+                      { flex: activeConfig.gridMetrics[4] },
+                    ]}
+                  >
+                    {it.amt}
+                  </Text>
+                </View>
+              ))}
+
+              <DashedDivider />
+
+              {/* Dynamic Summary Block */}
+              <View style={styles.summaryRow}>
+                <Text allowFontScaling={false} style={styles.summaryLabel}>
+                  Total Items/Qty:
+                </Text>
+                <Text allowFontScaling={false} style={styles.summaryValue}>
+                  {SAMPLE_INVOICE.totalQty}
+                </Text>
+              </View>
+
+              <View style={styles.summaryRow}>
+                <Text allowFontScaling={false} style={styles.grandTotalLabel}>
+                  Grand Total Amount:
+                </Text>
+                <Text allowFontScaling={false} style={styles.grandTotalValue}>
+                  {SAMPLE_INVOICE.grandTotal}
+                </Text>
+              </View>
+
+              <DashedDivider />
+
+              {/* Cutter Indicator on Paper */}
+              {activeConfig.hasAutoCutter ? (
+                <View style={styles.cutLineBox}>
+                  <Text allowFontScaling={false} style={styles.cutLineTxt}>
+                    - - - - - - - - ✂️ AUTO-CUT - - - - - - - -
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.tearLineBox}>
+                  <Text allowFontScaling={false} style={styles.tearLineTxt}>
+                    ▲ ▲ ▲ TEAR AGAINST SERRATED EDGE ▲ ▲ ▲
+                  </Text>
+                </View>
+              )}
+            </View>
           </View>
         </View>
       </ScrollView>
@@ -913,12 +1005,8 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: 'bold',
   },
-  receiptScrollContainer: {
-    minWidth: '100%',
-  },
   receiptPaper: {
     backgroundColor: '#FFFDF0',
-    padding: 14,
     borderRadius: 6,
     borderWidth: 1,
     borderColor: '#D4CEB0',
@@ -927,50 +1015,99 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 6,
     elevation: 4,
-    width: '100%',
-  },
-  receiptPaperEzo: {
-    paddingHorizontal: 8,
     paddingVertical: 12,
+  },
+  receiptPaper58: {
+    width: '76%',
+    alignSelf: 'center',
+    paddingHorizontal: 8,
+  },
+  receiptPaper80: {
+    width: '100%',
+    paddingHorizontal: 12,
   },
   paperCenterBold: {
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     fontWeight: 'bold',
-    fontSize: 12,
+    fontSize: 13.5,
     color: '#111',
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: 2,
+    letterSpacing: 0.3,
   },
-  paperCenterBoldEzo: {
+  metaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 1,
+  },
+  metaTxt: {
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     fontSize: 10,
-    marginBottom: 3,
+    color: '#333',
   },
-  paperMono: {
+  dividerBox: {
+    height: 12,
+    justifyContent: 'center',
+    overflow: 'hidden',
+    marginVertical: 2,
+  },
+  dividerTxt: {
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     fontSize: 10.5,
-    color: '#111',
-    lineHeight: 15,
+    color: '#444',
   },
-  paperMonoEzo: {
-    fontSize: 7.2,
-    lineHeight: 10.5,
-    letterSpacing: -0.2,
+  tableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 1.5,
   },
-  paperMonoBold: {
+  colHeader: {
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     fontWeight: 'bold',
     fontSize: 10.5,
     color: '#000',
-    lineHeight: 15,
   },
-  paperMonoBoldEzo: {
-    fontSize: 7.2,
-    lineHeight: 10.5,
-    letterSpacing: -0.2,
+  colCell: {
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    fontSize: 10.5,
+    color: '#111',
+  },
+  txtRight: {
+    textAlign: 'right',
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 1.5,
+  },
+  summaryLabel: {
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    fontSize: 10.5,
+    color: '#222',
+  },
+  summaryValue: {
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    fontSize: 10.5,
+    color: '#111',
+    textAlign: 'right',
+  },
+  grandTotalLabel: {
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    fontWeight: 'bold',
+    fontSize: 11,
+    color: '#000',
+  },
+  grandTotalValue: {
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    fontWeight: 'bold',
+    fontSize: 11,
+    color: '#000',
+    textAlign: 'right',
   },
   cutLineBox: {
-    marginTop: 8,
-    paddingTop: 8,
+    marginTop: 6,
+    paddingTop: 6,
     borderTopWidth: 1,
     borderTopColor: '#CCC',
     alignItems: 'center',
@@ -982,8 +1119,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   tearLineBox: {
-    marginTop: 8,
-    paddingTop: 8,
+    marginTop: 6,
+    paddingTop: 6,
     borderTopWidth: 1,
     borderTopColor: '#CCC',
     alignItems: 'center',
