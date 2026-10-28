@@ -1,116 +1,157 @@
-# SC588 Bluetooth Thermal Billing MVP (Expo + TypeScript)
+# 🧾 SC588 Bluetooth Thermal Billing Mobile App
 
-A lightweight diagnostic tool and billing print engine for the **SC588 58mm (2-inch) Bluetooth Thermal Printer**, configured for **Expo Development Builds**, **EAS Build (APK)**, and tested on the **Samsung Galaxy A34 5G**.
+<p align="center">
+  <img src="https://img.shields.io/badge/React_Native-0.74.5-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React Native" />
+  <img src="https://img.shields.io/badge/Expo_SDK-51.0-000020?style=for-the-badge&logo=expo&logoColor=white" alt="Expo SDK" />
+  <img src="https://img.shields.io/badge/TypeScript-5.3-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Android-14_Ready-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android 14" />
+  <img src="https://img.shields.io/badge/ESC%2FPOS-58mm_(32_Cols)-FF6B6B?style=for-the-badge" alt="58mm ESC/POS" />
+  <img src="https://img.shields.io/badge/EAS_Build-Passing-4CD964?style=for-the-badge&logo=expo" alt="EAS Build" />
+</p>
+
+A high-performance, lightweight mobile billing and thermal receipt print engine built for portable **58mm (2-inch) ESC/POS Bluetooth Thermal Printers** (such as **SC588**, **POS-58**, **MTP-II**).
+
+Engineered in **TypeScript** and **React Native / Expo**, specifically tuned and tested for **Samsung Galaxy A34 5G (Android 14 / One UI 6)** and verified with real physical thermal printing.
 
 ---
 
-## ⚠️ Critical Expo Architecture Notice
-Because `react-native-bluetooth-escpos-printer` communicates directly with Android native Bluetooth hardware (Classic RFCOMM profile), **this app CANNOT run inside standard Expo Go**. Launching it in Expo Go will crash when accessing native Bluetooth modules.
+## 📱 Hardware & Field-Tested Verification
 
-You must run either:
-1. **Expo Development Build** (`npx expo run:android`) via USB cable.
-2. **Standalone APK** via EAS Cloud (`eas build --platform android --profile preview`).
+| Specification | Hardware Detail |
+| :--- | :--- |
+| **Target Printer** | SC588 Portable Thermal Printer (58mm / 2-inch roll width) |
+| **Communication Profile** | Bluetooth Classic RFCOMM (Serial Port Profile - SPP) |
+| **Grid Boundary** | Strict 32 characters per line limit (`LINE_WIDTH = 32`) |
+| **Test Device** | Samsung Galaxy A34 5G (Android 14, API Level 34) |
+| **Validation Status** | **VERIFIED & WORKING** on physical hardware |
 
 ---
 
-## 📁 Project Structure
+## 📸 Real Printed Receipt Sample
+
+```text
+================================
+          Aftab Rental
+--------------------------------
+Date: 26/10/2026
+Invoice No: 38
+--------------------------------
+#   Name          Qty   Pri  Amt
+--------------------------------
+1   CHANACHUR       2    90  180
+2   S N T RICE      2    40   80
+3   SUN R MIRC    0.4   490  196
+4   POTATO F       50    17  850
+5   BHUJIA-700      4    65  260
+6   SUJI            1    45   45
+7   LONG-        0.05  1500   75
+8   MAIDA           1  1880 1880
+9   PLAM OIL 1      1  2190 2190
+10  ONION           1    55   55
+11  L C             1    15   15
+--------------------------------
+Total Items/Qty:           63.45
+Total Amount:    5826
+================================
+```
+
+---
+
+## ✨ Key Features & Architecture
+
+### 1. ⚡ Dual-Mode Universal Architecture
+- **In Expo Go & Web:** Automatically activates a non-mutating mock driver layer (`services/bluetoothPrinter.ts`), allowing instant UI preview, layout tweaking, and button testing without crashing the Hermes engine.
+- **In Standalone APK:** Automatically binds directly to native Android Bluetooth RFCOMM hardware APIs to dispatch raw ESC/POS byte streams to physical printers.
+
+### 2. 📏 Mathematical 32-Column Grid Budget
+Standard 58mm thermal printers wrap awkwardly if a line exceeds 32 characters. Our layout allocates strict character column limits:
+- `#` (3 chars) + `Name` (11 chars) + `Qty` (5 chars) + `Pri` (6 chars) + `Amt` (7 chars) = **Exactly 32 Characters**.
+- Summary line: `Label` (20 chars) + `Value` (12 chars) = **32 Characters**.
+
+### 3. 🛡️ Android 14 Runtime Security & Permissions
+- Automatically checks `Platform.Version >= 31` and prompts for modern Android permissions:
+  - `android.permission.BLUETOOTH_CONNECT`
+  - `android.permission.BLUETOOTH_SCAN`
+  - `android.permission.ACCESS_FINE_LOCATION`
+- Configured with `minSdkVersion: 31` via `expo-build-properties`.
+
+### 4. 🔍 Auto-Discovery & Manual Selection Fallback
+- Scans both bonded (paired) and nearby unbonded devices.
+- Auto-locks onto hardware matching `SC588`, `POS`, `PRINTER`, or `MTP`.
+- If an unusual Bluetooth broadcast name is used, an interactive **"Select Your Printer"** sheet appears automatically for manual tap-to-connect.
+
+### 5. 🛠️ Automated Gradle 8 & AndroidX Patching
+- Legacy printer drivers often ship with outdated `http://jcenter.bintray.com/` URLs and `compile` directives.
+- Our custom `scripts/patch-printer.js` automatically executes on `postinstall`, updating the driver to Gradle 8, HTTPS, and modern AndroidX before compilation.
+
+---
+
+## 🚀 Standalone APK Download
+
+You can download and install the compiled APK directly on any Android smartphone:
+
+📦 **[Download Direct APK (EAS Artifact)](https://expo.dev/artifacts/eas/x3ZQWSw1BM8LpqPxKwKQiQq4hRednkqdGytSE-J-MYk.apk)**
+
+---
+
+## 📁 Repository File Structure
 
 ```text
 billing-mobile-app/
-├── App.tsx                     # Main controller in TypeScript with 32-col print stream
-├── app.json                    # Expo config with Bluetooth permissions & minSdkVersion 31
-├── eas.json                    # EAS build profiles (internal dev build & preview APK)
-├── index.js                    # Expo entry registration (registerRootComponent)
-├── package.json                # Expo SDK 51, TypeScript, Jetifier postinstall
-├── tsconfig.json               # TypeScript strict configuration
-├── types/
-│   └── react-native-bluetooth-escpos-printer.d.ts  # Type declarations for native module
-└── README.md
+├── App.tsx                     # Main UI controller & ESC/POS 32-col layout stream
+├── app.json                    # Expo config (permissions, package, splash, EAS ID)
+├── eas.json                    # EAS Cloud Build configuration (APK profile)
+├── index.js                    # Application entry point (registerRootComponent)
+├── package.json                # Dependencies, build scripts & postinstall patch
+├── tsconfig.json               # TypeScript configuration extending expo/tsconfig.base
+├── .gitignore                  # Clean repository ignores (node_modules, .expo, etc.)
+├── scripts/
+│   └── patch-printer.js        # Gradle 8 & AndroidX build patcher
+├── services/
+│   └── bluetoothPrinter.ts     # Safe dual-mode native/mock Bluetooth driver
+└── types/
+    └── react-native-bluetooth-escpos-printer.d.ts # Strong TypeScript definitions
 ```
 
 ---
 
-## 🛠️ Step 1: Install Dependencies
+## 💻 Developer Setup & Commands
 
-Open PowerShell in this directory:
+### 1. Install Dependencies
 ```bash
 npm install
 ```
-*(The `postinstall` script automatically executes `jetify` to patch legacy Android support libraries for modern AndroidX).*
+*(Automatically triggers `postinstall` to patch the printer module and execute `jetify`).*
 
----
-
-## 💻 Step 2: Local Testing on Samsung Galaxy A34 5G (Expo Dev Build)
-
-### 1. Enable Developer Mode on Samsung Galaxy A34 5G:
-1. Open **Settings** > **About phone** > **Software information**.
-2. Tap **Build number** 7 times until you see *"Developer mode has been enabled"*.
-3. Go back to **Settings** > **Developer options**.
-4. Enable **USB debugging**.
-
-### 2. Connect Device & Compile:
-1. Connect your Samsung A34 5G to your computer via USB.
-2. Allow USB debugging prompt on phone screen when prompted.
-3. Run the development build:
+### 2. Preview UI (Expo Go / Browser)
 ```bash
-npx expo run:android
+npm start
 ```
-This builds and installs the custom development client onto your Samsung phone with live hot-reloading.
+- Press `r` to reload the bundle.
+- Press `w` to open interactive web preview in your browser.
+- Scan QR with Expo Go on your mobile device.
 
----
-
-## 📦 Step 3: Cloud Compiling Standalone APK (EAS Build)
-
-If you want a standalone `.apk` that installs without needing a local Android development environment or USB cable:
-
-1. Install EAS CLI globally:
+### 3. Build Standalone Android APK (EAS)
 ```bash
-npm install -g eas-cli
+npm run build:apk
 ```
-2. Log into your Expo account:
-```bash
-eas login
-```
-3. Run the cloud build:
-```bash
-eas build --platform android --profile preview
-```
-4. Once completed, EAS will display a **QR code / direct download link**.
-5. Open your Samsung camera or browser, download the `.apk`, and install it.
+Builds a production-ready, standalone `.apk` in the cloud via EAS Application Services.
 
 ---
 
-## 🔌 Step 4: Samsung One UI Specific Configuration
+## 🖨️ Client Field-Testing Quick Guide
 
-Samsung's One UI battery and privacy engines require two manual checks:
-1. **Nearby Devices Permission**:
-   * Long-press the installed app icon > **App info** (ℹ️) > **Permissions**.
-   * Ensure **Nearby devices** is set to **Allow**.
-2. **Prevent Connection Dropping (Battery Optimization)**:
-   * Inside **App info** > **Battery**, select **Unrestricted**.
-   * This prevents Samsung's power manager from killing the Bluetooth socket when the screen locks.
+When conducting a live demonstration with a physical thermal printer:
 
----
-
-## 🧾 58mm Receipt Character Allocation (32 Columns)
-
-| Field | Width | Align | Preview |
-|---|:---:|:---:|---|
-| Serial (`#`) | 3 | Left | `1  ` |
-| Item Name (`Name`) | 11 | Left | `CHANACHUR  ` |
-| Quantity (`Qty`) | 5 | Right | `    2` |
-| Price (`Pri`) | 6 | Right | `    90` |
-| Amount (`Amt`) | 7 | Right | `    180` |
-| **Total Line Width** | **32** | | Fits 58mm roll with zero overflow |
-| Total Items / Qty | 20 / 12 | Left / Right | `"Total Items/Qty:              63.45"` |
-| Total Amount (Bold) | 20 / 12 | Left / Right | `"Total Amount:                  5826"` |
+1. **Power On**: Turn on the printer (confirm green power LED is steady and 58mm paper roll is installed).
+2. **First-Time Bluetooth Pairing**:
+   - Open your phone's **Settings > Bluetooth**.
+   - Tap the printer and pair using PIN `0000` or `1234`.
+3. **Open Billing App**:
+   - Tap **"1. Locate & Bind Printer"** &rarr; Status indicator turns **Green**.
+   - Tap **"2. Push Blueprint Receipt"** &rarr; Receipt feeds and prints instantly!
 
 ---
 
-## 🧪 Hardware Printing Execution
-
-1. Power on the SC588 printer (solid green light).
-2. Pair the printer in Samsung phone **Settings > Bluetooth** (PIN `0000` or `1234`).
-3. Open the app:
-   * Tap **1. Locate & Bind Printer** (grants permissions and locks onto the SC588).
-   * Tap **2. Push Blueprint Receipt** to print the receipt.
+## 📄 License
+This project is licensed under the [MIT License](LICENSE).
