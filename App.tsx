@@ -129,7 +129,7 @@ export const PRINTER_PROFILES: Record<PrinterProfileId, PrinterProfile> = {
       BluetoothEscposPrinter.ALIGN.LEFT,
       BluetoothEscposPrinter.ALIGN.RIGHT,
     ],
-    feedLines: '\n\n\n\n\n\n\n', // 7 lines (~28-30mm): pushes entire bill completely past internal cutter blade
+    feedLines: '\n\n\n\n\n\n\n\n\n\n', // 10 lines: pushes receipt completely clear of the cutter box
   },
 };
 
@@ -393,7 +393,7 @@ export default function App(): React.JSX.Element {
         activeConfig.totalMetrics,
         activeConfig.totalPositions,
         ['Total Amount:', SAMPLE_INVOICE.grandTotal],
-        { fonttype: 1 } // BOLD font weight
+        {} // Exact same standard font size as Total Items/Qty
       );
 
       // Print closing divider line
