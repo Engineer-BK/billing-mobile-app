@@ -103,7 +103,7 @@ export const PRINTER_PROFILES: Record<PrinterProfileId, PrinterProfile> = {
       BluetoothEscposPrinter.ALIGN.LEFT,
       BluetoothEscposPrinter.ALIGN.RIGHT,
     ],
-    feedLines: '\n\n\n', // Optimal feed past physical serrated tear teeth
+    feedLines: '\n\n\n\n\n', // 5 lines: feeds past manual tear teeth
   },
   EZO80: {
     id: 'EZO80',
@@ -129,7 +129,7 @@ export const PRINTER_PROFILES: Record<PrinterProfileId, PrinterProfile> = {
       BluetoothEscposPrinter.ALIGN.LEFT,
       BluetoothEscposPrinter.ALIGN.RIGHT,
     ],
-    feedLines: '\n\n\n', // Optimal feed past motorized guillotine blade
+    feedLines: '\n\n\n\n\n\n\n', // 7 lines (~28-30mm): pushes entire bill completely past internal cutter blade
   },
 };
 
@@ -395,6 +395,9 @@ export default function App(): React.JSX.Element {
         ['Total Amount:', SAMPLE_INVOICE.grandTotal],
         { fonttype: 1 } // BOLD font weight
       );
+
+      // Print closing divider line
+      await BluetoothEscposPrinter.printText(dividerLine, {});
 
       // --- Paper Feed & Auto-Cutter Management ---
       await BluetoothEscposPrinter.printText(activeConfig.feedLines, {});
@@ -1106,11 +1109,13 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   cutLineBox: {
-    marginTop: 6,
-    paddingTop: 6,
+    marginTop: 12,
+    paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#CCC',
+    borderTopColor: '#DDD',
+    borderStyle: 'dashed',
     alignItems: 'center',
+    paddingBottom: 4,
   },
   cutLineTxt: {
     fontSize: 9.5,
@@ -1119,11 +1124,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   tearLineBox: {
-    marginTop: 6,
-    paddingTop: 6,
+    marginTop: 12,
+    paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#CCC',
+    borderTopColor: '#DDD',
+    borderStyle: 'dashed',
     alignItems: 'center',
+    paddingBottom: 4,
   },
   tearLineTxt: {
     fontSize: 9,
