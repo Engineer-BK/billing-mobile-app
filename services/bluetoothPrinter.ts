@@ -82,6 +82,7 @@ export const BluetoothManager = {
     }
     return JSON.stringify({
       paired: [
+        { name: 'EZO 80UB 3Inch Printer (Demo)', address: '80:UB:20:25:04:02' },
         { name: 'SC588 Thermal Printer (Demo)', address: '86:67:7A:B2:11:01' },
         { name: 'POS-58 Bluetooth (Demo)', address: '66:32:9A:12:44:88' },
       ],

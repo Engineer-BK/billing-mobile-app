@@ -38,7 +38,7 @@ export interface InvoiceData {
   grandTotal: string;
 }
 
-// Static Data matching your sample photo exactly
+// Static Data matching your sample receipt photo
 const SAMPLE_INVOICE: InvoiceData = {
   shopName: 'Aftab Rental',
   date: '26/10/2026',
@@ -60,17 +60,90 @@ const SAMPLE_INVOICE: InvoiceData = {
   grandTotal: '5826',
 };
 
-// 58mm line width limit: exactly 32 characters per line
-const LINE_WIDTH = 32;
-const DIVIDER_LINE = '-'.repeat(LINE_WIDTH) + '\n';
+export type PrinterProfileId = 'SC588' | 'EZO80';
+
+export interface PrinterProfile {
+  id: PrinterProfileId;
+  displayName: string;
+  badge: string;
+  paperWidth: string;
+  lineWidth: number;
+  nameCharLimit: number;
+  hasAutoCutter: boolean;
+  gridMetrics: number[];
+  gridPositions: number[];
+  headerColumns: string[];
+  totalMetrics: number[];
+  totalPositions: number[];
+  feedLines: string;
+}
+
+export const PRINTER_PROFILES: Record<PrinterProfileId, PrinterProfile> = {
+  SC588: {
+    id: 'SC588',
+    displayName: 'SC588 (58mm)',
+    badge: '2-Inch • 32 Col',
+    paperWidth: '58mm Roll',
+    lineWidth: 32,
+    nameCharLimit: 11,
+    hasAutoCutter: false,
+    // Columns: # (3) + Name (11) + Qty (5) + Price (6) + Amount (7) = 32
+    gridMetrics: [3, 11, 5, 6, 7],
+    gridPositions: [
+      BluetoothEscposPrinter.ALIGN.LEFT,
+      BluetoothEscposPrinter.ALIGN.LEFT,
+      BluetoothEscposPrinter.ALIGN.RIGHT,
+      BluetoothEscposPrinter.ALIGN.RIGHT,
+      BluetoothEscposPrinter.ALIGN.RIGHT,
+    ],
+    headerColumns: ['#', 'Name', 'Qty', 'Pri', 'Amt'],
+    // Summary: Label (20) + Value (12) = 32
+    totalMetrics: [20, 12],
+    totalPositions: [
+      BluetoothEscposPrinter.ALIGN.LEFT,
+      BluetoothEscposPrinter.ALIGN.RIGHT,
+    ],
+    feedLines: '\n\n\n\n', // Feed paper past physical serrated tear teeth
+  },
+  EZO80: {
+    id: 'EZO80',
+    displayName: 'EZO 80UB (80mm)',
+    badge: '3-Inch • 48 Col • Auto-Cut',
+    paperWidth: '80mm Roll',
+    lineWidth: 48,
+    nameCharLimit: 20,
+    hasAutoCutter: true,
+    // Columns: # (4) + Item Description (20) + Qty (6) + Price (8) + Amount (10) = 48
+    gridMetrics: [4, 20, 6, 8, 10],
+    gridPositions: [
+      BluetoothEscposPrinter.ALIGN.LEFT,
+      BluetoothEscposPrinter.ALIGN.LEFT,
+      BluetoothEscposPrinter.ALIGN.RIGHT,
+      BluetoothEscposPrinter.ALIGN.RIGHT,
+      BluetoothEscposPrinter.ALIGN.RIGHT,
+    ],
+    headerColumns: ['#', 'Item Description', 'Qty', 'Price', 'Amount'],
+    // Summary: Label (30) + Value (18) = 48
+    totalMetrics: [30, 18],
+    totalPositions: [
+      BluetoothEscposPrinter.ALIGN.LEFT,
+      BluetoothEscposPrinter.ALIGN.RIGHT,
+    ],
+    feedLines: '\n\n', // Minimal feed before motorized blade cut
+  },
+};
 
 export default function App(): React.JSX.Element {
+  const [selectedProfile, setSelectedProfile] = useState<PrinterProfileId>('SC588');
   const [targetAddress, setTargetAddress] = useState<string | null>(null);
   const [printerName, setPrinterName] = useState<string>('None Linked');
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [isPrinting, setIsPrinting] = useState<boolean>(false);
   const [deviceList, setDeviceList] = useState<BluetoothDevice[]>([]);
   const [showDeviceList, setShowDeviceList] = useState<boolean>(false);
+
+  const activeConfig = PRINTER_PROFILES[selectedProfile];
+  const dividerLine = '-'.repeat(activeConfig.lineWidth) + '\n';
 
   // Request Bluetooth & Location permissions required for Samsung Galaxy A34 (Android 14 / API 34)
   const requestPermissions = async (): Promise<boolean> => {
@@ -107,7 +180,22 @@ export default function App(): React.JSX.Element {
     }
   };
 
-  // 1. Scan for devices, auto-bind SC588 or populate device list
+  // Helper to auto-detect model profile based on Bluetooth broadcast name
+  const autoDetectProfileByName = (name: string): PrinterProfileId => {
+    const devUpper = (name || '').toUpperCase();
+    if (
+      devUpper.includes('80UB') ||
+      devUpper.includes('EZO') ||
+      devUpper.includes('POS-80') ||
+      devUpper.includes('POS80') ||
+      devUpper.includes('80MM')
+    ) {
+      return 'EZO80';
+    }
+    return 'SC588';
+  };
+
+  // 1. Scan for devices, auto-bind matching printer or show device picker
   const discoverAndBindPrinter = async (): Promise<void> => {
     const hasPermission = await requestPermissions();
     if (!hasPermission) {
@@ -146,10 +234,12 @@ export default function App(): React.JSX.Element {
 
       setDeviceList(uniqueDevices);
 
-      // Match against known hardware identifier strings for SC588 / thermal POS
+      // Match against known hardware identifier strings for EZO 80UB, SC588, or general POS
       const printerTarget = uniqueDevices.find((device) => {
         const devName = (device.name || '').toUpperCase();
         return (
+          devName.includes('80UB') ||
+          devName.includes('EZO') ||
           devName.includes('SC588') ||
           devName.includes('PRINTER') ||
           devName.includes('POS') ||
@@ -158,7 +248,7 @@ export default function App(): React.JSX.Element {
       });
 
       if (printerTarget) {
-        await connectToDevice(printerTarget.address, printerTarget.name || 'SC588 Thermal Printer');
+        await connectToDevice(printerTarget.address, printerTarget.name || 'Thermal POS Printer');
       } else if (uniqueDevices.length > 0) {
         setShowDeviceList(true);
         Alert.alert(
@@ -168,7 +258,7 @@ export default function App(): React.JSX.Element {
       } else {
         Alert.alert(
           'Hardware Missing',
-          'Could not locate SC588 via Bluetooth.\n\n1. Check printer green LED.\n2. Ensure device is paired in Samsung Settings > Bluetooth.'
+          'Could not locate printer via Bluetooth.\n\n1. Ensure printer power is ON (green LED).\n2. Pair device once in Samsung Settings > Bluetooth.'
         );
       }
     } catch (err: unknown) {
@@ -179,7 +269,7 @@ export default function App(): React.JSX.Element {
     }
   };
 
-  // Connect to target device address
+  // Connect to target device address & automatically set appropriate printer profile
   const connectToDevice = async (address: string, name: string): Promise<void> => {
     try {
       setIsScanning(true);
@@ -187,7 +277,15 @@ export default function App(): React.JSX.Element {
       setTargetAddress(address);
       setPrinterName(name || address);
       setShowDeviceList(false);
-      Alert.alert('Link Verified', `${name || 'Printer'} locked and bound successfully.`);
+
+      // Auto-detect profile from name
+      const detectedProfile = autoDetectProfileByName(name);
+      setSelectedProfile(detectedProfile);
+
+      Alert.alert(
+        'Link Verified',
+        `${name || 'Printer'} locked and bound successfully.\nActive Profile: ${PRINTER_PROFILES[detectedProfile].displayName}`
+      );
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       Alert.alert('Connection Failed', `Could not connect to ${name}: ${msg}`);
@@ -210,7 +308,7 @@ export default function App(): React.JSX.Element {
     }
   };
 
-  // 2. Format transmission stream according to 58mm (32 chars) constraints
+  // 2. Format transmission stream dynamically for SC588 (32 cols) or EZO 80UB (48 cols + Auto-Cut)
   const pushPrintJob = async (): Promise<void> => {
     if (!targetAddress) {
       Alert.alert('Action Blocked', 'Please link your hardware first using the discovery module.');
@@ -230,45 +328,34 @@ export default function App(): React.JSX.Element {
         encoding: 'GBK',
         codepage: 0,
         widthtimes: 1,
-        heigthtimes: 1, // Double height for banner visibility
+        heigthtimes: 1, // Double height banner
         fonttype: 1,    // Double-weight BOLD
       });
-      await BluetoothEscposPrinter.printText(DIVIDER_LINE, {});
+      await BluetoothEscposPrinter.printText(dividerLine, {});
 
       // --- Invoice Meta Block ---
       await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.LEFT);
       await BluetoothEscposPrinter.printText(`Date: ${SAMPLE_INVOICE.date}\n`, {});
       await BluetoothEscposPrinter.printText(`Invoice No: ${SAMPLE_INVOICE.invoiceNo}\n`, {});
-      await BluetoothEscposPrinter.printText(DIVIDER_LINE, {});
+      await BluetoothEscposPrinter.printText(dividerLine, {});
 
-      // --- Invoicing Matrix (Columns total exactly 32) ---
-      // # (3) + Item (11) + Qty (5) + Price (6) + Amount (7) = 32 Characters
-      const gridMetrics: number[] = [3, 11, 5, 6, 7];
-      const gridPositions: number[] = [
-        BluetoothEscposPrinter.ALIGN.LEFT,
-        BluetoothEscposPrinter.ALIGN.LEFT,
-        BluetoothEscposPrinter.ALIGN.RIGHT,
-        BluetoothEscposPrinter.ALIGN.RIGHT,
-        BluetoothEscposPrinter.ALIGN.RIGHT,
-      ];
-
-      // Table Header Row
+      // --- Table Header Row ---
       await BluetoothEscposPrinter.printColumn(
-        gridMetrics,
-        gridPositions,
-        ['#', 'Name', 'Qty', 'Pri', 'Amt'],
+        activeConfig.gridMetrics,
+        activeConfig.gridPositions,
+        activeConfig.headerColumns,
         {}
       );
-      await BluetoothEscposPrinter.printText(DIVIDER_LINE, {});
+      await BluetoothEscposPrinter.printText(dividerLine, {});
 
       // --- Core Items Render Loop ---
       for (const record of SAMPLE_INVOICE.items) {
         await BluetoothEscposPrinter.printColumn(
-          gridMetrics,
-          gridPositions,
+          activeConfig.gridMetrics,
+          activeConfig.gridPositions,
           [
             record.sNo,
-            record.name.substring(0, 11), // Strict 11-char max width
+            record.name.substring(0, activeConfig.nameCharLimit),
             record.qty,
             record.price,
             record.amt,
@@ -276,30 +363,37 @@ export default function App(): React.JSX.Element {
           {}
         );
       }
-      await BluetoothEscposPrinter.printText(DIVIDER_LINE, {});
+      await BluetoothEscposPrinter.printText(dividerLine, {});
 
       // --- Cumulative Summary Region ---
-      // Label (20) + Value (12) = 32 Characters
-      const totalBlockMetrics: number[] = [20, 12];
       await BluetoothEscposPrinter.printColumn(
-        totalBlockMetrics,
-        [BluetoothEscposPrinter.ALIGN.LEFT, BluetoothEscposPrinter.ALIGN.RIGHT],
+        activeConfig.totalMetrics,
+        activeConfig.totalPositions,
         ['Total Items/Qty:', SAMPLE_INVOICE.totalQty],
         {}
       );
 
       await BluetoothEscposPrinter.printColumn(
-        totalBlockMetrics,
-        [BluetoothEscposPrinter.ALIGN.LEFT, BluetoothEscposPrinter.ALIGN.RIGHT],
+        activeConfig.totalMetrics,
+        activeConfig.totalPositions,
         ['Total Amount:', SAMPLE_INVOICE.grandTotal],
         { fonttype: 1 } // BOLD font weight
       );
 
-      // --- Paper Feed Management ---
-      // Advance paper past tear bar
-      await BluetoothEscposPrinter.printText('\n\n\n\n', {});
+      // --- Paper Feed & Auto-Cutter Management ---
+      await BluetoothEscposPrinter.printText(activeConfig.feedLines, {});
 
-      Alert.alert('Print Finished', 'Receipt stream dispatched to SC588 successfully.');
+      if (activeConfig.hasAutoCutter) {
+        // ESC/POS Auto-Cutter command: GS V 0 (0x1D 0x56 0x00) Full Cut
+        await BluetoothEscposPrinter.printText('\x1D\x56\x00', {});
+      }
+
+      Alert.alert(
+        'Print Finished',
+        `Receipt stream dispatched to ${activeConfig.displayName} successfully.${
+          activeConfig.hasAutoCutter ? '\n✂️ Auto-cutter blade triggered.' : ''
+        }`
+      );
     } catch (printError: unknown) {
       const msg = printError instanceof Error ? printError.message : String(printError);
       Alert.alert('Print Execution Aborted', msg);
@@ -308,18 +402,104 @@ export default function App(): React.JSX.Element {
     }
   };
 
+  const isEzo = selectedProfile === 'EZO80';
+
+  const previewHeaderText =
+    selectedProfile === 'SC588'
+      ? '#  Name        Qty   Pri    Amt'
+      : `${'#'.padEnd(4)}${'Item Description'.padEnd(20)}${'Qty'.padStart(6)}${'Price'.padStart(8)}${'Amount'.padStart(10)}`;
+
+  const formatItemRow = (it: (typeof SAMPLE_INVOICE.items)[0]) => {
+    if (selectedProfile === 'SC588') {
+      return `${it.sNo.padEnd(3)}${it.name.substring(0, 11).padEnd(11)}${it.qty.padStart(5)}${it.price.padStart(6)}${it.amt.padStart(7)}`;
+    }
+    return `${it.sNo.padEnd(4)}${it.name.substring(0, 20).padEnd(20)}${it.qty.padStart(6)}${it.price.padStart(8)}${it.amt.padStart(10)}`;
+  };
+
+  const previewTotalQtyText =
+    selectedProfile === 'SC588'
+      ? `${'Total Items/Qty:'.padEnd(20)}${SAMPLE_INVOICE.totalQty.padStart(12)}`
+      : `${'Total Items/Qty:'.padEnd(30)}${SAMPLE_INVOICE.totalQty.padStart(18)}`;
+
+  const previewGrandTotalText =
+    selectedProfile === 'SC588'
+      ? `${'Grand Total Amount:'.padEnd(20)}${SAMPLE_INVOICE.grandTotal.padStart(12)}`
+      : `${'Grand Total Amount:'.padEnd(30)}${SAMPLE_INVOICE.grandTotal.padStart(18)}`;
+
+  const monoStyle = [styles.paperMono, isEzo && styles.paperMonoEzo];
+  const monoBoldStyle = [styles.paperMonoBold, isEzo && styles.paperMonoBoldEzo];
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor="#1A1A24" />
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.viewPort}>
-          <Text style={styles.headline}>SC588 Diagnostic Control Panel</Text>
-          <Text style={styles.subhead}>Samsung Galaxy A34 5G • 58mm Blueprint</Text>
+          <Text style={styles.headline}>Thermal POS Control Panel</Text>
+          <Text style={styles.subhead}>Dual-Engine • SC588 (58mm) & EZO 80UB (80mm)</Text>
+
+          {/* Interactive Hardware Profile Switcher */}
+          <View style={styles.profileSwitcherCard}>
+            <Text style={styles.switcherLabel}>SELECT PRINTER PROFILE</Text>
+            <View style={styles.tabRow}>
+              <TouchableOpacity
+                style={[
+                  styles.tabButton,
+                  selectedProfile === 'SC588' && styles.tabButtonActive,
+                ]}
+                onPress={() => setSelectedProfile('SC588')}
+              >
+                <Text
+                  style={[
+                    styles.tabButtonTitle,
+                    selectedProfile === 'SC588' && styles.tabButtonTitleActive,
+                  ]}
+                >
+                  SC588 (58mm)
+                </Text>
+                <Text
+                  style={[
+                    styles.tabButtonSub,
+                    selectedProfile === 'SC588' && styles.tabButtonSubActive,
+                  ]}
+                >
+                  32 Col • 2-Inch
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.tabButton,
+                  selectedProfile === 'EZO80' && styles.tabButtonActive,
+                ]}
+                onPress={() => setSelectedProfile('EZO80')}
+              >
+                <Text
+                  style={[
+                    styles.tabButtonTitle,
+                    selectedProfile === 'EZO80' && styles.tabButtonTitleActive,
+                  ]}
+                >
+                  EZO 80UB (80mm)
+                </Text>
+                <Text
+                  style={[
+                    styles.tabButtonSub,
+                    selectedProfile === 'EZO80' && styles.tabButtonSubActive,
+                  ]}
+                >
+                  48 Col • Auto-Cut
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
 
           {/* Active Node Dashboard */}
           <View style={styles.dashboard}>
             <View style={styles.statusRow}>
-              <Text style={styles.lbl}>Active Node ID</Text>
+              <View>
+                <Text style={styles.lbl}>Connected Device</Text>
+                <Text style={styles.val}>{printerName}</Text>
+              </View>
               <View
                 style={[
                   styles.statusDot,
@@ -327,10 +507,21 @@ export default function App(): React.JSX.Element {
                 ]}
               />
             </View>
-            <Text style={styles.val}>{printerName}</Text>
+
             {targetAddress ? (
               <Text style={styles.macAddress}>MAC: {targetAddress}</Text>
             ) : null}
+
+            <View style={styles.profileBadgeRow}>
+              <View style={styles.profileBadge}>
+                <Text style={styles.profileBadgeTxt}>{activeConfig.badge}</Text>
+              </View>
+              {activeConfig.hasAutoCutter ? (
+                <View style={styles.cutterBadge}>
+                  <Text style={styles.cutterBadgeTxt}>✂️ Auto-Cutter</Text>
+                </View>
+              ) : null}
+            </View>
 
             {targetAddress ? (
               <TouchableOpacity
@@ -342,10 +533,10 @@ export default function App(): React.JSX.Element {
             ) : null}
           </View>
 
-          {/* Fallback Discovered Devices Picker */}
+          {/* Discovered Devices Picker Sheet */}
           {showDeviceList && deviceList.length > 0 ? (
             <View style={styles.deviceListBox}>
-              <Text style={styles.deviceListTitle}>Select Your Printer:</Text>
+              <Text style={styles.deviceListTitle}>Select Your Bluetooth Printer:</Text>
               {deviceList.map((dev: BluetoothDevice) => (
                 <TouchableOpacity
                   key={dev.address}
@@ -363,7 +554,7 @@ export default function App(): React.JSX.Element {
             </View>
           ) : null}
 
-          {/* 1. Locate and Bind Trigger */}
+          {/* Action 1: Locate & Bind */}
           <TouchableOpacity
             style={[styles.primaryTrigger, isScanning && styles.disabledBtn]}
             onPress={discoverAndBindPrinter}
@@ -376,7 +567,7 @@ export default function App(): React.JSX.Element {
             )}
           </TouchableOpacity>
 
-          {/* 2. Push Receipt Trigger */}
+          {/* Action 2: Push Receipt */}
           <TouchableOpacity
             style={[
               styles.successTrigger,
@@ -388,41 +579,94 @@ export default function App(): React.JSX.Element {
             {isPrinting ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.triggerTxt}>2. Push Blueprint Receipt</Text>
+              <Text style={styles.triggerTxt}>
+                {`2. Push ${activeConfig.displayName} Receipt`}
+              </Text>
             )}
           </TouchableOpacity>
 
-          {/* Live Monospace Receipt Layout Preview (32 Columns) */}
+          {/* Live Monospace Layout Preview (Dynamic 32 or 48 Columns) */}
           <View style={styles.previewContainer}>
-            <Text style={styles.previewTitle}>Live 32-Col Layout Preview</Text>
-            <View style={styles.receiptPaper}>
-              <Text style={styles.paperCenterBold}>{SAMPLE_INVOICE.shopName}</Text>
-              <Text style={styles.paperMono}>--------------------------------</Text>
-              <Text style={styles.paperMono}>Date: {SAMPLE_INVOICE.date}</Text>
-              <Text style={styles.paperMono}>Invoice No: {SAMPLE_INVOICE.invoiceNo}</Text>
-              <Text style={styles.paperMono}>--------------------------------</Text>
-              <Text style={styles.paperMono}>#  Name        Qty   Pri    Amt</Text>
-              <Text style={styles.paperMono}>--------------------------------</Text>
-              {SAMPLE_INVOICE.items.map((it) => (
-                <Text key={it.sNo} style={styles.paperMono}>
-                  {it.sNo.padEnd(3)}
-                  {it.name.substring(0, 11).padEnd(11)}
-                  {it.qty.padStart(5)}
-                  {it.price.padStart(6)}
-                  {it.amt.padStart(7)}
-                </Text>
-              ))}
-              <Text style={styles.paperMono}>--------------------------------</Text>
-              <Text style={styles.paperMono}>
-                {'Total Items/Qty:'.padEnd(20)}
-                {SAMPLE_INVOICE.totalQty.padStart(12)}
+            <View style={styles.previewHeaderRow}>
+              <Text style={styles.previewTitle}>
+                {`Live Layout Preview (${activeConfig.lineWidth} Columns)`}
               </Text>
-              <Text style={styles.paperMonoBold}>
-                {'Total Amount:'.padEnd(20)}
-                {SAMPLE_INVOICE.grandTotal.padStart(12)}
-              </Text>
-              <Text style={styles.paperMono}>--------------------------------</Text>
+              <Text style={styles.paperWidthTag}>{activeConfig.paperWidth}</Text>
             </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.receiptScrollContainer}
+            >
+              <View style={[styles.receiptPaper, isEzo && styles.receiptPaperEzo]}>
+                <Text
+                  allowFontScaling={false}
+                  style={[styles.paperCenterBold, isEzo && styles.paperCenterBoldEzo]}
+                >
+                  {SAMPLE_INVOICE.shopName}
+                </Text>
+                <Text allowFontScaling={false} style={monoStyle}>
+                  {'-'.repeat(activeConfig.lineWidth)}
+                </Text>
+                <Text allowFontScaling={false} style={monoStyle}>
+                  Date: {SAMPLE_INVOICE.date}
+                </Text>
+                <Text allowFontScaling={false} style={monoStyle}>
+                  Invoice No: {SAMPLE_INVOICE.invoiceNo}
+                </Text>
+                <Text allowFontScaling={false} style={monoStyle}>
+                  {'-'.repeat(activeConfig.lineWidth)}
+                </Text>
+
+                {/* Dynamic Table Header */}
+                <Text allowFontScaling={false} style={monoStyle}>
+                  {previewHeaderText}
+                </Text>
+
+                <Text allowFontScaling={false} style={monoStyle}>
+                  {'-'.repeat(activeConfig.lineWidth)}
+                </Text>
+
+                {/* Dynamic Items Rows */}
+                {SAMPLE_INVOICE.items.map((it) => (
+                  <Text key={it.sNo} allowFontScaling={false} style={monoStyle}>
+                    {formatItemRow(it)}
+                  </Text>
+                ))}
+
+                <Text allowFontScaling={false} style={monoStyle}>
+                  {'-'.repeat(activeConfig.lineWidth)}
+                </Text>
+
+                {/* Dynamic Summary Block */}
+                <Text allowFontScaling={false} style={monoStyle}>
+                  {previewTotalQtyText}
+                </Text>
+                <Text allowFontScaling={false} style={monoBoldStyle}>
+                  {previewGrandTotalText}
+                </Text>
+
+                <Text allowFontScaling={false} style={monoStyle}>
+                  {'-'.repeat(activeConfig.lineWidth)}
+                </Text>
+
+                {/* Cutter Indicator on Paper */}
+                {activeConfig.hasAutoCutter ? (
+                  <View style={styles.cutLineBox}>
+                    <Text allowFontScaling={false} style={styles.cutLineTxt}>
+                      - - - - - - - - ✂️ AUTO-CUT - - - - - - - -
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.tearLineBox}>
+                    <Text allowFontScaling={false} style={styles.tearLineTxt}>
+                      ▲ ▲ ▲ TEAR AGAINST SERRATED EDGE ▲ ▲ ▲
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </ScrollView>
           </View>
         </View>
       </ScrollView>
@@ -442,11 +686,11 @@ const styles = StyleSheet.create({
   viewPort: {
     flex: 1,
     backgroundColor: '#1A1A24',
-    padding: 24,
-    paddingTop: 16,
+    padding: 20,
+    paddingTop: 14,
   },
   headline: {
-    fontSize: 21,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#FFFFFF',
     textAlign: 'center',
@@ -456,13 +700,63 @@ const styles = StyleSheet.create({
     color: '#8A8A9A',
     textAlign: 'center',
     marginTop: 4,
-    marginBottom: 20,
+    marginBottom: 16,
+  },
+  profileSwitcherCard: {
+    backgroundColor: '#20202E',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#323244',
+  },
+  switcherLabel: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#8A8A9A',
+    marginBottom: 8,
+    letterSpacing: 0.8,
+    textAlign: 'center',
+  },
+  tabRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    backgroundColor: '#2A2A3C',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+  },
+  tabButtonActive: {
+    backgroundColor: '#1E3A8A',
+    borderColor: '#3B82F6',
+  },
+  tabButtonTitle: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#A0A0B2',
+  },
+  tabButtonTitleActive: {
+    color: '#FFFFFF',
+  },
+  tabButtonSub: {
+    fontSize: 10,
+    color: '#707084',
+    marginTop: 2,
+  },
+  tabButtonSubActive: {
+    color: '#93C5FD',
   },
   dashboard: {
     backgroundColor: '#262636',
-    padding: 18,
+    padding: 16,
     borderRadius: 12,
-    marginBottom: 20,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: '#3A3A4A',
   },
@@ -470,12 +764,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
   },
   statusDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
   },
   dotGreen: {
     backgroundColor: '#4CD964',
@@ -485,76 +778,105 @@ const styles = StyleSheet.create({
   },
   lbl: {
     color: '#8A8A9A',
-    fontSize: 12,
+    fontSize: 11,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   val: {
-    color: '#4CD964',
+    color: '#FFFFFF',
     fontWeight: 'bold',
-    fontSize: 18,
+    fontSize: 16,
+    marginTop: 2,
   },
   macAddress: {
-    color: '#6A6A7A',
+    color: '#7A7A8A',
     fontSize: 12,
     marginTop: 4,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
+  profileBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 10,
+  },
+  profileBadge: {
+    backgroundColor: '#323246',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  profileBadgeTxt: {
+    color: '#00D2FF',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  cutterBadge: {
+    backgroundColor: '#2D3748',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  cutterBadgeTxt: {
+    color: '#F6E05E',
+    fontSize: 11,
+    fontWeight: '600',
+  },
   disconnectBtn: {
-    marginTop: 12,
+    marginTop: 10,
     alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 5,
     backgroundColor: '#3A3A4A',
   },
   disconnectTxt: {
     color: '#FF6B6B',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
   },
   deviceListBox: {
     backgroundColor: '#20202E',
     borderRadius: 8,
     padding: 12,
-    marginBottom: 16,
+    marginBottom: 14,
     borderWidth: 1,
     borderColor: '#007AFF',
   },
   deviceListTitle: {
     color: '#007AFF',
     fontWeight: 'bold',
-    fontSize: 14,
+    fontSize: 13,
     marginBottom: 8,
   },
   deviceItem: {
-    paddingVertical: 10,
+    paddingVertical: 9,
     borderBottomWidth: 1,
     borderBottomColor: '#2C2C3E',
   },
   deviceName: {
     color: '#FFFFFF',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
   },
   deviceMac: {
     color: '#8A8A9A',
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   primaryTrigger: {
     backgroundColor: '#007AFF',
-    paddingVertical: 16,
+    paddingVertical: 15,
     borderRadius: 10,
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: 12,
   },
   successTrigger: {
     backgroundColor: '#34C759',
-    paddingVertical: 16,
+    paddingVertical: 15,
     borderRadius: 10,
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
   },
   disabledBtn: {
     opacity: 0.7,
@@ -565,25 +887,38 @@ const styles = StyleSheet.create({
   },
   triggerTxt: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
   },
   previewContainer: {
     marginTop: 4,
     marginBottom: 30,
   },
+  previewHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+    paddingHorizontal: 2,
+  },
   previewTitle: {
     color: '#8A8A9A',
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
-    marginBottom: 8,
-    textAlign: 'center',
+  },
+  paperWidthTag: {
+    color: '#00D2FF',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  receiptScrollContainer: {
+    minWidth: '100%',
   },
   receiptPaper: {
     backgroundColor: '#FFFDF0',
-    padding: 16,
+    padding: 14,
     borderRadius: 6,
     borderWidth: 1,
     borderColor: '#D4CEB0',
@@ -592,26 +927,70 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 6,
     elevation: 4,
+    width: '100%',
+  },
+  receiptPaperEzo: {
+    paddingHorizontal: 8,
+    paddingVertical: 12,
   },
   paperCenterBold: {
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     fontWeight: 'bold',
-    fontSize: 13,
+    fontSize: 12,
     color: '#111',
     textAlign: 'center',
     marginBottom: 4,
   },
+  paperCenterBoldEzo: {
+    fontSize: 10,
+    marginBottom: 3,
+  },
   paperMono: {
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    fontSize: 11,
+    fontSize: 10.5,
     color: '#111',
-    lineHeight: 16,
+    lineHeight: 15,
+  },
+  paperMonoEzo: {
+    fontSize: 7.2,
+    lineHeight: 10.5,
+    letterSpacing: -0.2,
   },
   paperMonoBold: {
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     fontWeight: 'bold',
-    fontSize: 11,
+    fontSize: 10.5,
     color: '#000',
-    lineHeight: 16,
+    lineHeight: 15,
+  },
+  paperMonoBoldEzo: {
+    fontSize: 7.2,
+    lineHeight: 10.5,
+    letterSpacing: -0.2,
+  },
+  cutLineBox: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#CCC',
+    alignItems: 'center',
+  },
+  cutLineTxt: {
+    fontSize: 9.5,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    color: '#777',
+    fontWeight: '600',
+  },
+  tearLineBox: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#CCC',
+    alignItems: 'center',
+  },
+  tearLineTxt: {
+    fontSize: 9,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    color: '#888',
   },
 });
