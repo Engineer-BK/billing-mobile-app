@@ -18,10 +18,10 @@ export function HeaderBar(): React.JSX.Element {
       <View style={styles.titleCol}>
         <View style={styles.titleRow}>
           <Text style={[styles.brandBadge, { backgroundColor: colors.primary }]}>
-            POS
+            ⚡ POS
           </Text>
           <Text style={[styles.title, { color: colors.textPrimary }]}>
-            Billing & Print
+            FlashBill
           </Text>
         </View>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>

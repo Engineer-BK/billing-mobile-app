@@ -1,5 +1,5 @@
 {
-  "name": "sc588-billing-mvp",
+  "name": "flashbill",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
