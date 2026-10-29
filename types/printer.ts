@@ -7,6 +7,23 @@
 
 export type PrinterProfileId = 'SC588' | 'EZO80';
 
+/**
+ * Paper feed spacing configuration.
+ * Allows independent customization of margins at the top and bottom of the receipt.
+ */
+export interface FeedLinesConfig {
+  /**
+   * Number of blank feed lines before the header / shop name.
+   * Default 0 to keep the top space as tight as possible.
+   */
+  topSpace: number;
+  /**
+   * Number of blank feed lines after the closing divider before tear / auto-cut.
+   * e.g., 5 lines for SC588 (manual tear teeth), 8 lines for EZO 80UB (cutter clearance).
+   */
+  bottomSpace: number;
+}
+
 export interface PrinterProfile {
   /** Unique profile identifier */
   id: PrinterProfileId;
@@ -37,8 +54,7 @@ export interface PrinterProfile {
   /** Summary row alignments */
   totalPositions: number[];
   /**
-   * Blank newlines to feed paper past the printer exit slot.
-   * Calibrated so the receipt clears the blade before cutting.
+   * Customizable paper feed spacing configuration: { topSpace, bottomSpace }
    */
-  feedLines: string;
+  feedLines: FeedLinesConfig;
 }

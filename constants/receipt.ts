@@ -7,10 +7,10 @@
 import { InvoiceData } from '../types/billing';
 
 export const SAMPLE_INVOICE: InvoiceData = {
-  shopName: 'Aftab Rental',
-  date: '26/10/2026',
-  invoiceNo: '38',
-  customerName: 'Aftab Retail Customer',
+  shopName: 'BK Store',
+  date: '28/10/2026',
+  invoiceNo: '45',
+  customerName: 'Basir Ahmed Khan',
   items: [
     { sNo: '1', name: 'CHANACHUR', qty: '2', price: '90', amt: '180' },
     { sNo: '2', name: 'S N T RICE', qty: '2', price: '40', amt: '80' },

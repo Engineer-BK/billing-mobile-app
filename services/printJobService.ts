@@ -34,6 +34,11 @@ export async function dispatchPrintReceipt(
     // 2. Set left margin to 0 for maximum printable width
     await BluetoothEscposPrinter.printerLeftSpace(0);
 
+    // Top paper feed: Customizable via activeConfig.feedLines.topSpace (0 = reduced minimum space)
+    if (activeConfig.feedLines.topSpace > 0) {
+      await BluetoothEscposPrinter.printText('\n'.repeat(activeConfig.feedLines.topSpace), {});
+    }
+
     // --- Header Region ---
     // Align center for bold shop banner
     await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
@@ -111,8 +116,13 @@ export async function dispatchPrintReceipt(
     await BluetoothEscposPrinter.printText(dividerLine, {});
 
     // --- Paper Feed & Auto-Cut ---
-    // Feeds paper ~28mm so the entire receipt exits past the cutter blade
-    await BluetoothEscposPrinter.printText(activeConfig.feedLines, {});
+    // Customizable bottom feed lines via activeConfig.feedLines.bottomSpace
+    if (activeConfig.feedLines.bottomSpace > 0) {
+      await BluetoothEscposPrinter.printText(
+        '\n'.repeat(activeConfig.feedLines.bottomSpace),
+        {}
+      );
+    }
 
     if (activeConfig.hasAutoCutter) {
       // ESC/POS Command: GS V 0 (0x1D 0x56 0x00) = Motorized Full Cut

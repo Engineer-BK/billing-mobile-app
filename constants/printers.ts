@@ -34,8 +34,11 @@ export const PRINTER_PROFILES: Record<PrinterProfileId, PrinterProfile> = {
       BluetoothEscposPrinter.ALIGN.LEFT,
       BluetoothEscposPrinter.ALIGN.RIGHT,
     ],
-    // 5 blank lines: feeds bill past physical manual tear teeth
-    feedLines: '\n\n\n\n\n',
+    // Customizable paper feed spacing: { topSpace, bottomSpace }
+    feedLines: {
+      topSpace: 0,     // 0 lines at top: reduces top space to the absolute minimum
+      bottomSpace: 5,  // 5 lines at bottom: feeds past physical manual tear teeth
+    },
   },
   EZO80: {
     id: 'EZO80',
@@ -61,7 +64,10 @@ export const PRINTER_PROFILES: Record<PrinterProfileId, PrinterProfile> = {
       BluetoothEscposPrinter.ALIGN.LEFT,
       BluetoothEscposPrinter.ALIGN.RIGHT,
     ],
-    // 8 blank lines (~28mm): feeds paper so bottom margin matches the physical 28mm top margin
-    feedLines: '\n\n\n\n\n\n\n\n',
+    // Customizable paper feed spacing: { topSpace, bottomSpace }
+    feedLines: {
+      topSpace: 0,     // 0 lines at top: reduces top space to the absolute minimum
+      bottomSpace: 8,  // 8 lines (~28mm): feeds paper clear of motorized auto-cutter blade
+    },
   },
 };

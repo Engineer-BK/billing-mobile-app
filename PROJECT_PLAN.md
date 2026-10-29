@@ -12,9 +12,19 @@ This master plan divides the entire project enhancement into **three clean, modu
 * Standard Node.js does not understand `.ts` files without a transpiler. Renaming to `.ts` would cause `npm install` and the entire EAS build to crash before Gradle starts.
 * **Decision:** Keep `scripts/patch-printer.js` as clean, reliable CommonJS (`.js`).
 
-### 1.2 Top vs. Bottom Receipt Margin Equalization
-* **Physical Cause:** The thermal printhead is physically located **25mm–30mm behind the auto-cutter blade**. Because POS paper only feeds forward, the top margin from the cut edge to the first line of text is a fixed physical constant for **every receipt**.
-* **Equalization Strategy:** We calibrate the bottom feed to **7–8 blank lines** ($\approx 26-28\text{mm}$). This ensures that the bottom space below the closing divider matches the physical top margin symmetrically.
+### 1.2 Top vs. Bottom Receipt Margin Calibration (`feedLines` Object)
+* **Physical Cause:** The thermal printhead is physically located **25mm–30mm behind the auto-cutter blade**. Because POS paper only feeds forward, mechanical cutter clearance creates an initial baseline margin.
+* **Customizable Feed Spacing (`feedLines` Configuration):** We replaced the rigid newline string with a fully customizable spacing object:
+  ```ts
+  feedLines: {
+    topSpace: number,    // Blank lines before header (0 = reduced minimal top space)
+    bottomSpace: number, // Blank lines after closing divider before tear / auto-cut
+  }
+  ```
+* **Profiles Setup:**
+  * **SC588 (58mm):** `topSpace: 0`, `bottomSpace: 5` (feeds bill cleanly past manual tear teeth).
+  * **EZO 80UB (80mm):** `topSpace: 0`, `bottomSpace: 8` (feeds bill clear of motorized guillotine blade before cut).
+* **Live Monospace Preview Sync:** [`components/ReceiptPreview/ReceiptPreview.tsx`](file:///f:/WsCube%20Node.js/DEVELOPMENT/billing-mobile-app/components/ReceiptPreview/ReceiptPreview.tsx) dynamically simulates both `topSpace` and `bottomSpace` on the screen.
 
 ### 1.3 Modular Folder Structure (De-bloating `App.tsx`)
 Currently, `App.tsx` has over 1,140 lines. We split it into single-responsibility, highly readable files:

@@ -28,6 +28,10 @@ export function ReceiptPreview({
   const { colors } = useTheme();
   const is58mm = activeConfig.id === 'SC588';
 
+  // Dynamic on-screen simulation of physical feedLines (topSpace & bottomSpace)
+  const topPadding = Math.max(4, activeConfig.feedLines.topSpace * 8 + 6);
+  const bottomPadding = Math.max(6, activeConfig.feedLines.bottomSpace * 2.5 + 8);
+
   return (
     <View style={styles.previewContainer}>
       {/* Title & Roll Spec Header */}
@@ -47,6 +51,8 @@ export function ReceiptPreview({
           {
             backgroundColor: colors.paperBackground,
             borderColor: colors.paperBorder,
+            paddingTop: topPadding,
+            paddingBottom: bottomPadding,
           },
           is58mm ? styles.receiptPaper58 : styles.receiptPaper80,
         ]}
@@ -274,7 +280,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 6,
     elevation: 4,
-    paddingVertical: 12,
   },
   receiptPaper58: {
     width: '76%',
