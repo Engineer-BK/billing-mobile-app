@@ -66,8 +66,8 @@ export const PRINTER_PROFILES: Record<PrinterProfileId, PrinterProfile> = {
     ],
     // Customizable paper feed spacing: { topSpace, bottomSpace }
     feedLines: {
-      topSpace: 0,     // 0 lines at top: reduces top space to the absolute minimum
-      bottomSpace: 8,  // 8 lines (~28mm): feeds paper clear of motorized auto-cutter blade
+      topSpace: 1,     // 0 lines at top: reduces top space to the absolute minimum
+      bottomSpace: 16,  // 8 lines (~28mm): feeds paper clear of motorized auto-cutter blade
     },
   },
 };

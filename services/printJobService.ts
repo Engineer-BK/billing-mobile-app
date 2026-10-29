@@ -40,13 +40,13 @@ export async function dispatchPrintReceipt(
     }
 
     // --- Header Region ---
-    // Align center for bold shop banner
+    // Align center for clean, professional shop banner
     await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
     await BluetoothEscposPrinter.printText(`${invoice.shopName}\n`, {
       encoding: 'GBK',
       codepage: 0,
-      widthtimes: 1,  // 2x character width
-      heigthtimes: 1, // 2x character height
+      widthtimes: 1.3,  // Standard 1x width: prevents oversized horizontal stretching
+      heigthtimes: 1.3, // Standard 1x height: crisp, clean, and proportional
       fonttype: 0,    // Standard Font A (12x24)
     });
     await BluetoothEscposPrinter.printText(dividerLine, {});
