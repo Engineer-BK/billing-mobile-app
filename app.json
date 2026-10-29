@@ -10,18 +10,18 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#111D35"
+      "backgroundColor": "#112037"
     },
     "android": {
       "package": "com.aftabrental.billingapp",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#111D35"
+        "backgroundColor": "#112037"
       },
       "splash": {
         "image": "./assets/splash.png",
         "resizeMode": "contain",
-        "backgroundColor": "#111D35"
+        "backgroundColor": "#112037"
       },
       "permissions": [
         "android.permission.BLUETOOTH",
@@ -40,7 +40,8 @@
             "minSdkVersion": 31
           }
         }
-      ]
+      ],
+      "expo-font"
     ],
     "extra": {
       "eas": {
