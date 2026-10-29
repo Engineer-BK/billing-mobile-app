@@ -13,6 +13,7 @@ import { StyleSheet, Text, View, Platform } from 'react-native';
 import { PrinterProfile } from '../../types/printer';
 import { InvoiceData } from '../../types/billing';
 import { DashedDivider } from './DashedDivider';
+import { useTheme } from '../../hooks/useTheme';
 import { Colors } from '../../constants/theme';
 
 interface ReceiptPreviewProps {
@@ -24,22 +25,29 @@ export function ReceiptPreview({
   activeConfig,
   invoice,
 }: ReceiptPreviewProps): React.JSX.Element {
+  const { colors } = useTheme();
   const is58mm = activeConfig.id === 'SC588';
 
   return (
     <View style={styles.previewContainer}>
       {/* Title & Roll Spec Header */}
       <View style={styles.previewHeaderRow}>
-        <Text style={styles.previewTitle}>
+        <Text style={[styles.previewTitle, { color: colors.textSecondary }]}>
           {`Live Layout Preview (${activeConfig.lineWidth} Columns)`}
         </Text>
-        <Text style={styles.paperWidthTag}>{activeConfig.paperWidth}</Text>
+        <Text style={[styles.paperWidthTag, { color: colors.accent }]}>
+          {activeConfig.paperWidth}
+        </Text>
       </View>
 
       {/* Cream Physical Receipt Paper */}
       <View
         style={[
           styles.receiptPaper,
+          {
+            backgroundColor: colors.paperBackground,
+            borderColor: colors.paperBorder,
+          },
           is58mm ? styles.receiptPaper58 : styles.receiptPaper80,
         ]}
       >

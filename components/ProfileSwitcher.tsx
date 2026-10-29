@@ -10,7 +10,7 @@
 import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { PrinterProfileId } from '../types/printer';
-import { Colors } from '../constants/theme';
+import { useTheme } from '../hooks/useTheme';
 
 interface ProfileSwitcherProps {
   selectedProfile: PrinterProfileId;
@@ -21,22 +21,48 @@ export function ProfileSwitcher({
   selectedProfile,
   onSelectProfile,
 }: ProfileSwitcherProps): React.JSX.Element {
+  const { colors } = useTheme();
+
   return (
-    <View style={styles.card}>
-      <Text style={styles.label}>SELECT PRINTER PROFILE</Text>
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+        },
+      ]}
+    >
+      <Text style={[styles.label, { color: colors.textSecondary }]}>
+        SELECT PRINTER PROFILE
+      </Text>
       <View style={styles.tabRow}>
         {/* Profile 1: SC588 */}
         <TouchableOpacity
           style={[
             styles.tabButton,
-            selectedProfile === 'SC588' && styles.tabButtonActive,
+            {
+              backgroundColor:
+                selectedProfile === 'SC588'
+                  ? colors.primaryLight
+                  : colors.surfaceLight,
+              borderColor:
+                selectedProfile === 'SC588'
+                  ? colors.primary
+                  : 'transparent',
+            },
           ]}
           onPress={() => onSelectProfile('SC588')}
         >
           <Text
             style={[
               styles.tabTitle,
-              selectedProfile === 'SC588' && styles.tabTitleActive,
+              {
+                color:
+                  selectedProfile === 'SC588'
+                    ? colors.textPrimary
+                    : colors.textSecondary,
+              },
             ]}
           >
             SC588 (58mm)
@@ -44,7 +70,12 @@ export function ProfileSwitcher({
           <Text
             style={[
               styles.tabSub,
-              selectedProfile === 'SC588' && styles.tabSubActive,
+              {
+                color:
+                  selectedProfile === 'SC588'
+                    ? colors.primary
+                    : colors.textMuted,
+              },
             ]}
           >
             32 Col • 2-Inch
@@ -55,14 +86,28 @@ export function ProfileSwitcher({
         <TouchableOpacity
           style={[
             styles.tabButton,
-            selectedProfile === 'EZO80' && styles.tabButtonActive,
+            {
+              backgroundColor:
+                selectedProfile === 'EZO80'
+                  ? colors.primaryLight
+                  : colors.surfaceLight,
+              borderColor:
+                selectedProfile === 'EZO80'
+                  ? colors.primary
+                  : 'transparent',
+            },
           ]}
           onPress={() => onSelectProfile('EZO80')}
         >
           <Text
             style={[
               styles.tabTitle,
-              selectedProfile === 'EZO80' && styles.tabTitleActive,
+              {
+                color:
+                  selectedProfile === 'EZO80'
+                    ? colors.textPrimary
+                    : colors.textSecondary,
+              },
             ]}
           >
             EZO 80UB (80mm)
@@ -70,7 +115,12 @@ export function ProfileSwitcher({
           <Text
             style={[
               styles.tabSub,
-              selectedProfile === 'EZO80' && styles.tabSubActive,
+              {
+                color:
+                  selectedProfile === 'EZO80'
+                    ? colors.primary
+                    : colors.textMuted,
+              },
             ]}
           >
             48 Col • Auto-Cut
@@ -83,17 +133,14 @@ export function ProfileSwitcher({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.surface,
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: Colors.border,
   },
   label: {
     fontSize: 11,
     fontWeight: 'bold',
-    color: Colors.textSecondary,
     marginBottom: 8,
     letterSpacing: 0.8,
     textAlign: 'center',
@@ -107,29 +154,15 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 8,
     borderRadius: 8,
-    backgroundColor: Colors.surfaceLight,
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: 'transparent',
-  },
-  tabButtonActive: {
-    backgroundColor: Colors.primaryLight,
-    borderColor: Colors.primary,
   },
   tabTitle: {
     fontSize: 13,
     fontWeight: 'bold',
-    color: Colors.textSecondary,
-  },
-  tabTitleActive: {
-    color: Colors.textPrimary,
   },
   tabSub: {
     fontSize: 10,
-    color: Colors.textMuted,
     marginTop: 2,
-  },
-  tabSubActive: {
-    color: Colors.primary,
   },
 });

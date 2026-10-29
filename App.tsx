@@ -2,6 +2,7 @@
  * App.tsx - Dual-Engine Thermal POS Billing Coordinator
  * 
  * Clean, modular coordinator screen managing:
+ * - High-speed retail branding with dynamic Dark/Light mode ThemeProvider
  * - Bluetooth printer lifecycle (via useBluetoothScanner)
  * - Hardware profile switching (SC588 58mm vs EZO 80UB 80mm)
  * - Live Receipt Monospace Preview
@@ -12,7 +13,6 @@ import React, { useState } from 'react';
 import {
   StyleSheet,
   Text,
-  View,
   TouchableOpacity,
   Alert,
   ScrollView,
@@ -25,19 +25,21 @@ import {
 import { PrinterProfileId } from './types/printer';
 import { PRINTER_PROFILES } from './constants/printers';
 import { SAMPLE_INVOICE } from './constants/receipt';
-import { Colors } from './constants/theme';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 
 // Custom hooks & services
 import { useBluetoothScanner } from './hooks/useBluetoothScanner';
 import { dispatchPrintReceipt } from './services/printJobService';
 
 // Modular UI components
+import { HeaderBar } from './components/HeaderBar';
 import { ProfileSwitcher } from './components/ProfileSwitcher';
 import { DeviceStatusCard } from './components/DeviceStatusCard';
 import { DevicePickerSheet } from './components/DevicePickerSheet';
 import { ReceiptPreview } from './components/ReceiptPreview/ReceiptPreview';
 
-export default function App(): React.JSX.Element {
+function MainScreen(): React.JSX.Element {
+  const { colors, isDark } = useTheme();
   const [selectedProfile, setSelectedProfile] = useState<PrinterProfileId>('SC588');
   const [isPrinting, setIsPrinting] = useState<boolean>(false);
 
@@ -82,17 +84,15 @@ export default function App(): React.JSX.Element {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor={colors.background}
+      />
 
       <ScrollView contentContainerStyle={styles.container}>
-        {/* App Title Bar */}
-        <View style={styles.header}>
-          <Text style={styles.title}>POS Billing & Print</Text>
-          <Text style={styles.subtitle}>
-            SC588 (58mm) • EZO 80UB (80mm Auto-Cut)
-          </Text>
-        </View>
+        {/* Top Header Bar with 1-Tap ☀️/🌙 Theme Switcher */}
+        <HeaderBar />
 
         {/* 1. Connection Dashboard Card */}
         <DeviceStatusCard
@@ -104,7 +104,7 @@ export default function App(): React.JSX.Element {
 
         {/* 2. Bluetooth Scan / Connect Trigger */}
         <TouchableOpacity
-          style={[styles.actionBtn, styles.discoveryBtn]}
+          style={[styles.actionBtn, { backgroundColor: colors.secondary }]}
           onPress={discoverAndBindPrinter}
           disabled={isScanning}
         >
@@ -134,7 +134,7 @@ export default function App(): React.JSX.Element {
         <TouchableOpacity
           style={[
             styles.actionBtn,
-            styles.printBtn,
+            { backgroundColor: colors.success },
             (!targetAddress || isPrinting) && styles.btnDisabled,
           ]}
           onPress={handlePrint}
@@ -159,29 +159,21 @@ export default function App(): React.JSX.Element {
   );
 }
 
+export default function App(): React.JSX.Element {
+  return (
+    <ThemeProvider>
+      <MainScreen />
+    </ThemeProvider>
+  );
+}
+
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background,
   },
   container: {
     padding: 16,
     paddingBottom: 40,
-  },
-  header: {
-    marginBottom: 16,
-    paddingTop: 8,
-  },
-  title: {
-    color: Colors.textPrimary,
-    fontSize: 22,
-    fontWeight: 'bold',
-    letterSpacing: 0.5,
-  },
-  subtitle: {
-    color: Colors.textSecondary,
-    fontSize: 12,
-    marginTop: 4,
   },
   actionBtn: {
     paddingVertical: 14,
@@ -195,12 +187,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     letterSpacing: 0.4,
-  },
-  discoveryBtn: {
-    backgroundColor: Colors.secondary,
-  },
-  printBtn: {
-    backgroundColor: Colors.success,
   },
   printBtnTxt: {
     color: '#FFFFFF',

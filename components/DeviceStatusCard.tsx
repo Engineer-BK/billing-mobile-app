@@ -9,7 +9,7 @@
 import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Platform } from 'react-native';
 import { PrinterProfile } from '../types/printer';
-import { Colors } from '../constants/theme';
+import { useTheme } from '../hooks/useTheme';
 
 interface DeviceStatusCardProps {
   printerName: string;
@@ -24,45 +24,90 @@ export function DeviceStatusCard({
   activeConfig,
   onDisconnect,
 }: DeviceStatusCardProps): React.JSX.Element {
+  const { colors } = useTheme();
   const isConnected = !!targetAddress;
 
   return (
-    <View style={styles.card}>
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+        },
+      ]}
+    >
       <View style={styles.statusRow}>
         <View>
-          <Text style={styles.lbl}>Connected Device</Text>
-          <Text style={styles.val}>{printerName}</Text>
+          <Text style={[styles.lbl, { color: colors.textSecondary }]}>
+            Connected Device
+          </Text>
+          <Text style={[styles.val, { color: colors.textPrimary }]}>
+            {printerName}
+          </Text>
         </View>
         <View
           style={[
             styles.statusDot,
-            isConnected ? styles.dotGreen : styles.dotRed,
+            {
+              backgroundColor: isConnected ? colors.success : colors.error,
+            },
           ]}
         />
       </View>
 
       {targetAddress ? (
-        <Text style={styles.macAddress}>MAC: {targetAddress}</Text>
+        <Text style={[styles.macAddress, { color: colors.accent }]}>
+          MAC: {targetAddress}
+        </Text>
       ) : null}
 
       <View style={styles.profileBadgeRow}>
-        <View style={styles.profileBadge}>
-          <Text style={styles.profileBadgeTxt}>{activeConfig.badge}</Text>
+        <View
+          style={[
+            styles.profileBadge,
+            {
+              backgroundColor: colors.surfaceLight,
+              borderColor: colors.borderLight,
+            },
+          ]}
+        >
+          <Text style={[styles.profileBadgeTxt, { color: colors.accent }]}>
+            {activeConfig.badge}
+          </Text>
         </View>
 
         {activeConfig.hasAutoCutter ? (
-          <View style={styles.cutterBadge}>
-            <Text style={styles.cutterBadgeTxt}>✂️ Auto-Cutter</Text>
+          <View
+            style={[
+              styles.cutterBadge,
+              {
+                backgroundColor: colors.surfaceLight,
+                borderColor: colors.borderLight,
+              },
+            ]}
+          >
+            <Text style={[styles.cutterBadgeTxt, { color: colors.primary }]}>
+              ✂️ Auto-Cutter
+            </Text>
           </View>
         ) : null}
       </View>
 
       {isConnected ? (
         <TouchableOpacity
-          style={styles.disconnectBtn}
+          style={[
+            styles.disconnectBtn,
+            {
+              backgroundColor: colors.surfaceLight,
+              borderColor: colors.error,
+            },
+          ]}
           onPress={onDisconnect}
         >
-          <Text style={styles.disconnectTxt}>Disconnect</Text>
+          <Text style={[styles.disconnectTxt, { color: colors.error }]}>
+            Disconnect
+          </Text>
         </TouchableOpacity>
       ) : null}
     </View>
@@ -71,12 +116,10 @@ export function DeviceStatusCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.surface,
     padding: 16,
     borderRadius: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: Colors.border,
   },
   statusRow: {
     flexDirection: 'row',
@@ -84,14 +127,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   lbl: {
-    color: Colors.textSecondary,
     fontSize: 12,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   val: {
-    color: Colors.textPrimary,
     fontSize: 17,
     fontWeight: 'bold',
     marginTop: 2,
@@ -101,14 +142,7 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: 6,
   },
-  dotGreen: {
-    backgroundColor: Colors.success,
-  },
-  dotRed: {
-    backgroundColor: Colors.error,
-  },
   macAddress: {
-    color: Colors.accent,
     fontSize: 11,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     marginTop: 4,
@@ -120,28 +154,22 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   profileBadge: {
-    backgroundColor: Colors.surfaceLight,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: Colors.borderLight,
   },
   profileBadgeTxt: {
-    color: Colors.accent,
     fontSize: 11,
     fontWeight: '600',
   },
   cutterBadge: {
-    backgroundColor: Colors.surfaceLight,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: Colors.borderLight,
   },
   cutterBadgeTxt: {
-    color: Colors.primary,
     fontSize: 11,
     fontWeight: '600',
   },
@@ -151,12 +179,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
-    backgroundColor: Colors.surfaceLight,
     borderWidth: 1,
-    borderColor: Colors.error,
   },
   disconnectTxt: {
-    color: Colors.error,
     fontSize: 11,
     fontWeight: '600',
   },
