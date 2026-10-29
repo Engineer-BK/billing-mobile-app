@@ -7,8 +7,9 @@
  */
 
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, Platform } from 'react-native';
 import { PrinterProfile } from '../types/printer';
+import { Colors } from '../constants/theme';
 
 interface DeviceStatusCardProps {
   printerName: string;
@@ -70,12 +71,12 @@ export function DeviceStatusCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#262636',
+    backgroundColor: Colors.surface,
     padding: 16,
     borderRadius: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#3A3A4A',
+    borderColor: Colors.border,
   },
   statusRow: {
     flexDirection: 'row',
@@ -83,14 +84,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   lbl: {
-    color: '#8A8A9A',
+    color: Colors.textSecondary,
     fontSize: 12,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   val: {
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
     fontSize: 17,
     fontWeight: 'bold',
     marginTop: 2,
@@ -101,15 +102,15 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   dotGreen: {
-    backgroundColor: '#34C759',
+    backgroundColor: Colors.success,
   },
   dotRed: {
-    backgroundColor: '#FF3B30',
+    backgroundColor: Colors.error,
   },
   macAddress: {
-    color: '#00D2FF',
+    color: Colors.accent,
     fontSize: 11,
-    fontFamily: 'monospace',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     marginTop: 4,
   },
   profileBadgeRow: {
@@ -119,37 +120,43 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   profileBadge: {
-    backgroundColor: '#323246',
+    backgroundColor: Colors.surfaceLight,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
   },
   profileBadgeTxt: {
-    color: '#00D2FF',
+    color: Colors.accent,
     fontSize: 11,
     fontWeight: '600',
   },
   cutterBadge: {
-    backgroundColor: '#2D3748',
+    backgroundColor: Colors.surfaceLight,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
   },
   cutterBadgeTxt: {
-    color: '#F6E05E',
+    color: Colors.primary,
     fontSize: 11,
     fontWeight: '600',
   },
   disconnectBtn: {
-    marginTop: 10,
+    marginTop: 12,
     alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 5,
-    backgroundColor: '#3A3A4A',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: Colors.surfaceLight,
+    borderWidth: 1,
+    borderColor: Colors.error,
   },
   disconnectTxt: {
-    color: '#FF6B6B',
+    color: Colors.error,
     fontSize: 11,
     fontWeight: '600',
   },

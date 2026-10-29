@@ -9,6 +9,7 @@
 import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Platform } from 'react-native';
 import { BluetoothDevice } from '../services/bluetoothPrinter';
+import { Colors } from '../constants/theme';
 
 interface DevicePickerSheetProps {
   visible: boolean;
@@ -44,32 +45,34 @@ export function DevicePickerSheet({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#20202E',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: '#007AFF',
+    backgroundColor: Colors.surface,
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
   },
   title: {
-    color: '#007AFF',
+    color: Colors.primary,
     fontWeight: 'bold',
     fontSize: 13,
-    marginBottom: 8,
+    marginBottom: 10,
+    letterSpacing: 0.3,
   },
   item: {
-    paddingVertical: 9,
+    paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#2C2C3E',
+    borderBottomColor: Colors.border,
   },
   name: {
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
     fontSize: 14,
     fontWeight: '600',
   },
   mac: {
-    color: '#8A8A9A',
+    color: Colors.accent,
     fontSize: 11,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    marginTop: 2,
   },
 });

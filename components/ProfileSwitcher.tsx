@@ -10,6 +10,7 @@
 import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { PrinterProfileId } from '../types/printer';
+import { Colors } from '../constants/theme';
 
 interface ProfileSwitcherProps {
   selectedProfile: PrinterProfileId;
@@ -82,17 +83,17 @@ export function ProfileSwitcher({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#20202E',
+    backgroundColor: Colors.surface,
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#323244',
+    borderColor: Colors.border,
   },
   label: {
     fontSize: 11,
     fontWeight: 'bold',
-    color: '#8A8A9A',
+    color: Colors.textSecondary,
     marginBottom: 8,
     letterSpacing: 0.8,
     textAlign: 'center',
@@ -106,29 +107,29 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 8,
     borderRadius: 8,
-    backgroundColor: '#2A2A3C',
+    backgroundColor: Colors.surfaceLight,
     alignItems: 'center',
     borderWidth: 1.5,
     borderColor: 'transparent',
   },
   tabButtonActive: {
-    backgroundColor: '#1E3A8A',
-    borderColor: '#3B82F6',
+    backgroundColor: Colors.primaryLight,
+    borderColor: Colors.primary,
   },
   tabTitle: {
     fontSize: 13,
     fontWeight: 'bold',
-    color: '#A0A0B2',
+    color: Colors.textSecondary,
   },
   tabTitleActive: {
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
   },
   tabSub: {
     fontSize: 10,
-    color: '#707084',
+    color: Colors.textMuted,
     marginTop: 2,
   },
   tabSubActive: {
-    color: '#93C5FD',
+    color: Colors.primary,
   },
 });

@@ -13,6 +13,7 @@ import { StyleSheet, Text, View, Platform } from 'react-native';
 import { PrinterProfile } from '../../types/printer';
 import { InvoiceData } from '../../types/billing';
 import { DashedDivider } from './DashedDivider';
+import { Colors } from '../../constants/theme';
 
 interface ReceiptPreviewProps {
   activeConfig: PrinterProfile;
@@ -244,22 +245,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
   },
   previewTitle: {
-    color: '#8A8A9A',
+    color: Colors.textSecondary,
     fontSize: 11,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
   paperWidthTag: {
-    color: '#00D2FF',
+    color: Colors.accent,
     fontSize: 11,
     fontWeight: 'bold',
   },
   receiptPaper: {
-    backgroundColor: '#FFFDF0',
+    backgroundColor: Colors.paperBackground,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#D4CEB0',
+    borderColor: Colors.paperBorder,
     shadowColor: '#000',
     shadowOpacity: 0.2,
     shadowOffset: { width: 0, height: 4 },
