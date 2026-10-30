@@ -4,6 +4,7 @@
  * High-Speed Retail POS Application featuring:
  * - Animated Welcome / Splash Screen with FlashBill brand identity & Mobile badge
  * - Custom Flash POS Home Screen with full branding & metrics
+ * - Interactive "Sale" (New Sale) screen with Change Invoice No & Calendar popups
  * - Live ESC/POS thermal printing (SC588 58mm & EZO 80UB 80mm with auto-cut)
  * - Dynamic Dark & Light retail theme provider
  */
@@ -24,6 +25,7 @@ import { PrinterProfileId } from './types/printer';
 import { PRINTER_PROFILES } from './constants/printers';
 import { SAMPLE_INVOICE } from './constants/receipt';
 import { groceryProducts } from './constants/items';
+import { InvoiceData } from './types/billing';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 
 // Custom Bluetooth hook & Print Service
@@ -34,6 +36,9 @@ import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 
 // Welcome / Splash Screen
 import { WelcomeScreen } from './components/WelcomeScreen';
+
+// Interactive Sale (New Sale) Screen & Popups
+import { SaleScreen } from './components/SaleScreen/SaleScreen';
 
 // Distinctive FlashBill Home Screen Components
 import { FlashHeader } from './components/HomeScreen/FlashHeader';
@@ -53,6 +58,16 @@ function MainScreen(): React.JSX.Element {
 
   // Welcome / Splash Screen State (shows on app launch)
   const [showSplash, setShowSplash] = useState<boolean>(true);
+
+  // New Sale Screen State (shows when clicking "+ New Sale")
+  const [showSaleScreen, setShowSaleScreen] = useState<boolean>(false);
+
+  // Active Invoice State (starts from Invoice #1)
+  const [currentInvoice, setCurrentInvoice] = useState<InvoiceData>({
+    ...SAMPLE_INVOICE,
+    invoiceNo: '1',
+    customerName: 'Walk-in Customer',
+  });
 
   // Preload Retail Vector Icon Fonts
   const [fontsLoaded] = useFonts({
@@ -85,7 +100,7 @@ function MainScreen(): React.JSX.Element {
   });
 
   // 1-Tap Print Handler
-  const handlePrint = async (): Promise<void> => {
+  const handlePrint = async (targetInvoice: InvoiceData = currentInvoice): Promise<void> => {
     if (!targetAddress) {
       Alert.alert(
         'Printer Needed',
@@ -97,7 +112,7 @@ function MainScreen(): React.JSX.Element {
 
     try {
       setIsPrinting(true);
-      const result = await dispatchPrintReceipt(activeConfig, SAMPLE_INVOICE);
+      const result = await dispatchPrintReceipt(activeConfig, targetInvoice);
       if (result.success) {
         Alert.alert('Printed Successfully', result.message || 'Receipt sent to printer.');
       } else {
@@ -125,8 +140,8 @@ function MainScreen(): React.JSX.Element {
   const handleShare = async (): Promise<void> => {
     try {
       await Share.share({
-        title: `Bill #${SAMPLE_INVOICE.invoiceNo} - ${SAMPLE_INVOICE.shopName}`,
-        message: `🧾 ${SAMPLE_INVOICE.shopName}\nInvoice No: ${SAMPLE_INVOICE.invoiceNo}\nCustomer: ${SAMPLE_INVOICE.customerName}\nTotal Amount: ₹${SAMPLE_INVOICE.grandTotal}\nTotal Items: ${SAMPLE_INVOICE.items.length}`,
+        title: `Bill #${currentInvoice.invoiceNo} - ${currentInvoice.shopName}`,
+        message: `🧾 ${currentInvoice.shopName}\nInvoice No: ${currentInvoice.invoiceNo}\nCustomer: ${currentInvoice.customerName}\nTotal Amount: ₹${currentInvoice.grandTotal}\nTotal Items: ${currentInvoice.items.length}`,
       });
     } catch (e) {
       console.warn(e);
@@ -137,14 +152,35 @@ function MainScreen(): React.JSX.Element {
   const handleBrowseCatalog = (): void => {
     Alert.alert(
       '📦 FlashBill Catalog',
-      `Catalog loaded with ${groceryProducts.length} products across 23 grocery categories.\n\nReady for Module 3 dynamic autocomplete!`,
-      [{ text: 'OK' }]
+      `Catalog loaded with ${groceryProducts.length} products across 23 grocery categories.\n\nReady to add items to your sale!`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: '+ Create Sale', onPress: () => setShowSaleScreen(true) },
+      ]
     );
   };
 
   // Welcome Screen Gate (holds until splash duration and fonts are ready)
   if (showSplash || !fontsLoaded) {
     return <WelcomeScreen onFinish={() => setShowSplash(false)} />;
+  }
+
+  // New Sale Screen Gate
+  if (showSaleScreen) {
+    return (
+      <SaleScreen
+        initialInvoiceNo={parseInt(currentInvoice.invoiceNo, 10) || 1}
+        shopName={currentInvoice.shopName}
+        onBack={() => setShowSaleScreen(false)}
+        onSaveInvoice={(savedInvoice, shouldPrint) => {
+          setCurrentInvoice(savedInvoice);
+          setShowSaleScreen(false);
+          if (shouldPrint) {
+            handlePrint(savedInvoice);
+          }
+        }}
+      />
+    );
   }
 
   return (
@@ -160,7 +196,7 @@ function MainScreen(): React.JSX.Element {
       >
         {/* 1. Distinctive FlashBill Header with Store Info & Printer Pill */}
         <FlashHeader
-          storeName={SAMPLE_INVOICE.shopName}
+          storeName={currentInvoice.shopName}
           printerName={printerName}
           isConnected={!!targetAddress}
           onPressPrinterPill={() => {
@@ -171,9 +207,9 @@ function MainScreen(): React.JSX.Element {
 
         {/* 2. Retail Flash Metrics Strip */}
         <FlashStats
-          grandTotal={SAMPLE_INVOICE.grandTotal}
-          totalQty={SAMPLE_INVOICE.totalQty}
-          itemsCount={SAMPLE_INVOICE.items.length}
+          grandTotal={currentInvoice.grandTotal}
+          totalQty={currentInvoice.totalQty}
+          itemsCount={currentInvoice.items.length}
           activeConfig={activeConfig}
         />
 
@@ -183,7 +219,7 @@ function MainScreen(): React.JSX.Element {
           isScanning={isScanning}
           hasPrinter={!!targetAddress}
           selectedProfile={selectedProfile}
-          onPressPrint={handlePrint}
+          onPressPrint={() => handlePrint(currentInvoice)}
           onPressScan={() => {
             setShowHardwarePanel(true);
             discoverAndBindPrinter();
@@ -217,10 +253,10 @@ function MainScreen(): React.JSX.Element {
 
         {/* 5. Active Transaction Hub Card with 1-Tap Print & Share */}
         <RecentBillsCard
-          invoice={SAMPLE_INVOICE}
+          invoice={currentInvoice}
           showPreview={showPreview}
           onTogglePreview={() => setShowPreview(!showPreview)}
-          onPressPrint={handlePrint}
+          onPressPrint={() => handlePrint(currentInvoice)}
           onPressShare={handleShare}
         />
 
@@ -228,7 +264,7 @@ function MainScreen(): React.JSX.Element {
         {showPreview && (
           <ReceiptPreview
             activeConfig={activeConfig}
-            invoice={SAMPLE_INVOICE}
+            invoice={currentInvoice}
           />
         )}
       </ScrollView>
@@ -240,13 +276,10 @@ function MainScreen(): React.JSX.Element {
           setActiveTab(tab);
           if (tab === 'hardware') setShowHardwarePanel(true);
           if (tab === 'items') handleBrowseCatalog();
+          if (tab === 'bills') setShowPreview(true);
         }}
         onPressNewSale={() => {
-          Alert.alert(
-            '⚡ New Sale',
-            'Interactive billing form with live 150+ product picker is coming up in Module 3!',
-            [{ text: 'Got it' }]
-          );
+          setShowSaleScreen(true);
         }}
       />
     </SafeAreaView>
