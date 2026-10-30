@@ -20,6 +20,7 @@ interface RecentBillsCardProps {
   onTogglePreview: () => void;
   onPressPrint: () => void;
   onPressShare: () => void;
+  onPressMenu?: () => void;
 }
 
 export function RecentBillsCard({
@@ -28,6 +29,7 @@ export function RecentBillsCard({
   onTogglePreview,
   onPressPrint,
   onPressShare,
+  onPressMenu,
 }: RecentBillsCardProps): React.JSX.Element {
   const { colors } = useTheme();
 
@@ -122,6 +124,24 @@ export function RecentBillsCard({
               color={colors.textSecondary}
             />
           </TouchableOpacity>
+
+          {/* 3-Dot Options & Delete Trigger */}
+          {onPressMenu && (
+            <TouchableOpacity
+              style={[
+                styles.actionCircle,
+                { backgroundColor: colors.surfaceLight },
+              ]}
+              onPress={onPressMenu}
+              activeOpacity={0.7}
+            >
+              <MaterialCommunityIcons
+                name="dots-vertical"
+                size={18}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 

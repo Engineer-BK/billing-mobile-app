@@ -169,21 +169,29 @@ export function AddItemModal({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.overlay}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            style={styles.keyboardAvoid}
+      <View style={styles.overlay}>
+        {/* Fullscreen touchable backdrop: clicking outside dismisses modal */}
+        <TouchableOpacity
+          style={StyleSheet.absoluteFill}
+          activeOpacity={1}
+          onPress={onClose}
+          accessibilityLabel="Close add item modal"
+        />
+
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.keyboardAvoid}
+          pointerEvents="box-none"
+        >
+          <View
+            style={[
+              styles.modalCard,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+              },
+            ]}
           >
-            <View
-              style={[
-                styles.modalCard,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                },
-              ]}
-            >
               {/* Header */}
               <View style={styles.headerRow}>
                 <View style={styles.titleRow}>
@@ -208,9 +216,11 @@ export function AddItemModal({
               </View>
 
               <ScrollView
-                showsVerticalScrollIndicator={false}
+                style={styles.scrollForm}
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={true}
                 keyboardShouldPersistTaps="handled"
-                contentContainerStyle={styles.scrollForm}
+                nestedScrollEnabled={true}
               >
                 {/* 1. Item Name Input */}
                 <View style={styles.inputWrapper}>
@@ -440,8 +450,15 @@ export function AddItemModal({
                     </View>
                   </View>
                 ) : null}
+              </ScrollView>
 
-                {/* 5. Add to Bill Action Button */}
+              {/* 5. Fixed Footer Action Button (+ Add to Bill) */}
+              <View
+                style={[
+                  styles.fixedFooter,
+                  { borderTopColor: colors.borderLight },
+                ]}
+              >
                 <TouchableOpacity
                   style={[
                     styles.addBtn,
@@ -462,11 +479,10 @@ export function AddItemModal({
                     Add to Bill {calcs.hasCalculations ? `• ₹${calcs.netAmount}` : ''}
                   </Text>
                 </TouchableOpacity>
-              </ScrollView>
+              </View>
             </View>
           </KeyboardAvoidingView>
         </View>
-      </TouchableWithoutFeedback>
 
       {/* --- Unit Selection Modal (Searchable Dropdown + Custom Unit Input) --- */}
       <Modal
@@ -631,6 +647,8 @@ const styles = StyleSheet.create({
   },
   keyboardAvoid: {
     width: '100%',
+    flex: 1,
+    justifyContent: 'flex-end',
   },
   modalCard: {
     borderTopLeftRadius: 24,
@@ -639,14 +657,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
     paddingHorizontal: 20,
     paddingTop: 18,
-    paddingBottom: Platform.OS === 'ios' ? 36 : 24,
-    maxHeight: '88%',
+    paddingBottom: Platform.OS === 'ios' ? 32 : 18,
+    height: '92%',
+    maxHeight: '95%',
+    flexDirection: 'column',
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   titleRow: {
     flexDirection: 'row',
@@ -666,7 +686,28 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   scrollForm: {
-    paddingBottom: 8,
+    flex: 1,
+    width: '100%',
+  },
+  scrollContent: {
+    paddingBottom: 24,
+  },
+  fixedFooter: {
+    paddingTop: 12,
+    borderTopWidth: 1,
+    width: '100%',
+  },
+  addBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
   },
   inputWrapper: {
     position: 'relative',
@@ -768,19 +809,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '900',
     letterSpacing: 0.3,
-  },
-  addBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
-    marginTop: 16,
-    gap: 8,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 4,
   },
   addBtnTxt: {
     color: '#FFFFFF',
