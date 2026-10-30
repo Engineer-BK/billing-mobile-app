@@ -53,7 +53,7 @@ export function FlashStats({
           <View
             style={[
               styles.iconCircle,
-              { backgroundColor: 'rgba(249, 115, 22, 0.15)' },
+              { backgroundColor: colors.primaryLight },
             ]}
           >
             <MaterialCommunityIcons
@@ -90,7 +90,7 @@ export function FlashStats({
           <View
             style={[
               styles.iconCircle,
-              { backgroundColor: 'rgba(34, 197, 94, 0.15)' },
+              { backgroundColor: colors.successLight },
             ]}
           >
             <MaterialCommunityIcons
@@ -128,7 +128,7 @@ export function FlashStats({
           <View
             style={[
               styles.iconCircle,
-              { backgroundColor: 'rgba(99, 102, 241, 0.15)' },
+              { backgroundColor: colors.secondaryLight },
             ]}
           >
             <MaterialCommunityIcons

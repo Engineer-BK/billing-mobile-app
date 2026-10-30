@@ -7,7 +7,7 @@
  * - Invoice Prefix pill toggle: [ None ] | [ Add Prefix ]
  * - Outlined floating-label input for Invoice No.
  * - Numeric input keyboard support
- * - Full Dark / Light theme responsiveness
+ * - Bound directly to theme branding colors (constants/theme.ts)
  */
 
 import React, { useState } from 'react';
@@ -73,8 +73,8 @@ export function ChangeInvoiceModal({
               style={[
                 styles.modalCard,
                 {
-                  backgroundColor: isDark ? '#18181B' : '#FFFFFF',
-                  borderColor: isDark ? '#27272A' : '#E2E8F0',
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
                 },
               ]}
             >
@@ -83,7 +83,7 @@ export function ChangeInvoiceModal({
                 <Text
                   style={[
                     styles.title,
-                    { color: isDark ? '#FAFAFA' : '#0F172A' },
+                    { color: colors.textPrimary },
                   ]}
                 >
                   Change Invoice No.
@@ -96,7 +96,7 @@ export function ChangeInvoiceModal({
                   <MaterialCommunityIcons
                     name="close"
                     size={24}
-                    color={isDark ? '#A1A1AA' : '#334155'}
+                    color={colors.textSecondary}
                   />
                 </TouchableOpacity>
               </View>
@@ -105,7 +105,7 @@ export function ChangeInvoiceModal({
               <Text
                 style={[
                   styles.label,
-                  { color: isDark ? '#A1A1AA' : '#475569' },
+                  { color: colors.textSecondary },
                 ]}
               >
                 Invoice Prefix
@@ -118,14 +118,14 @@ export function ChangeInvoiceModal({
                     styles.prefixPill,
                     !hasPrefix
                       ? {
-                          borderColor: '#DC2626',
+                          borderColor: colors.error,
                           backgroundColor: isDark
-                            ? 'rgba(220, 38, 38, 0.15)'
+                            ? 'rgba(239, 68, 68, 0.15)'
                             : '#FEE2E2',
                         }
                       : {
-                          borderColor: isDark ? '#3F3F46' : '#CBD5E1',
-                          backgroundColor: 'transparent',
+                          borderColor: colors.borderLight,
+                          backgroundColor: colors.surfaceLight,
                         },
                   ]}
                   onPress={() => setHasPrefix(false)}
@@ -136,10 +136,8 @@ export function ChangeInvoiceModal({
                       styles.prefixPillTxt,
                       {
                         color: !hasPrefix
-                          ? '#DC2626'
-                          : isDark
-                          ? '#A1A1AA'
-                          : '#64748B',
+                          ? colors.error
+                          : colors.textMuted,
                         fontWeight: !hasPrefix ? '700' : '500',
                       },
                     ]}
@@ -158,8 +156,8 @@ export function ChangeInvoiceModal({
                           backgroundColor: colors.primaryLight,
                         }
                       : {
-                          borderColor: isDark ? '#3F3F46' : '#CBD5E1',
-                          backgroundColor: 'transparent',
+                          borderColor: colors.borderLight,
+                          backgroundColor: colors.surfaceLight,
                         },
                   ]}
                   onPress={() => setHasPrefix(true)}
@@ -171,9 +169,7 @@ export function ChangeInvoiceModal({
                       {
                         color: hasPrefix
                           ? colors.primary
-                          : isDark
-                          ? '#A1A1AA'
-                          : '#64748B',
+                          : colors.textMuted,
                         fontWeight: hasPrefix ? '700' : '500',
                       },
                     ]}
@@ -189,7 +185,7 @@ export function ChangeInvoiceModal({
                   <View
                     style={[
                       styles.floatingBadge,
-                      { backgroundColor: isDark ? '#18181B' : '#FFFFFF' },
+                      { backgroundColor: colors.surface },
                     ]}
                   >
                     <Text style={[styles.floatingLabel, { color: colors.primary }]}>
@@ -201,7 +197,8 @@ export function ChangeInvoiceModal({
                       styles.textInput,
                       {
                         borderColor: colors.primary,
-                        color: isDark ? '#FAFAFA' : '#0F172A',
+                        color: colors.textPrimary,
+                        backgroundColor: colors.surface,
                       },
                     ]}
                     value={prefix}
@@ -218,10 +215,10 @@ export function ChangeInvoiceModal({
                 <View
                   style={[
                     styles.floatingBadge,
-                    { backgroundColor: isDark ? '#18181B' : '#FFFFFF' },
+                    { backgroundColor: colors.surface },
                   ]}
                 >
-                  <Text style={[styles.floatingLabel, { color: '#0284C7' }]}>
+                  <Text style={[styles.floatingLabel, { color: colors.primary }]}>
                     Invoice No.
                   </Text>
                 </View>
@@ -229,8 +226,9 @@ export function ChangeInvoiceModal({
                   style={[
                     styles.textInput,
                     {
-                      borderColor: '#0284C7',
-                      color: isDark ? '#FAFAFA' : '#0F172A',
+                      borderColor: colors.primary,
+                      color: colors.textPrimary,
+                      backgroundColor: colors.surface,
                     },
                   ]}
                   value={invoiceNumber}
@@ -242,11 +240,14 @@ export function ChangeInvoiceModal({
                 />
               </View>
 
-              {/* Primary SAVE Button */}
+              {/* Primary SAVE Button (Uses colors.primary) */}
               <TouchableOpacity
                 style={[
                   styles.saveBtn,
-                  { backgroundColor: '#0284C7' },
+                  {
+                    backgroundColor: colors.primary,
+                    shadowColor: colors.primary,
+                  },
                 ]}
                 onPress={handleSave}
                 activeOpacity={0.8}
@@ -341,7 +342,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#0284C7',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
     shadowRadius: 5,
@@ -354,4 +354,3 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
 });
-

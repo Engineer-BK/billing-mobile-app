@@ -51,7 +51,7 @@ export function RecentBillsCard({
             <View
               style={[
                 styles.saleBadge,
-                { backgroundColor: 'rgba(34, 197, 94, 0.15)' },
+                { backgroundColor: colors.successLight },
               ]}
             >
               <Text style={[styles.saleBadgeTxt, { color: colors.success }]}>
@@ -95,7 +95,7 @@ export function RecentBillsCard({
           <TouchableOpacity
             style={[
               styles.actionCircle,
-              { backgroundColor: 'rgba(34, 197, 94, 0.12)' },
+              { backgroundColor: colors.successLight },
             ]}
             onPress={onPressPrint}
             activeOpacity={0.7}

@@ -7,6 +7,7 @@
  * - App title & retail billing tagline
  * - Hardware platform badges at bottom: "Mobile + Thermal POS"
  * - Zero font dependency on boot for instant, crash-free launch
+ * - Fully bound to FlashBill branding colors (constants/theme.ts)
  */
 
 import React, { useEffect, useRef } from 'react';
@@ -70,12 +71,12 @@ export function WelcomeScreen({ onFinish }: WelcomeScreenProps): React.JSX.Eleme
     <SafeAreaView
       style={[
         styles.container,
-        { backgroundColor: isDark ? '#0A1322' : '#F8FAFC' },
+        { backgroundColor: colors.background },
       ]}
     >
       <StatusBar
         barStyle={isDark ? 'light-content' : 'dark-content'}
-        backgroundColor={isDark ? '#0A1322' : '#F8FAFC'}
+        backgroundColor={colors.background}
       />
 
       {/* Top Skip Button */}
@@ -103,7 +104,7 @@ export function WelcomeScreen({ onFinish }: WelcomeScreenProps): React.JSX.Eleme
           ]}
         >
           {/* New FlashBill2 Logo with glow */}
-          <View style={styles.logoShadowBox}>
+          <View style={[styles.logoShadowBox, { shadowColor: colors.primary }]}>
             <Image
               source={require('../assets/icon.png')}
               style={styles.logoImage}
@@ -114,7 +115,7 @@ export function WelcomeScreen({ onFinish }: WelcomeScreenProps): React.JSX.Eleme
           <Text
             style={[
               styles.appName,
-              { color: isDark ? '#FFFFFF' : '#0F172A' },
+              { color: colors.textPrimary },
             ]}
           >
             Flash<Text style={{ color: colors.primary }}>Bill</Text>
@@ -123,13 +124,13 @@ export function WelcomeScreen({ onFinish }: WelcomeScreenProps): React.JSX.Eleme
           <Text
             style={[
               styles.tagline,
-              { color: isDark ? '#94A3B8' : '#64748B' },
+              { color: colors.textSecondary },
             ]}
           >
             Lightning-Fast Thermal POS Billing
           </Text>
 
-          <View style={styles.speedPill}>
+          <View style={[styles.speedPill, { backgroundColor: colors.primaryLight, borderColor: colors.primary }]}>
             <Text style={{ fontSize: 13 }}>⚡</Text>
             <Text style={[styles.speedTxt, { color: colors.primary }]}>
               DUAL-ENGINE 58mm & 80mm
@@ -143,7 +144,7 @@ export function WelcomeScreen({ onFinish }: WelcomeScreenProps): React.JSX.Eleme
         <Text
           style={[
             styles.availableOnTitle,
-            { color: isDark ? '#64748B' : '#94A3B8' },
+            { color: colors.textMuted },
           ]}
         >
           AVAILABLE ON
@@ -151,13 +152,13 @@ export function WelcomeScreen({ onFinish }: WelcomeScreenProps): React.JSX.Eleme
 
         <View style={styles.platformRow}>
           {/* Mobile Platform */}
-          <View style={styles.platformCard}>
+          <View style={[styles.platformCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View
               style={[
                 styles.iconTile,
                 {
-                  backgroundColor: isDark ? '#1E293B' : '#E2E8F0',
-                  borderColor: isDark ? '#334155' : '#CBD5E1',
+                  backgroundColor: colors.surfaceLight,
+                  borderColor: colors.borderLight,
                 },
               ]}
             >
@@ -166,27 +167,27 @@ export function WelcomeScreen({ onFinish }: WelcomeScreenProps): React.JSX.Eleme
             <Text
               style={[
                 styles.platformLabel,
-                { color: isDark ? '#F1F5F9' : '#0F172A' },
+                { color: colors.textPrimary },
               ]}
             >
               Mobile
             </Text>
-            <Text style={styles.platformSub}>Android POS</Text>
+            <Text style={[styles.platformSub, { color: colors.textSecondary }]}>Android POS</Text>
           </View>
 
           {/* Plus Connector */}
           <View style={styles.plusBox}>
-            <Text style={[styles.plusTxt, { color: colors.primary }]}>+</Text>
+            <Text style={[styles.plusTxt, { color: colors.secondary }]}>⚡</Text>
           </View>
 
           {/* Thermal Bluetooth POS */}
-          <View style={styles.platformCard}>
+          <View style={[styles.platformCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View
               style={[
                 styles.iconTile,
                 {
-                  backgroundColor: isDark ? '#1E293B' : '#E2E8F0',
-                  borderColor: isDark ? '#334155' : '#CBD5E1',
+                  backgroundColor: colors.surfaceLight,
+                  borderColor: colors.borderLight,
                 },
               ]}
             >
@@ -195,16 +196,16 @@ export function WelcomeScreen({ onFinish }: WelcomeScreenProps): React.JSX.Eleme
             <Text
               style={[
                 styles.platformLabel,
-                { color: isDark ? '#F1F5F9' : '#0F172A' },
+                { color: colors.textPrimary },
               ]}
             >
               Thermal POS
             </Text>
-            <Text style={styles.platformSub}>Bluetooth</Text>
+            <Text style={[styles.platformSub, { color: colors.textSecondary }]}>Bluetooth</Text>
           </View>
         </View>
 
-        <Text style={styles.versionTxt}>v1.0.0 • Production Ready</Text>
+        <Text style={[styles.versionTxt, { color: colors.textMuted }]}>v1.0.0 • Production Ready</Text>
       </Animated.View>
     </SafeAreaView>
   );
@@ -238,7 +239,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logoShadowBox: {
-    shadowColor: '#00D2FF',
     shadowOpacity: 0.35,
     shadowOffset: { width: 0, height: 8 },
     shadowRadius: 16,
@@ -254,78 +254,84 @@ const styles = StyleSheet.create({
     fontSize: 34,
     fontWeight: '900',
     letterSpacing: 0.5,
+    marginBottom: 6,
   },
   tagline: {
-    fontSize: 13,
-    fontWeight: '500',
-    marginTop: 6,
-    letterSpacing: 0.2,
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 16,
+    textAlign: 'center',
   },
   speedPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(249, 115, 22, 0.12)',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 12,
-    marginTop: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(249, 115, 22, 0.3)',
   },
   speedTxt: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.8,
   },
   bottomContainer: {
     alignItems: 'center',
     paddingBottom: 28,
+    paddingHorizontal: 24,
   },
   availableOnTitle: {
     fontSize: 10,
     fontWeight: '800',
-    letterSpacing: 1.2,
-    marginBottom: 12,
+    letterSpacing: 1.5,
+    marginBottom: 16,
   },
   platformRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 20,
+    gap: 16,
+    marginBottom: 18,
+    width: '100%',
   },
   platformCard: {
+    flex: 1,
+    maxWidth: 130,
     alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 10,
+    borderRadius: 16,
+    borderWidth: 1,
   },
   iconTile: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
+    width: 52,
+    height: 52,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 8,
     borderWidth: 1,
-    marginBottom: 6,
   },
   platformLabel: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '800',
   },
   platformSub: {
     fontSize: 10,
-    color: '#94A3B8',
-    marginTop: 1,
+    fontWeight: '600',
+    marginTop: 2,
   },
   plusBox: {
-    paddingBottom: 16,
+    paddingHorizontal: 4,
   },
   plusTxt: {
     fontSize: 22,
-    fontWeight: 'bold',
+    fontWeight: '900',
   },
   versionTxt: {
-    fontSize: 10,
-    color: '#64748B',
-    marginTop: 16,
-    letterSpacing: 0.4,
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
 });

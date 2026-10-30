@@ -6,7 +6,7 @@
  * - Searchable catalog filtering across 150+ products in items.ts
  * - Custom product name entry if not in catalog
  * - Quantity & Unit Price inputs with live total calculation
- * - Clean modal with Dark / Light theme support
+ * - Fully bound to FlashBill branding colors (constants/theme.ts)
  */
 
 import React, { useState, useMemo } from 'react';
@@ -117,8 +117,8 @@ export function AddItemModal({
               style={[
                 styles.modalCard,
                 {
-                  backgroundColor: isDark ? '#18181B' : '#FFFFFF',
-                  borderColor: isDark ? '#27272A' : '#E2E8F0',
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
                 },
               ]}
             >
@@ -127,7 +127,7 @@ export function AddItemModal({
                 <Text
                   style={[
                     styles.title,
-                    { color: isDark ? '#FAFAFA' : '#0F172A' },
+                    { color: colors.textPrimary },
                   ]}
                 >
                   Add Item to Sale
@@ -136,7 +136,7 @@ export function AddItemModal({
                   <MaterialCommunityIcons
                     name="close"
                     size={24}
-                    color={isDark ? '#A1A1AA' : '#334155'}
+                    color={colors.textSecondary}
                   />
                 </TouchableOpacity>
               </View>
@@ -146,10 +146,10 @@ export function AddItemModal({
                 <View
                   style={[
                     styles.floatingBadge,
-                    { backgroundColor: isDark ? '#18181B' : '#FFFFFF' },
+                    { backgroundColor: colors.surface },
                   ]}
                 >
-                  <Text style={[styles.floatingLabel, { color: '#0284C7' }]}>
+                  <Text style={[styles.floatingLabel, { color: colors.primary }]}>
                     Item Name / Search Catalog *
                   </Text>
                 </View>
@@ -157,8 +157,9 @@ export function AddItemModal({
                   style={[
                     styles.textInput,
                     {
-                      borderColor: '#0284C7',
-                      color: isDark ? '#FAFAFA' : '#0F172A',
+                      borderColor: colors.primary,
+                      color: colors.textPrimary,
+                      backgroundColor: colors.surface,
                     },
                   ]}
                   value={searchQuery}
@@ -176,7 +177,7 @@ export function AddItemModal({
                 <Text
                   style={[
                     styles.suggestionsTitle,
-                    { color: isDark ? '#A1A1AA' : '#64748B' },
+                    { color: colors.textSecondary },
                   ]}
                 >
                   Quick Select Catalog Products:
@@ -195,15 +196,11 @@ export function AddItemModal({
                           backgroundColor:
                             itemName === item.name
                               ? colors.primaryLight
-                              : isDark
-                              ? '#27272A'
-                              : '#F1F5F9',
+                              : colors.surfaceLight,
                           borderColor:
                             itemName === item.name
                               ? colors.primary
-                              : isDark
-                              ? '#3F3F46'
-                              : '#CBD5E1',
+                              : colors.borderLight,
                         },
                       ]}
                       onPress={() => handleSelectProduct(item)}
@@ -216,9 +213,7 @@ export function AddItemModal({
                             color:
                               itemName === item.name
                                 ? colors.primary
-                                : isDark
-                                ? '#FAFAFA'
-                                : '#1E293B',
+                                : colors.textPrimary,
                             fontWeight:
                               itemName === item.name ? '800' : '600',
                           },
@@ -229,7 +224,7 @@ export function AddItemModal({
                       <Text
                         style={[
                           styles.chipPrice,
-                          { color: isDark ? '#A1A1AA' : '#64748B' },
+                          { color: colors.textSecondary },
                         ]}
                       >
                         ₹{item.price}/{item.unit}
@@ -246,10 +241,10 @@ export function AddItemModal({
                   <View
                     style={[
                       styles.floatingBadge,
-                      { backgroundColor: isDark ? '#18181B' : '#FFFFFF' },
+                      { backgroundColor: colors.surface },
                     ]}
                   >
-                    <Text style={[styles.floatingLabel, { color: '#0284C7' }]}>
+                    <Text style={[styles.floatingLabel, { color: colors.primary }]}>
                       Quantity *
                     </Text>
                   </View>
@@ -257,8 +252,9 @@ export function AddItemModal({
                     style={[
                       styles.textInput,
                       {
-                        borderColor: '#0284C7',
-                        color: isDark ? '#FAFAFA' : '#0F172A',
+                        borderColor: colors.primary,
+                        color: colors.textPrimary,
+                        backgroundColor: colors.surface,
                       },
                     ]}
                     value={qty}
@@ -274,10 +270,10 @@ export function AddItemModal({
                   <View
                     style={[
                       styles.floatingBadge,
-                      { backgroundColor: isDark ? '#18181B' : '#FFFFFF' },
+                      { backgroundColor: colors.surface },
                     ]}
                   >
-                    <Text style={[styles.floatingLabel, { color: '#0284C7' }]}>
+                    <Text style={[styles.floatingLabel, { color: colors.primary }]}>
                       Rate / Price (₹) *
                     </Text>
                   </View>
@@ -285,8 +281,9 @@ export function AddItemModal({
                     style={[
                       styles.textInput,
                       {
-                        borderColor: '#0284C7',
-                        color: isDark ? '#FAFAFA' : '#0F172A',
+                        borderColor: colors.primary,
+                        color: colors.textPrimary,
+                        backgroundColor: colors.surface,
                       },
                     ]}
                     value={price}
@@ -303,15 +300,15 @@ export function AddItemModal({
                 style={[
                   styles.calcRow,
                   {
-                    backgroundColor: isDark ? '#27272A' : '#F8FAFC',
-                    borderColor: isDark ? '#3F3F46' : '#E2E8F0',
+                    backgroundColor: colors.surfaceLight,
+                    borderColor: colors.border,
                   },
                 ]}
               >
                 <Text
                   style={[
                     styles.calcLabel,
-                    { color: isDark ? '#A1A1AA' : '#64748B' },
+                    { color: colors.textSecondary },
                   ]}
                 >
                   Calculated Line Amount:
@@ -319,16 +316,22 @@ export function AddItemModal({
                 <Text
                   style={[
                     styles.calcValue,
-                    { color: isDark ? '#FAFAFA' : '#0F172A' },
+                    { color: colors.primary },
                   ]}
                 >
                   ₹ {calculatedTotal}
                 </Text>
               </View>
 
-              {/* Add to Bill Button */}
+              {/* Add to Bill Button (Uses colors.primary) */}
               <TouchableOpacity
-                style={[styles.addBtn, { backgroundColor: '#0284C7' }]}
+                style={[
+                  styles.addBtn,
+                  {
+                    backgroundColor: colors.primary,
+                    shadowColor: colors.primary,
+                  },
+                ]}
                 onPress={handleAdd}
                 activeOpacity={0.8}
               >
@@ -444,6 +447,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 4,
   },
   addBtnTxt: {
     color: '#FFFFFF',
@@ -452,4 +459,3 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 });
-

@@ -3,12 +3,12 @@
  * 
  * Material Design Calendar Date Picker matching the uploaded screenshot.
  * Features:
- * - Blue Header with selected Year and formatted Day/Month (e.g. "Sat, 31 Oct")
+ * - Brand Header with selected Year and formatted Day/Month (e.g. "Sat, 31 Oct")
  * - Month navigation with "<" and ">" arrows
  * - Days of week grid (S M T W T F S)
  * - Circular highlight on the selected day
  * - CANCEL and OK action buttons
- * - Full Dark / Light theme support
+ * - Bound directly to theme branding colors (constants/theme.ts)
  */
 
 import React, { useState } from 'react';
@@ -164,13 +164,13 @@ export function CalendarModal({
               style={[
                 styles.dialogCard,
                 {
-                  backgroundColor: isDark ? '#18181B' : '#FFFFFF',
-                  borderColor: isDark ? '#27272A' : '#E2E8F0',
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
                 },
               ]}
             >
-              {/* Blue Header Banner */}
-              <View style={styles.headerBanner}>
+              {/* Brand Header Banner (Uses colors.primary) */}
+              <View style={[styles.headerBanner, { backgroundColor: colors.primary }]}>
                 <Text style={styles.headerYear}>{yearNum}</Text>
                 <Text style={styles.headerDayDate}>
                   {`${dayName}, ${dayNum} ${monthNameShort}`}
@@ -187,14 +187,14 @@ export function CalendarModal({
                   <MaterialCommunityIcons
                     name="chevron-left"
                     size={26}
-                    color={isDark ? '#FAFAFA' : '#1E293B'}
+                    color={colors.primary}
                   />
                 </TouchableOpacity>
 
                 <Text
                   style={[
                     styles.monthTitle,
-                    { color: isDark ? '#FAFAFA' : '#1E293B' },
+                    { color: colors.textPrimary },
                   ]}
                 >
                   {`${MONTH_NAMES[currentMonth]} ${currentYear}`}
@@ -208,7 +208,7 @@ export function CalendarModal({
                   <MaterialCommunityIcons
                     name="chevron-right"
                     size={26}
-                    color={isDark ? '#FAFAFA' : '#1E293B'}
+                    color={colors.primary}
                   />
                 </TouchableOpacity>
               </View>
@@ -220,7 +220,7 @@ export function CalendarModal({
                     <Text
                       style={[
                         styles.weekHeaderTxt,
-                        { color: isDark ? '#71717A' : '#64748B' },
+                        { color: colors.textMuted },
                       ]}
                     >
                       {w}
@@ -249,7 +249,10 @@ export function CalendarModal({
                       <View
                         style={[
                           styles.dayCircle,
-                          selected && styles.dayCircleSelected,
+                          selected && {
+                            backgroundColor: colors.primary,
+                            shadowColor: colors.primary,
+                          },
                         ]}
                       >
                         <Text
@@ -259,10 +262,8 @@ export function CalendarModal({
                               color: selected
                                 ? '#FFFFFF'
                                 : today
-                                ? '#0284C7'
-                                : isDark
-                                ? '#FAFAFA'
-                                : '#1E293B',
+                                ? colors.primary
+                                : colors.textPrimary,
                               fontWeight: selected || today ? '800' : '500',
                             },
                           ]}
@@ -282,7 +283,9 @@ export function CalendarModal({
                   style={styles.footerBtn}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.footerBtnTxt}>CANCEL</Text>
+                  <Text style={[styles.footerBtnTxt, { color: colors.textSecondary }]}>
+                    CANCEL
+                  </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -290,7 +293,9 @@ export function CalendarModal({
                   style={styles.footerBtn}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.footerBtnTxt}>OK</Text>
+                  <Text style={[styles.footerBtnTxt, { color: colors.primary }]}>
+                    OK
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -322,7 +327,6 @@ const styles = StyleSheet.create({
     elevation: 20,
   },
   headerBanner: {
-    backgroundColor: '#0284C7',
     paddingHorizontal: 20,
     paddingVertical: 18,
   },
@@ -387,14 +391,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dayCircleSelected: {
-    backgroundColor: '#0284C7',
-    shadowColor: '#0284C7',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 4,
-    elevation: 4,
-  },
   dayNumberTxt: {
     fontSize: 13,
   },
@@ -411,10 +407,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   footerBtnTxt: {
-    color: '#0284C7',
     fontSize: 14,
     fontWeight: '800',
     letterSpacing: 0.6,
   },
 });
-

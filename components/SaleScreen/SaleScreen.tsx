@@ -10,8 +10,8 @@
  * - "+ Add Items (Optional)" action with dynamic items list
  * - "Total Amount" live calculation row
  * - Plan notice banner
- * - Bottom Bar: "Save & New" and "Save" (blue CTA) buttons with "⋮" menu
- * - Full Dark & Light theme integration
+ * - Bottom Bar: "Save & New" and "Save" (Primary CTA) buttons with "⋮" menu
+ * - Fully bound to FlashBill branding colors (constants/theme.ts) in both Dark & Light modes!
  */
 
 import React, { useState, useMemo } from 'react';
@@ -161,12 +161,12 @@ export function SaleScreen({
     <SafeAreaView
       style={[
         styles.safeArea,
-        { backgroundColor: isDark ? '#09090B' : '#FFFFFF' },
+        { backgroundColor: colors.background },
       ]}
     >
       <StatusBar
         barStyle={isDark ? 'light-content' : 'dark-content'}
-        backgroundColor={isDark ? '#09090B' : '#FFFFFF'}
+        backgroundColor={colors.background}
       />
 
       {/* 1. Top Bar (Back, Title, Credit/Cash Pill, Settings) */}
@@ -174,8 +174,8 @@ export function SaleScreen({
         style={[
           styles.topBar,
           {
-            borderBottomColor: isDark ? '#27272A' : '#F1F5F9',
-            backgroundColor: isDark ? '#09090B' : '#FFFFFF',
+            borderBottomColor: colors.border,
+            backgroundColor: colors.surface,
           },
         ]}
       >
@@ -188,13 +188,13 @@ export function SaleScreen({
             <Ionicons
               name="arrow-back"
               size={24}
-              color={isDark ? '#FAFAFA' : '#0F172A'}
+              color={colors.textPrimary}
             />
           </TouchableOpacity>
           <Text
             style={[
               styles.screenTitle,
-              { color: isDark ? '#FAFAFA' : '#0F172A' },
+              { color: colors.textPrimary },
             ]}
           >
             Sale
@@ -207,8 +207,8 @@ export function SaleScreen({
             style={[
               styles.modePillContainer,
               {
-                backgroundColor: isDark ? '#18181B' : '#F1F5F9',
-                borderColor: isDark ? '#27272A' : '#E2E8F0',
+                backgroundColor: colors.surfaceLight,
+                borderColor: colors.borderLight,
               },
             ]}
           >
@@ -216,7 +216,7 @@ export function SaleScreen({
             <TouchableOpacity
               style={[
                 styles.modePill,
-                paymentMode === 'credit' && styles.modePillActive,
+                paymentMode === 'credit' && { backgroundColor: colors.success },
               ]}
               onPress={() => setPaymentMode('credit')}
               activeOpacity={0.7}
@@ -226,7 +226,7 @@ export function SaleScreen({
                   styles.modePillTxt,
                   paymentMode === 'credit'
                     ? styles.modePillTxtActive
-                    : { color: isDark ? '#A1A1AA' : '#64748B' },
+                    : { color: colors.textMuted },
                 ]}
               >
                 Credit
@@ -237,7 +237,7 @@ export function SaleScreen({
             <TouchableOpacity
               style={[
                 styles.modePill,
-                paymentMode === 'cash' && styles.modePillActive,
+                paymentMode === 'cash' && { backgroundColor: colors.success },
               ]}
               onPress={() => setPaymentMode('cash')}
               activeOpacity={0.7}
@@ -247,7 +247,7 @@ export function SaleScreen({
                   styles.modePillTxt,
                   paymentMode === 'cash'
                     ? styles.modePillTxtActive
-                    : { color: isDark ? '#A1A1AA' : '#64748B' },
+                    : { color: colors.textMuted },
                 ]}
               >
                 Cash
@@ -264,7 +264,7 @@ export function SaleScreen({
             <Ionicons
               name="settings-outline"
               size={22}
-              color={isDark ? '#A1A1AA' : '#475569'}
+              color={colors.textSecondary}
             />
           </TouchableOpacity>
         </View>
@@ -281,8 +281,8 @@ export function SaleScreen({
           style={[
             styles.subHeaderRow,
             {
-              backgroundColor: isDark ? '#141417' : '#F8FAFC',
-              borderColor: isDark ? '#27272A' : '#E2E8F0',
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
             },
           ]}
         >
@@ -295,7 +295,7 @@ export function SaleScreen({
             <Text
               style={[
                 styles.subHeaderLabel,
-                { color: isDark ? '#71717A' : '#64748B' },
+                { color: colors.textSecondary },
               ]}
             >
               Invoice No.
@@ -304,7 +304,7 @@ export function SaleScreen({
               <Text
                 style={[
                   styles.subHeaderVal,
-                  { color: isDark ? '#FAFAFA' : '#0F172A' },
+                  { color: colors.textPrimary },
                 ]}
               >
                 {fullInvoiceNumber}
@@ -312,7 +312,7 @@ export function SaleScreen({
               <MaterialCommunityIcons
                 name="chevron-down"
                 size={18}
-                color={isDark ? '#A1A1AA' : '#64748B'}
+                color={colors.primary}
               />
             </View>
           </TouchableOpacity>
@@ -321,7 +321,7 @@ export function SaleScreen({
           <View
             style={[
               styles.subHeaderDivider,
-              { backgroundColor: isDark ? '#27272A' : '#E2E8F0' },
+              { backgroundColor: colors.borderLight },
             ]}
           />
 
@@ -334,7 +334,7 @@ export function SaleScreen({
             <Text
               style={[
                 styles.subHeaderLabel,
-                { color: isDark ? '#71717A' : '#64748B' },
+                { color: colors.textSecondary },
               ]}
             >
               Date
@@ -343,7 +343,7 @@ export function SaleScreen({
               <Text
                 style={[
                   styles.subHeaderVal,
-                  { color: isDark ? '#FAFAFA' : '#0F172A' },
+                  { color: colors.textPrimary },
                 ]}
               >
                 {formattedDate}
@@ -351,7 +351,7 @@ export function SaleScreen({
               <MaterialCommunityIcons
                 name="chevron-down"
                 size={18}
-                color={isDark ? '#A1A1AA' : '#64748B'}
+                color={colors.primary}
               />
             </View>
           </TouchableOpacity>
@@ -362,10 +362,10 @@ export function SaleScreen({
           <View
             style={[
               styles.floatingBadge,
-              { backgroundColor: isDark ? '#09090B' : '#FFFFFF' },
+              { backgroundColor: colors.background },
             ]}
           >
-            <Text style={[styles.floatingLabel, { color: '#0284C7' }]}>
+            <Text style={[styles.floatingLabel, { color: colors.primary }]}>
               Customer *
             </Text>
           </View>
@@ -373,9 +373,9 @@ export function SaleScreen({
             style={[
               styles.textInput,
               {
-                borderColor: '#0284C7',
-                color: isDark ? '#FAFAFA' : '#0F172A',
-                backgroundColor: isDark ? '#141417' : '#FFFFFF',
+                borderColor: colors.primary,
+                color: colors.textPrimary,
+                backgroundColor: colors.surface,
               },
             ]}
             value={customerName}
@@ -392,9 +392,9 @@ export function SaleScreen({
             style={[
               styles.textInputSimple,
               {
-                borderColor: isDark ? '#27272A' : '#CBD5E1',
-                color: isDark ? '#FAFAFA' : '#0F172A',
-                backgroundColor: isDark ? '#141417' : '#FFFFFF',
+                borderColor: colors.borderLight,
+                color: colors.textPrimary,
+                backgroundColor: colors.surface,
               },
             ]}
             value={phoneNumber}
@@ -411,8 +411,8 @@ export function SaleScreen({
             style={[
               styles.addItemsBtn,
               {
-                borderColor: isDark ? '#27272A' : '#CBD5E1',
-                backgroundColor: isDark ? '#141417' : '#FFFFFF',
+                borderColor: colors.borderLight,
+                backgroundColor: colors.surface,
               },
             ]}
             onPress={() => setShowAddItemModal(true)}
@@ -421,13 +421,13 @@ export function SaleScreen({
             <MaterialCommunityIcons
               name="plus-circle"
               size={20}
-              color="#0284C7"
+              color={colors.primary}
             />
-            <Text style={styles.addItemsTxt}>
+            <Text style={[styles.addItemsTxt, { color: colors.primary }]}>
               Add Items{' '}
               <Text
                 style={{
-                  color: isDark ? '#71717A' : '#94A3B8',
+                  color: colors.textMuted,
                   fontWeight: 'normal',
                 }}
               >
@@ -441,7 +441,7 @@ export function SaleScreen({
               <Text
                 style={[
                   styles.itemsSectionTitle,
-                  { color: isDark ? '#FAFAFA' : '#0F172A' },
+                  { color: colors.textPrimary },
                 ]}
               >
                 Added Items ({items.length})
@@ -453,9 +453,11 @@ export function SaleScreen({
                 <MaterialCommunityIcons
                   name="plus"
                   size={16}
-                  color="#0284C7"
+                  color={colors.primary}
                 />
-                <Text style={styles.addMoreTxt}>Add More</Text>
+                <Text style={[styles.addMoreTxt, { color: colors.primary }]}>
+                  Add More
+                </Text>
               </TouchableOpacity>
             </View>
 
@@ -465,8 +467,8 @@ export function SaleScreen({
                 style={[
                   styles.itemCard,
                   {
-                    backgroundColor: isDark ? '#18181B' : '#F8FAFC',
-                    borderColor: isDark ? '#27272A' : '#E2E8F0',
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
                   },
                 ]}
               >
@@ -474,7 +476,7 @@ export function SaleScreen({
                   <Text
                     style={[
                       styles.itemName,
-                      { color: isDark ? '#FAFAFA' : '#0F172A' },
+                      { color: colors.textPrimary },
                     ]}
                   >
                     {item.name}
@@ -482,7 +484,7 @@ export function SaleScreen({
                   <Text
                     style={[
                       styles.itemFormula,
-                      { color: isDark ? '#A1A1AA' : '#64748B' },
+                      { color: colors.textSecondary },
                     ]}
                   >
                     {item.qty} × ₹{item.price}
@@ -493,7 +495,7 @@ export function SaleScreen({
                   <Text
                     style={[
                       styles.itemAmt,
-                      { color: isDark ? '#FAFAFA' : '#0F172A' },
+                      { color: colors.textPrimary },
                     ]}
                   >
                     ₹{item.amt}
@@ -505,7 +507,7 @@ export function SaleScreen({
                     <MaterialCommunityIcons
                       name="trash-can-outline"
                       size={18}
-                      color="#EF4444"
+                      color={colors.error}
                     />
                   </TouchableOpacity>
                 </View>
@@ -518,13 +520,13 @@ export function SaleScreen({
         <View
           style={[
             styles.totalRow,
-            { borderTopColor: isDark ? '#27272A' : '#F1F5F9' },
+            { borderTopColor: colors.border },
           ]}
         >
           <Text
             style={[
               styles.totalLabel,
-              { color: isDark ? '#FAFAFA' : '#0F172A' },
+              { color: colors.textPrimary },
             ]}
           >
             Total Amount
@@ -533,7 +535,7 @@ export function SaleScreen({
             <Text
               style={[
                 styles.rupeeSymbol,
-                { color: isDark ? '#FAFAFA' : '#0F172A' },
+                { color: colors.textPrimary },
               ]}
             >
               ₹
@@ -542,7 +544,7 @@ export function SaleScreen({
               <Text
                 style={[
                   styles.totalNumber,
-                  { color: isDark ? '#FAFAFA' : '#0F172A' },
+                  { color: colors.primary },
                 ]}
               >
                 {totalAmount}
@@ -551,7 +553,7 @@ export function SaleScreen({
               <Text
                 style={[
                   styles.dottedLine,
-                  { color: isDark ? '#3F3F46' : '#CBD5E1' },
+                  { color: colors.textMuted },
                 ]}
               >
                 ----------------------
@@ -561,15 +563,24 @@ export function SaleScreen({
         </View>
       </ScrollView>
 
-      {/* 7. Bottom Plan Notice Banner matching Image 1 */}
-      <View style={styles.planBanner}>
-        <Text style={styles.planBannerTxt}>
+      {/* 7. Bottom Plan Notice Banner */}
+      <View
+        style={[
+          styles.planBanner,
+          {
+            backgroundColor: isDark
+              ? 'rgba(239, 68, 68, 0.12)'
+              : '#FEE2E2',
+          },
+        ]}
+      >
+        <Text style={[styles.planBannerTxt, { color: colors.error }]}>
           Your current plan may not support some features.
         </Text>
         <MaterialCommunityIcons
           name="chevron-right"
           size={16}
-          color="#DC2626"
+          color={colors.error}
         />
       </View>
 
@@ -578,8 +589,8 @@ export function SaleScreen({
         style={[
           styles.bottomActionBar,
           {
-            backgroundColor: isDark ? '#141417' : '#FFFFFF',
-            borderTopColor: isDark ? '#27272A' : '#E2E8F0',
+            backgroundColor: colors.surface,
+            borderTopColor: colors.border,
           },
         ]}
       >
@@ -591,15 +602,22 @@ export function SaleScreen({
           <Text
             style={[
               styles.saveNewTxt,
-              { color: isDark ? '#FAFAFA' : '#0F172A' },
+              { color: colors.textPrimary },
             ]}
           >
             Save & New
           </Text>
         </TouchableOpacity>
 
+        {/* Primary Save Button (Uses colors.primary) */}
         <TouchableOpacity
-          style={styles.savePrimaryBtn}
+          style={[
+            styles.savePrimaryBtn,
+            {
+              backgroundColor: colors.primary,
+              shadowColor: colors.primary,
+            },
+          ]}
           onPress={() => handleSave(false)}
           activeOpacity={0.8}
         >
@@ -626,7 +644,7 @@ export function SaleScreen({
           <MaterialCommunityIcons
             name="dots-vertical"
             size={22}
-            color="#0284C7"
+            color={colors.primary}
           />
         </TouchableOpacity>
       </View>
@@ -700,9 +718,6 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     paddingHorizontal: 12,
     borderRadius: 16,
-  },
-  modePillActive: {
-    backgroundColor: '#059669', // Emerald Green active pill
   },
   modePillTxt: {
     fontSize: 12,
@@ -796,7 +811,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   addItemsTxt: {
-    color: '#0284C7',
     fontSize: 14,
     fontWeight: '700',
   },
@@ -819,7 +833,6 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   addMoreTxt: {
-    color: '#0284C7',
     fontSize: 12,
     fontWeight: '700',
   },
@@ -876,7 +889,6 @@ const styles = StyleSheet.create({
   totalNumber: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#0284C7',
   },
   dottedLine: {
     fontSize: 14,
@@ -886,12 +898,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FEE2E2',
     paddingHorizontal: 16,
     paddingVertical: 9,
   },
   planBannerTxt: {
-    color: '#DC2626',
     fontSize: 11,
     fontWeight: '600',
   },
@@ -916,12 +926,10 @@ const styles = StyleSheet.create({
   },
   savePrimaryBtn: {
     flex: 1.2,
-    backgroundColor: '#0284C7', // High-contrast Blue matching Image 1
     paddingVertical: 12,
-    borderRadius: 6,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#0284C7',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -937,4 +945,3 @@ const styles = StyleSheet.create({
     padding: 6,
   },
 });
-

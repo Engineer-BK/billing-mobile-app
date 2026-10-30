@@ -32,9 +32,9 @@ export function BottomNavBar({
       style={[
         styles.dockContainer,
         {
-          backgroundColor: isDark ? '#0C111D' : '#FFFFFF',
+          backgroundColor: colors.surface,
           borderTopColor: colors.border,
-          shadowColor: isDark ? '#000000' : '#64748B',
+          shadowColor: colors.borderLight,
         },
       ]}
     >

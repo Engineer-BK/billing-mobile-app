@@ -82,7 +82,7 @@ export function FlashHeader({
           <Ionicons
             name={isDark ? 'moon' : 'sunny'}
             size={16}
-            color={isDark ? '#F59E0B' : '#F97316'}
+            color={isDark ? colors.secondary : colors.primary}
           />
         </TouchableOpacity>
       </View>
@@ -93,8 +93,8 @@ export function FlashHeader({
           styles.printerPill,
           {
             backgroundColor: isConnected
-              ? 'rgba(34, 197, 94, 0.12)'
-              : 'rgba(249, 115, 22, 0.12)',
+              ? colors.successLight
+              : colors.primaryLight,
             borderColor: isConnected ? colors.success : colors.primary,
           },
         ]}

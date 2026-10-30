@@ -3,10 +3,10 @@
  * 
  * High-Speed POS Command Deck.
  * 4 distinctive action cards powered by FlashBill branding colors:
- * - Green: 🖨️ 1-Tap Push Print
- * - Orange: ⚡ New Sale / Item Catalog
- * - Indigo: 🔄 Switch 58mm / 80mm Hardware
- * - Cyan: 🔍 Bluetooth Scanner
+ * - Emerald: 🖨️ 1-Tap Push Print (colors.success)
+ * - Cyan/Electric Blue: 🔍 Bluetooth Scanner (colors.primary)
+ * - Lightning Gold: 🔄 Switch 58mm / 80mm Hardware (colors.secondary)
+ * - Royal Blue: 📦 Product Catalog (colors.primary)
  */
 
 import React from 'react';
@@ -44,7 +44,7 @@ export function QuickActionGrid({
       </Text>
 
       <View style={styles.gridRow}>
-        {/* 1. 1-Tap Push Print (Hero Green) */}
+        {/* 1. 1-Tap Push Print (Hero Emerald) */}
         <TouchableOpacity
           style={[
             styles.actionCard,
@@ -61,7 +61,7 @@ export function QuickActionGrid({
           <View
             style={[
               styles.iconTile,
-              { backgroundColor: 'rgba(34, 197, 94, 0.15)' },
+              { backgroundColor: colors.successLight },
             ]}
           >
             {isPrinting ? (
@@ -82,7 +82,7 @@ export function QuickActionGrid({
           </Text>
         </TouchableOpacity>
 
-        {/* 2. Bluetooth Scanner (Tech Cyan) */}
+        {/* 2. Bluetooth Scanner (Electric Tech Blue) */}
         <TouchableOpacity
           style={[
             styles.actionCard,
@@ -98,30 +98,30 @@ export function QuickActionGrid({
           <View
             style={[
               styles.iconTile,
-              { backgroundColor: 'rgba(0, 210, 255, 0.15)' },
+              { backgroundColor: colors.primaryLight },
             ]}
           >
             {isScanning ? (
-              <ActivityIndicator size="small" color={colors.accent} />
+              <ActivityIndicator size="small" color={colors.primary} />
             ) : (
               <MaterialCommunityIcons
                 name="bluetooth-audio"
                 size={24}
-                color={colors.accent}
+                color={colors.primary}
               />
             )}
           </View>
           <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
             {isScanning ? 'Scanning...' : 'Pair Printer'}
           </Text>
-          <Text style={[styles.cardSub, { color: colors.accent }]}>
+          <Text style={[styles.cardSub, { color: colors.primary }]}>
             Nearby Devices
           </Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.gridRow}>
-        {/* 3. Hardware Switcher Toggle (Indigo Purple) */}
+        {/* 3. Hardware Switcher Toggle (Lightning Gold) */}
         <TouchableOpacity
           style={[
             styles.actionCard,
@@ -136,7 +136,7 @@ export function QuickActionGrid({
           <View
             style={[
               styles.iconTile,
-              { backgroundColor: 'rgba(99, 102, 241, 0.15)' },
+              { backgroundColor: colors.secondaryLight },
             ]}
           >
             <MaterialCommunityIcons
@@ -153,7 +153,7 @@ export function QuickActionGrid({
           </Text>
         </TouchableOpacity>
 
-        {/* 4. Product Catalog / Stock (Safety Orange) */}
+        {/* 4. Product Catalog / Stock (Flash Tech Blue) */}
         <TouchableOpacity
           style={[
             styles.actionCard,
@@ -168,7 +168,7 @@ export function QuickActionGrid({
           <View
             style={[
               styles.iconTile,
-              { backgroundColor: 'rgba(249, 115, 22, 0.15)' },
+              { backgroundColor: colors.primaryLight },
             ]}
           >
             <MaterialCommunityIcons
@@ -233,4 +233,3 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 });
-
