@@ -1,9 +1,18 @@
 /**
  * services/printJobService.ts
  * 
- * Hardware ESC/POS Print Stream Dispatcher.
- * Converts invoice data into ESC/POS thermal control codes and transmits them
- * over Bluetooth RFCOMM to the target printer (58mm or 80mm).
+ * Hardware ESC/POS Print Stream Dispatcher for FlashBill.
+ * Converts invoice data into high-speed ESC/POS thermal control codes and transmits them
+ * over Bluetooth RFCOMM to 58mm (SC588) or 80mm (EZO 80UB) POS printers.
+ * 
+ * Features:
+ * - "Billing Receipt" header banner (no store name)
+ * - Automatic real-time date (DD/MM/YYYY) and live time (hh:mm AM/PM) detection at print moment
+ * - 80mm layout: "Invoice No" (up) & "Customer" (below) on Left, "Date" (up) & "Time" (below) on Right
+ * - 58mm layout: Compact proportional metadata layout fitting 32 columns
+ * - Qty/Unit column with units (e.g. "2 KG", "1.5 L", "12 DZ")
+ * - Summary footer with Total Items/Qty, Subtotal, Total Discount, and Final Amount
+ * - Preserves auto-cut and feed lines customization
  */
 
 import { BluetoothEscposPrinter } from './bluetoothPrinter';
@@ -13,6 +22,16 @@ import { InvoiceData } from '../types/billing';
 export interface PrintJobResult {
   success: boolean;
   message?: string;
+}
+
+/**
+ * Pads two strings across a fixed monospace line width (Left aligned + Right aligned).
+ */
+function formatTwoColumns(left: string, right: string, width: number): string {
+  const maxLeft = Math.max(1, width - right.length - 1);
+  const trimmedLeft = left.length > maxLeft ? left.substring(0, maxLeft) : left;
+  const spaces = Math.max(1, width - trimmedLeft.length - right.length);
+  return `${trimmedLeft}${' '.repeat(spaces)}${right}\n`;
 }
 
 /**
@@ -26,42 +45,90 @@ export async function dispatchPrintReceipt(
   invoice: InvoiceData
 ): Promise<PrintJobResult> {
   try {
-    // Single-line divider dash string matching the hardware column width (32 or 48)
+    const is80mm = activeConfig.lineWidth >= 48;
     const dividerLine = `${'-'.repeat(activeConfig.lineWidth)}\n`;
 
-    // 1. Hardware Initialization: ESC @ resets buffer, clears line spacing & cancels error states
+    // 1. Automatically detect real-time date and live time at print dispatch moment
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    const liveDate = `${day}/${month}/${year}`;
+
+    let hours = now.getHours();
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    const liveTime = `${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
+
+    // Customer name fallback
+    const customer = (invoice.customerName && invoice.customerName.trim()) 
+      ? invoice.customerName.trim() 
+      : 'Walk-in Customer';
+
+    // 2. Hardware Initialization: ESC @ resets buffer, clears line spacing & cancels error states
     await BluetoothEscposPrinter.printerInit();
-    // 2. Set left margin to 0 for maximum printable width
     await BluetoothEscposPrinter.printerLeftSpace(0);
 
-    // Top paper feed: Customizable via activeConfig.feedLines.topSpace (0 = reduced minimum space)
+    // Top paper feed: Customizable via activeConfig.feedLines.topSpace
     if (activeConfig.feedLines.topSpace > 0) {
       await BluetoothEscposPrinter.printText('\n'.repeat(activeConfig.feedLines.topSpace), {});
     }
 
-    // --- Header Region ---
-    // Align center for clean, professional shop banner
+    // --- 3. Header Region: "Billing Receipt" (Centered, crisp 1x font) ---
     await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
-    await BluetoothEscposPrinter.printText(`${invoice.shopName}\n`, {
+    await BluetoothEscposPrinter.printText('Billing Receipt\n', {
       encoding: 'GBK',
       codepage: 0,
-      widthtimes: 1.3,  // Standard 1x width: prevents oversized horizontal stretching
-      heigthtimes: 1.3, // Standard 1x height: crisp, clean, and proportional
-      fonttype: 0,    // Standard Font A (12x24)
+      widthtimes: 0,  // Standard 1x width: prevents oversized horizontal stretching
+      heigthtimes: 0, // Standard 1x height: crisp, clean, and proportional
+      fonttype: 0,    // Standard Font A
     });
     await BluetoothEscposPrinter.printText(dividerLine, {});
 
-    // --- Metadata Block (Left Aligned) ---
+    // --- 4. Metadata Block ---
+    // Left: Invoice No (up) & Customer (below)
+    // Right: Date (up) & Time (below)
     await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.LEFT);
-    await BluetoothEscposPrinter.printText(`Date: ${invoice.date}\n`, {});
-    await BluetoothEscposPrinter.printText(`Invoice No: ${invoice.invoiceNo}\n`, {});
-    if (invoice.customerName) {
-      await BluetoothEscposPrinter.printText(`Customer: ${invoice.customerName}\n`, {});
+    if (is80mm) {
+      // 80mm layout (48 Columns):
+      // Line 1: Invoice No: 1                                Date: 30/10/2026
+      // Line 2: Customer: Basir Khan                           Time: 04:30 PM
+      const line1 = formatTwoColumns(
+        `Invoice No: ${invoice.invoiceNo}`,
+        `Date: ${liveDate}`,
+        activeConfig.lineWidth
+      );
+      const line2 = formatTwoColumns(
+        `Customer: ${customer}`,
+        `Time: ${liveTime}`,
+        activeConfig.lineWidth
+      );
+      await BluetoothEscposPrinter.printText(line1, {});
+      await BluetoothEscposPrinter.printText(line2, {});
+    } else {
+      // 58mm layout (32 Columns):
+      // Line 1: Inv No: 1               Date: 30/10/26
+      // Line 2: Cust: Basir Khan        Time: 04:30 PM
+      const shortYear = String(year).slice(-2);
+      const shortDate = `${day}/${month}/${shortYear}`;
+      const line1 = formatTwoColumns(
+        `Inv No: ${invoice.invoiceNo}`,
+        `Date: ${shortDate}`,
+        activeConfig.lineWidth
+      );
+      const line2 = formatTwoColumns(
+        `Cust: ${customer}`,
+        `Time: ${liveTime}`,
+        activeConfig.lineWidth
+      );
+      await BluetoothEscposPrinter.printText(line1, {});
+      await BluetoothEscposPrinter.printText(line2, {});
     }
     await BluetoothEscposPrinter.printText(dividerLine, {});
 
-    // --- Table Header ---
-    // Prints proportional table headers according to gridMetrics
+    // --- 5. Table Header (#, Item Description, Qty/Unit, Price, Amount) ---
     await BluetoothEscposPrinter.printColumn(
       activeConfig.gridMetrics,
       activeConfig.gridPositions,
@@ -70,15 +137,18 @@ export async function dispatchPrintReceipt(
     );
     await BluetoothEscposPrinter.printText(dividerLine, {});
 
-    // --- Items List Loop ---
+    // --- 6. Items List Loop (Includes Unit e.g. "2 KG") ---
     for (const record of invoice.items) {
+      const unitText = record.unit ? ` ${record.unit}` : '';
+      const qtyWithUnit = `${record.qty}${unitText}`.trim();
+
       await BluetoothEscposPrinter.printColumn(
         activeConfig.gridMetrics,
         activeConfig.gridPositions,
         [
           record.sNo,
           record.name.substring(0, activeConfig.nameCharLimit),
-          record.qty,
+          qtyWithUnit,
           record.price,
           record.amt,
         ],
@@ -87,7 +157,12 @@ export async function dispatchPrintReceipt(
     }
     await BluetoothEscposPrinter.printText(dividerLine, {});
 
-    // --- Summary Totals ---
+    // --- 7. Summary Totals (Total Items/Qty, Subtotal, Total Discount, Final Amount) ---
+    const subtotalValue = invoice.subtotal || invoice.grandTotal;
+    const discountValue = invoice.totalDiscount || (invoice.discountAmount ? invoice.discountAmount : '0.00');
+    const finalAmountValue = invoice.finalAmount || invoice.grandTotal;
+
+    // Line A: Total Items/Qty
     await BluetoothEscposPrinter.printColumn(
       activeConfig.totalMetrics,
       activeConfig.totalPositions,
@@ -95,28 +170,34 @@ export async function dispatchPrintReceipt(
       {}
     );
 
-    if (invoice.discountAmount && Number(invoice.discountAmount) > 0) {
-      await BluetoothEscposPrinter.printColumn(
-        activeConfig.totalMetrics,
-        activeConfig.totalPositions,
-        [`Discount (${invoice.discountPercent || ''}):`, `-${invoice.discountAmount}`],
-        {}
-      );
-    }
-
-    // Standard font for Grand Total (avoid fonttype: 1 which triggers tiny Font B)
+    // Line B: Subtotal
     await BluetoothEscposPrinter.printColumn(
       activeConfig.totalMetrics,
       activeConfig.totalPositions,
-      ['Total Amount:', invoice.grandTotal],
+      ['Subtotal:', subtotalValue],
+      {}
+    );
+
+    // Line C: Total Discount
+    await BluetoothEscposPrinter.printColumn(
+      activeConfig.totalMetrics,
+      activeConfig.totalPositions,
+      ['Total Discount:', `-${discountValue}`],
+      {}
+    );
+
+    // Line D: Final Amount
+    await BluetoothEscposPrinter.printColumn(
+      activeConfig.totalMetrics,
+      activeConfig.totalPositions,
+      ['Final Amount:', finalAmountValue],
       {}
     );
 
     // Closing divider line
     await BluetoothEscposPrinter.printText(dividerLine, {});
 
-    // --- Paper Feed & Auto-Cut ---
-    // Customizable bottom feed lines via activeConfig.feedLines.bottomSpace
+    // --- 8. Paper Feed & Auto-Cut ---
     if (activeConfig.feedLines.bottomSpace > 0) {
       await BluetoothEscposPrinter.printText(
         '\n'.repeat(activeConfig.feedLines.bottomSpace),
@@ -131,7 +212,7 @@ export async function dispatchPrintReceipt(
 
     return {
       success: true,
-      message: `Receipt dispatched to ${activeConfig.displayName} successfully.${
+      message: `Billing Receipt dispatched to ${activeConfig.displayName} at ${liveTime} successfully.${
         activeConfig.hasAutoCutter ? '\n✂️ Auto-cutter blade triggered.' : ''
       }`,
     };
@@ -139,7 +220,7 @@ export async function dispatchPrintReceipt(
     const errorMsg = err instanceof Error ? err.message : String(err);
     return {
       success: false,
-      message: errorMsg,
+      message: `Print Failed: ${errorMsg}`,
     };
   }
 }

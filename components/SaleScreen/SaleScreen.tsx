@@ -7,8 +7,8 @@
  * - Subheader: "Invoice No." (starts from 1) & "Date" (both tap to open custom popups)
  * - Outlined floating-label "Customer *" input
  * - Outlined "Phone Number" input
- * - "+ Add Items (Optional)" action with dynamic items list
- * - "Total Amount" live calculation row
+ * - "+ Add Items (Optional)" action with dynamic items list (Qty, Units, Discount, Rate)
+ * - Dynamic Summary Breakdown: Subtotal, Total Discount, Final Amount
  * - Plan notice banner
  * - Bottom Bar: "Save & New" and "Save" (Primary CTA) buttons with "⋮" menu
  * - Fully bound to FlashBill branding colors (constants/theme.ts) in both Dark & Light modes!
@@ -86,15 +86,33 @@ export function SaleScreen({
     return invoicePrefix ? `${invoicePrefix}${invoiceNo}` : invoiceNo;
   }, [invoicePrefix, invoiceNo]);
 
-  // Live calculations
-  const totalAmount = useMemo(() => {
-    const sum = items.reduce((acc, item) => acc + (parseFloat(item.amt) || 0), 0);
-    return sum.toFixed(2).replace(/\.00$/, '');
-  }, [items]);
+  // Live calculations across all items
+  const { subtotal, totalDiscount, finalAmount, totalQty, hasDiscount } = useMemo(() => {
+    let grossSum = 0;
+    let discSum = 0;
+    let netSum = 0;
+    let qtySum = 0;
 
-  const totalQty = useMemo(() => {
-    const sum = items.reduce((acc, item) => acc + (parseFloat(item.qty) || 0), 0);
-    return sum.toString();
+    for (const item of items) {
+      const q = parseFloat(item.qty) || 0;
+      const p = parseFloat(item.price) || 0;
+      const lineGross = q * p;
+      const lineNet = parseFloat(item.amt) || lineGross;
+      const lineDisc = parseFloat(item.discountAmount || '0') || Math.max(0, lineGross - lineNet);
+
+      grossSum += lineGross;
+      discSum += lineDisc;
+      netSum += lineNet;
+      qtySum += q;
+    }
+
+    return {
+      subtotal: grossSum.toFixed(2).replace(/\.00$/, ''),
+      totalDiscount: discSum.toFixed(2).replace(/\.00$/, ''),
+      finalAmount: netSum.toFixed(2).replace(/\.00$/, ''),
+      totalQty: qtySum.toString(),
+      hasDiscount: discSum > 0,
+    };
   }, [items]);
 
   // Add Item callback
@@ -113,22 +131,31 @@ export function SaleScreen({
 
   // Save invoice payload helper
   const buildInvoicePayload = (): InvoiceData => {
+    const finalItems = items.length > 0 ? items : [
+      {
+        sNo: '1',
+        name: 'General Item',
+        qty: '1',
+        unit: 'PCS',
+        price: finalAmount && finalAmount !== '0' ? finalAmount : '100',
+        amt: finalAmount && finalAmount !== '0' ? finalAmount : '100',
+      },
+    ];
+
+    const currentFinal = finalAmount && finalAmount !== '0' ? finalAmount : '100';
+
     return {
-      shopName: shopName || 'FlashBill POS',
+      shopName: 'Billing Receipt',
       date: formattedDate,
       invoiceNo: fullInvoiceNumber,
       customerName: customerName.trim() || 'Walk-in Customer',
-      items: items.length > 0 ? items : [
-        {
-          sNo: '1',
-          name: 'General Retail Item',
-          qty: '1',
-          price: totalAmount && totalAmount !== '0' ? totalAmount : '100',
-          amt: totalAmount && totalAmount !== '0' ? totalAmount : '100',
-        },
-      ],
+      customerPhone: phoneNumber.trim() || undefined,
+      items: finalItems,
       totalQty: items.length > 0 ? totalQty : '1',
-      grandTotal: totalAmount && totalAmount !== '0' ? totalAmount : '100',
+      subtotal: subtotal && subtotal !== '0' ? subtotal : currentFinal,
+      totalDiscount: totalDiscount || '0.00',
+      finalAmount: currentFinal,
+      grandTotal: currentFinal,
     };
   };
 
@@ -138,7 +165,7 @@ export function SaleScreen({
     onSaveInvoice(invoice, false);
 
     if (andNew) {
-      // Increment invoice number and reset form for next sale
+      // Auto-increment invoice number for next sale
       const nextNum = (parseInt(invoiceNo, 10) || 1) + 1;
       setInvoiceNo(nextNum.toString());
       setCustomerName('');
@@ -146,15 +173,37 @@ export function SaleScreen({
       setItems([]);
       Alert.alert(
         'Invoice Saved',
-        `Invoice #${invoice.invoiceNo} saved. Ready for next sale!`
+        `Invoice #${fullInvoiceNumber} saved! Ready for Invoice #${invoicePrefix}${nextNum}.`
       );
     } else {
       Alert.alert(
-        'Sale Saved',
-        `Invoice #${invoice.invoiceNo} for ₹${invoice.grandTotal} saved successfully.`
+        'Invoice Saved',
+        `Invoice #${fullInvoiceNumber} saved for ₹${invoice.grandTotal}!`
       );
-      onBack();
     }
+  };
+
+  // Handle Options Menu
+  const handleMoreOptions = () => {
+    Alert.alert(
+      'Sale Options',
+      `Invoice #${fullInvoiceNumber}\nAmount: ₹${finalAmount || '0.00'}`,
+      [
+        {
+          text: 'Print Directly to Thermal POS',
+          onPress: () => {
+            const invoice = buildInvoicePayload();
+            onSaveInvoice(invoice, true);
+          },
+        },
+        {
+          text: 'Clear All Items',
+          style: 'destructive',
+          onPress: () => setItems([]),
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
   };
 
   return (
@@ -169,200 +218,202 @@ export function SaleScreen({
         backgroundColor={colors.background}
       />
 
-      {/* 1. Top Bar (Back, Title, Credit/Cash Pill, Settings) */}
+      {/* --- 1. Top App Bar --- */}
       <View
         style={[
           styles.topBar,
           {
-            borderBottomColor: colors.border,
             backgroundColor: colors.surface,
+            borderBottomColor: colors.border,
           },
         ]}
       >
-        <View style={styles.topBarLeft}>
+        {/* Back Button */}
+        <TouchableOpacity
+          onPress={onBack}
+          style={styles.backBtn}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          activeOpacity={0.7}
+        >
+          <Ionicons
+            name="arrow-back"
+            size={24}
+            color={colors.textPrimary}
+          />
+        </TouchableOpacity>
+
+        {/* Title: Sale */}
+        <Text
+          style={[
+            styles.headerTitle,
+            { color: colors.textPrimary },
+          ]}
+        >
+          Sale
+        </Text>
+
+        {/* Mode Pill Toggle: [ Credit | Cash ] */}
+        <View
+          style={[
+            styles.modePillContainer,
+            { backgroundColor: colors.surfaceLight },
+          ]}
+        >
           <TouchableOpacity
-            onPress={onBack}
-            style={styles.backBtn}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={[
+              styles.modePill,
+              paymentMode === 'credit' && { backgroundColor: colors.success },
+            ]}
+            onPress={() => setPaymentMode('credit')}
+            activeOpacity={0.8}
           >
-            <Ionicons
-              name="arrow-back"
-              size={24}
-              color={colors.textPrimary}
-            />
+            <Text
+              style={[
+                styles.modePillTxt,
+                paymentMode === 'credit'
+                  ? styles.modePillTxtActive
+                  : { color: colors.textSecondary },
+              ]}
+            >
+              Credit
+            </Text>
           </TouchableOpacity>
-          <Text
-            style={[
-              styles.screenTitle,
-              { color: colors.textPrimary },
-            ]}
-          >
-            Sale
-          </Text>
-        </View>
 
-        <View style={styles.topBarRight}>
-          {/* Credit / Cash Pill Toggle matching Image 1 */}
-          <View
-            style={[
-              styles.modePillContainer,
-              {
-                backgroundColor: colors.surfaceLight,
-                borderColor: colors.borderLight,
-              },
-            ]}
-          >
-            {/* Credit Pill */}
-            <TouchableOpacity
-              style={[
-                styles.modePill,
-                paymentMode === 'credit' && { backgroundColor: colors.success },
-              ]}
-              onPress={() => setPaymentMode('credit')}
-              activeOpacity={0.7}
-            >
-              <Text
-                style={[
-                  styles.modePillTxt,
-                  paymentMode === 'credit'
-                    ? styles.modePillTxtActive
-                    : { color: colors.textMuted },
-                ]}
-              >
-                Credit
-              </Text>
-            </TouchableOpacity>
-
-            {/* Cash Pill */}
-            <TouchableOpacity
-              style={[
-                styles.modePill,
-                paymentMode === 'cash' && { backgroundColor: colors.success },
-              ]}
-              onPress={() => setPaymentMode('cash')}
-              activeOpacity={0.7}
-            >
-              <Text
-                style={[
-                  styles.modePillTxt,
-                  paymentMode === 'cash'
-                    ? styles.modePillTxtActive
-                    : { color: colors.textMuted },
-                ]}
-              >
-                Cash
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Settings Icon */}
           <TouchableOpacity
-            style={styles.settingsBtn}
-            onPress={() => setShowInvoiceModal(true)}
-            activeOpacity={0.7}
+            style={[
+              styles.modePill,
+              paymentMode === 'cash' && { backgroundColor: colors.success },
+            ]}
+            onPress={() => setPaymentMode('cash')}
+            activeOpacity={0.8}
           >
-            <Ionicons
-              name="settings-outline"
-              size={22}
-              color={colors.textSecondary}
-            />
+            <Text
+              style={[
+                styles.modePillTxt,
+                paymentMode === 'cash'
+                  ? styles.modePillTxtActive
+                  : { color: colors.textSecondary },
+              ]}
+            >
+              Cash
+            </Text>
           </TouchableOpacity>
         </View>
+
+        {/* Settings Gear */}
+        <TouchableOpacity
+          style={styles.settingsBtn}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          onPress={() =>
+            Alert.alert(
+              'Sale Settings',
+              'Configure default invoice prefixes, tax rates, and customer notes.'
+            )
+          }
+          activeOpacity={0.7}
+        >
+          <Ionicons
+            name="settings-outline"
+            size={22}
+            color={colors.textSecondary}
+          />
+        </TouchableOpacity>
       </View>
 
+      {/* --- 2. Subheader Bar (Invoice No. & Date with Dropdowns) --- */}
+      <View
+        style={[
+          styles.subheaderBar,
+          {
+            backgroundColor: colors.surfaceLight,
+            borderBottomColor: colors.border,
+          },
+        ]}
+      >
+        {/* Invoice No. Block (Tapping opens Change Invoice No. popup) */}
+        <TouchableOpacity
+          style={styles.subheaderCol}
+          onPress={() => setShowInvoiceModal(true)}
+          activeOpacity={0.7}
+        >
+          <Text
+            style={[
+              styles.subLabel,
+              { color: colors.textSecondary },
+            ]}
+          >
+            Invoice No.
+          </Text>
+          <View style={styles.subValueRow}>
+            <Text
+              style={[
+                styles.subValue,
+                { color: colors.textPrimary },
+              ]}
+            >
+              {fullInvoiceNumber}
+            </Text>
+            <MaterialCommunityIcons
+              name="chevron-down"
+              size={18}
+              color={colors.primary}
+            />
+          </View>
+        </TouchableOpacity>
+
+        {/* Vertical Divider */}
+        <View
+          style={[
+            styles.verticalDivider,
+            { backgroundColor: colors.borderLight },
+          ]}
+        />
+
+        {/* Date Block (Tapping opens Material Calendar popup) */}
+        <TouchableOpacity
+          style={styles.subheaderCol}
+          onPress={() => setShowCalendarModal(true)}
+          activeOpacity={0.7}
+        >
+          <Text
+            style={[
+              styles.subLabel,
+              { color: colors.textSecondary },
+            ]}
+          >
+            Date
+          </Text>
+          <View style={styles.subValueRow}>
+            <Text
+              style={[
+                styles.subValue,
+                { color: colors.textPrimary },
+              ]}
+            >
+              {formattedDate}
+            </Text>
+            <MaterialCommunityIcons
+              name="chevron-down"
+              size={18}
+              color={colors.primary}
+            />
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* --- Scrollable Body Form --- */}
       <ScrollView
-        style={styles.scrollArea}
-        contentContainerStyle={styles.scrollContent}
+        style={styles.scrollBody}
+        contentContainerStyle={styles.scrollBodyContent}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* 2. Subheader Strip: Invoice No. & Date (Tap to edit) */}
-        <View
-          style={[
-            styles.subHeaderRow,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          {/* Invoice No. Column */}
-          <TouchableOpacity
-            style={styles.subHeaderCol}
-            onPress={() => setShowInvoiceModal(true)}
-            activeOpacity={0.7}
-          >
-            <Text
-              style={[
-                styles.subHeaderLabel,
-                { color: colors.textSecondary },
-              ]}
-            >
-              Invoice No.
-            </Text>
-            <View style={styles.subHeaderValRow}>
-              <Text
-                style={[
-                  styles.subHeaderVal,
-                  { color: colors.textPrimary },
-                ]}
-              >
-                {fullInvoiceNumber}
-              </Text>
-              <MaterialCommunityIcons
-                name="chevron-down"
-                size={18}
-                color={colors.primary}
-              />
-            </View>
-          </TouchableOpacity>
-
-          {/* Vertical Divider */}
+        {/* 3. Customer Floating-Label Outlined Input */}
+        <View style={styles.inputContainer}>
           <View
             style={[
-              styles.subHeaderDivider,
-              { backgroundColor: colors.borderLight },
-            ]}
-          />
-
-          {/* Date Column */}
-          <TouchableOpacity
-            style={styles.subHeaderCol}
-            onPress={() => setShowCalendarModal(true)}
-            activeOpacity={0.7}
-          >
-            <Text
-              style={[
-                styles.subHeaderLabel,
-                { color: colors.textSecondary },
-              ]}
-            >
-              Date
-            </Text>
-            <View style={styles.subHeaderValRow}>
-              <Text
-                style={[
-                  styles.subHeaderVal,
-                  { color: colors.textPrimary },
-                ]}
-              >
-                {formattedDate}
-              </Text>
-              <MaterialCommunityIcons
-                name="chevron-down"
-                size={18}
-                color={colors.primary}
-              />
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* 3. Customer Floating-Label Input */}
-        <View style={styles.inputWrapper}>
-          <View
-            style={[
-              styles.floatingBadge,
-              { backgroundColor: colors.background },
+              styles.floatingLabelBadge,
+              { backgroundColor: colors.surface },
             ]}
           >
             <Text style={[styles.floatingLabel, { color: colors.primary }]}>
@@ -371,7 +422,7 @@ export function SaleScreen({
           </View>
           <TextInput
             style={[
-              styles.textInput,
+              styles.outlinedInput,
               {
                 borderColor: colors.primary,
                 color: colors.textPrimary,
@@ -380,17 +431,16 @@ export function SaleScreen({
             ]}
             value={customerName}
             onChangeText={setCustomerName}
-            placeholder="Enter customer name"
+            placeholder="Enter Customer Name"
             placeholderTextColor={colors.textMuted}
-            autoCapitalize="words"
           />
         </View>
 
-        {/* 4. Phone Number Input */}
-        <View style={styles.inputWrapper}>
+        {/* 4. Phone Number Outlined Input */}
+        <View style={styles.inputContainer}>
           <TextInput
             style={[
-              styles.textInputSimple,
+              styles.outlinedInputPlain,
               {
                 borderColor: colors.borderLight,
                 color: colors.textPrimary,
@@ -405,7 +455,7 @@ export function SaleScreen({
           />
         </View>
 
-        {/* 5. Add Items Section */}
+        {/* 5. "+ Add Items (Optional)" Action Button */}
         {items.length === 0 ? (
           <TouchableOpacity
             style={[
@@ -424,15 +474,7 @@ export function SaleScreen({
               color={colors.primary}
             />
             <Text style={[styles.addItemsTxt, { color: colors.primary }]}>
-              Add Items{' '}
-              <Text
-                style={{
-                  color: colors.textMuted,
-                  fontWeight: 'normal',
-                }}
-              >
-                (Optional)
-              </Text>
+              Add Items (Optional)
             </Text>
           </TouchableOpacity>
         ) : (
@@ -461,109 +503,155 @@ export function SaleScreen({
               </TouchableOpacity>
             </View>
 
-            {items.map((item, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.itemCard,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <View style={styles.itemInfo}>
-                  <Text
-                    style={[
-                      styles.itemName,
-                      { color: colors.textPrimary },
-                    ]}
-                  >
-                    {item.name}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.itemFormula,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    {item.qty} × ₹{item.price}
-                  </Text>
-                </View>
+            {items.map((item, index) => {
+              const unitDisplay = item.unit ? ` ${item.unit}` : ' PCS';
+              const hasDisc = item.discountPercent && parseFloat(item.discountPercent) > 0;
 
-                <View style={styles.itemAmountCol}>
-                  <Text
-                    style={[
-                      styles.itemAmt,
-                      { color: colors.textPrimary },
-                    ]}
-                  >
-                    ₹{item.amt}
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => handleRemoveItem(index)}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <MaterialCommunityIcons
-                      name="trash-can-outline"
-                      size={18}
-                      color={colors.error}
-                    />
-                  </TouchableOpacity>
+              return (
+                <View
+                  key={index}
+                  style={[
+                    styles.itemCard,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <View style={styles.itemInfo}>
+                    <Text
+                      style={[
+                        styles.itemName,
+                        { color: colors.textPrimary },
+                      ]}
+                    >
+                      {item.name}
+                    </Text>
+                    <View style={styles.itemMetaRow}>
+                      <Text
+                        style={[
+                          styles.itemFormula,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
+                        {item.qty}{unitDisplay} × ₹{item.price}
+                      </Text>
+                      {hasDisc ? (
+                        <View style={[styles.itemDiscBadge, { backgroundColor: colors.successLight }]}>
+                          <Text style={[styles.itemDiscTxt, { color: colors.success }]}>
+                            -{item.discountPercent}% (-₹{item.discountAmount})
+                          </Text>
+                        </View>
+                      ) : null}
+                    </View>
+                  </View>
+
+                  <View style={styles.itemAmountCol}>
+                    <Text
+                      style={[
+                        styles.itemAmt,
+                        { color: colors.textPrimary },
+                      ]}
+                    >
+                      ₹{item.amt}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => handleRemoveItem(index)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <MaterialCommunityIcons
+                        name="trash-can-outline"
+                        size={18}
+                        color={colors.error}
+                      />
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
           </View>
         )}
 
-        {/* 6. Total Amount Row */}
+        {/* 6. Dynamic Summary Breakdown Section */}
         <View
           style={[
-            styles.totalRow,
+            styles.summarySection,
             { borderTopColor: colors.border },
           ]}
         >
-          <Text
-            style={[
-              styles.totalLabel,
-              { color: colors.textPrimary },
-            ]}
-          >
-            Total Amount
-          </Text>
-          <View style={styles.totalValueRow}>
-            <Text
-              style={[
-                styles.rupeeSymbol,
-                { color: colors.textPrimary },
-              ]}
-            >
-              ₹
-            </Text>
-            {totalAmount && totalAmount !== '0' ? (
+          {items.length > 0 && hasDiscount ? (
+            <>
+              <View style={styles.summarySubRow}>
+                <Text style={[styles.subRowLabel, { color: colors.textSecondary }]}>
+                  Subtotal
+                </Text>
+                <Text style={[styles.subRowValue, { color: colors.textPrimary }]}>
+                  ₹{subtotal}
+                </Text>
+              </View>
+              <View style={styles.summarySubRow}>
+                <Text style={[styles.subRowLabel, { color: colors.success }]}>
+                  Total Discount
+                </Text>
+                <Text style={[styles.subRowValue, { color: colors.success, fontWeight: '800' }]}>
+                  -₹{totalDiscount}
+                </Text>
+              </View>
+            </>
+          ) : null}
+
+          {/* Final Total Amount Row */}
+          <View style={styles.totalRow}>
+            <View>
               <Text
                 style={[
-                  styles.totalNumber,
-                  { color: colors.primary },
+                  styles.totalLabel,
+                  { color: colors.textPrimary },
                 ]}
               >
-                {totalAmount}
+                Total Amount
               </Text>
-            ) : (
+              {items.length > 0 ? (
+                <Text style={[styles.itemsSummaryTxt, { color: colors.textSecondary }]}>
+                  {items.length} items • {totalQty} total qty
+                </Text>
+              ) : null}
+            </View>
+
+            <View style={styles.totalValueRow}>
               <Text
                 style={[
-                  styles.dottedLine,
-                  { color: colors.textMuted },
+                  styles.rupeeSymbol,
+                  { color: colors.textPrimary },
                 ]}
               >
-                ----------------------
+                ₹
               </Text>
-            )}
+              {finalAmount && finalAmount !== '0' ? (
+                <Text
+                  style={[
+                    styles.totalNumber,
+                    { color: colors.primary },
+                  ]}
+                >
+                  {finalAmount}
+                </Text>
+              ) : (
+                <Text
+                  style={[
+                    styles.dottedLine,
+                    { color: colors.textMuted },
+                  ]}
+                >
+                  ----------------------
+                </Text>
+              )}
+            </View>
           </View>
         </View>
       </ScrollView>
 
-      {/* 7. Bottom Plan Notice Banner */}
+      {/* --- 7. Bottom Plan Notice Banner --- */}
       <View
         style={[
           styles.planBanner,
@@ -574,17 +662,22 @@ export function SaleScreen({
           },
         ]}
       >
-        <Text style={[styles.planBannerTxt, { color: colors.error }]}>
+        <Text
+          style={[
+            styles.planBannerTxt,
+            { color: colors.error },
+          ]}
+        >
           Your current plan may not support some features.
         </Text>
         <MaterialCommunityIcons
           name="chevron-right"
-          size={16}
+          size={18}
           color={colors.error}
         />
       </View>
 
-      {/* 8. Bottom Action Bar: [Save & New] [SAVE] [⋮] */}
+      {/* --- 8. Bottom Action Bar --- */}
       <View
         style={[
           styles.bottomActionBar,
@@ -594,6 +687,7 @@ export function SaleScreen({
           },
         ]}
       >
+        {/* Save & New Button */}
         <TouchableOpacity
           style={styles.saveNewBtn}
           onPress={() => handleSave(true)}
@@ -624,43 +718,35 @@ export function SaleScreen({
           <Text style={styles.savePrimaryTxt}>Save</Text>
         </TouchableOpacity>
 
+        {/* ⋮ More Options Trigger */}
         <TouchableOpacity
           style={styles.moreOptionsBtn}
-          onPress={() => {
-            Alert.alert('Sale Actions', 'Select an action:', [
-              {
-                text: 'Save & Push Print',
-                onPress: () => {
-                  const invoice = buildInvoicePayload();
-                  onSaveInvoice(invoice, true);
-                  onBack();
-                },
-              },
-              { text: 'Cancel', style: 'cancel' },
-            ]);
-          }}
+          onPress={handleMoreOptions}
           activeOpacity={0.7}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <MaterialCommunityIcons
             name="dots-vertical"
-            size={22}
+            size={24}
             color={colors.primary}
           />
         </TouchableOpacity>
       </View>
 
-      {/* 9. Popups & Modals */}
+      {/* --- Modals --- */}
+      {/* 1. Change Invoice No Modal */}
       <ChangeInvoiceModal
         visible={showInvoiceModal}
         currentInvoiceNo={invoiceNo}
         currentPrefix={invoicePrefix}
         onClose={() => setShowInvoiceModal(false)}
-        onSave={(newNo, newPrefix) => {
+        onSave={(newNo, prefix) => {
           setInvoiceNo(newNo);
-          setInvoicePrefix(newPrefix);
+          setInvoicePrefix(prefix);
         }}
       />
 
+      {/* 2. Calendar Modal */}
       <CalendarModal
         visible={showCalendarModal}
         selectedDate={saleDate}
@@ -668,6 +754,7 @@ export function SaleScreen({
         onSelectDate={(newDate) => setSaleDate(newDate)}
       />
 
+      {/* 3. Add Item Modal */}
       <AddItemModal
         visible={showAddItemModal}
         itemIndex={items.length + 1}
@@ -685,118 +772,105 @@ const styles = StyleSheet.create({
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-  },
-  topBarLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: 12,
   },
   backBtn: {
-    padding: 2,
+    padding: 4,
   },
-  screenTitle: {
+  headerTitle: {
     fontSize: 20,
     fontWeight: '800',
+    flex: 1,
     letterSpacing: 0.3,
-  },
-  topBarRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
   },
   modePillContainer: {
     flexDirection: 'row',
     borderRadius: 20,
     padding: 3,
-    borderWidth: 1,
   },
   modePill: {
-    paddingVertical: 5,
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
     borderRadius: 16,
   },
   modePillTxt: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
   },
   modePillTxtActive: {
     color: '#FFFFFF',
     fontWeight: '800',
   },
   settingsBtn: {
-    padding: 2,
+    padding: 4,
   },
-  scrollArea: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 24,
-  },
-  subHeaderRow: {
+  subheaderBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 8,
-    borderWidth: 1,
     paddingVertical: 10,
-    paddingHorizontal: 16,
-    marginBottom: 20,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
   },
-  subHeaderCol: {
+  subheaderCol: {
     flex: 1,
   },
-  subHeaderLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    marginBottom: 3,
+  verticalDivider: {
+    width: 1,
+    height: 28,
+    marginHorizontal: 16,
   },
-  subHeaderValRow: {
+  subLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  subValueRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  subHeaderVal: {
-    fontSize: 14,
+  subValue: {
+    fontSize: 15,
     fontWeight: '800',
   },
-  subHeaderDivider: {
-    width: 1,
-    height: 28,
-    marginHorizontal: 12,
+  scrollBody: {
+    flex: 1,
   },
-  inputWrapper: {
+  scrollBodyContent: {
+    padding: 16,
+    paddingBottom: 24,
+  },
+  inputContainer: {
     position: 'relative',
     marginBottom: 16,
   },
-  floatingBadge: {
+  floatingLabelBadge: {
     position: 'absolute',
     top: -8,
-    left: 14,
-    zIndex: 2,
+    left: 12,
+    zIndex: 10,
     paddingHorizontal: 6,
   },
   floatingLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
   },
-  textInput: {
+  outlinedInput: {
     borderWidth: 1.5,
     borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
     fontSize: 15,
     fontWeight: '600',
   },
-  textInputSimple: {
+  outlinedInputPlain: {
     borderWidth: 1,
     borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
     fontSize: 15,
     fontWeight: '500',
   },
@@ -852,9 +926,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
+  itemMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 2,
+  },
   itemFormula: {
     fontSize: 12,
-    marginTop: 2,
+    fontWeight: '600',
+  },
+  itemDiscBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  itemDiscTxt: {
+    fontSize: 10,
+    fontWeight: '800',
   },
   itemAmountCol: {
     flexDirection: 'row',
@@ -865,17 +954,40 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
   },
+  summarySection: {
+    borderTopWidth: 1,
+    paddingTop: 12,
+    marginTop: 8,
+  },
+  summarySubRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginVertical: 2,
+  },
+  subRowLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  subRowValue: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 16,
-    borderTopWidth: 1,
-    marginTop: 8,
+    paddingTop: 8,
+    marginTop: 4,
   },
   totalLabel: {
     fontSize: 16,
     fontWeight: '800',
+  },
+  itemsSummaryTxt: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 2,
   },
   totalValueRow: {
     flexDirection: 'row',

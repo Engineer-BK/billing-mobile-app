@@ -16,10 +16,10 @@ export const PRINTER_PROFILES: Record<PrinterProfileId, PrinterProfile> = {
     badge: '2-Inch • 32 Col',
     paperWidth: '58mm Roll',
     lineWidth: 32,
-    nameCharLimit: 11,
+    nameCharLimit: 9,
     hasAutoCutter: false,
-    // Column layout: # (3) + Name (11) + Qty (5) + Price (6) + Amount (7) = 32
-    gridMetrics: [3, 11, 5, 6, 7],
+    // Column layout: # (2) + Item (9) + Qty/Unit (8) + Price (6) + Amount (7) = 32
+    gridMetrics: [2, 9, 8, 6, 7],
     gridPositions: [
       BluetoothEscposPrinter.ALIGN.LEFT,
       BluetoothEscposPrinter.ALIGN.LEFT,
@@ -27,7 +27,7 @@ export const PRINTER_PROFILES: Record<PrinterProfileId, PrinterProfile> = {
       BluetoothEscposPrinter.ALIGN.RIGHT,
       BluetoothEscposPrinter.ALIGN.RIGHT,
     ],
-    headerColumns: ['#', 'Name', 'Qty', 'Pri', 'Amt'],
+    headerColumns: ['#', 'Item', 'Qty/Unit', 'Price', 'Amount'],
     // Summary row: Label (20) + Value (12) = 32
     totalMetrics: [20, 12],
     totalPositions: [
@@ -46,10 +46,10 @@ export const PRINTER_PROFILES: Record<PrinterProfileId, PrinterProfile> = {
     badge: '3-Inch • 48 Col • Auto-Cut',
     paperWidth: '80mm Roll',
     lineWidth: 48,
-    nameCharLimit: 20,
+    nameCharLimit: 19,
     hasAutoCutter: true,
-    // Column layout: # (4) + Item Description (20) + Qty (6) + Price (8) + Amount (10) = 48
-    gridMetrics: [4, 20, 6, 8, 10],
+    // Column layout: # (3) + Item Description (19) + Qty/Unit (9) + Price (8) + Amount (9) = 48
+    gridMetrics: [3, 19, 9, 8, 9],
     gridPositions: [
       BluetoothEscposPrinter.ALIGN.LEFT,
       BluetoothEscposPrinter.ALIGN.LEFT,
@@ -57,7 +57,7 @@ export const PRINTER_PROFILES: Record<PrinterProfileId, PrinterProfile> = {
       BluetoothEscposPrinter.ALIGN.RIGHT,
       BluetoothEscposPrinter.ALIGN.RIGHT,
     ],
-    headerColumns: ['#', 'Item Description', 'Qty', 'Price', 'Amount'],
+    headerColumns: ['#', 'Item Description', 'Qty/Unit', 'Price', 'Amount'],
     // Summary row: Label (30) + Value (18) = 48
     totalMetrics: [30, 18],
     totalPositions: [
@@ -66,8 +66,8 @@ export const PRINTER_PROFILES: Record<PrinterProfileId, PrinterProfile> = {
     ],
     // Customizable paper feed spacing: { topSpace, bottomSpace }
     feedLines: {
-      topSpace: 1,     // 0 lines at top: reduces top space to the absolute minimum
-      bottomSpace: 16,  // 8 lines (~28mm): feeds paper clear of motorized auto-cutter blade
+      topSpace: 1,     // 1 line at top
+      bottomSpace: 16, // Feeds paper clear of motorized auto-cutter blade
     },
   },
 };

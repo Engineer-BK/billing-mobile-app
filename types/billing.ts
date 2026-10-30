@@ -1,7 +1,7 @@
 /**
  * types/billing.ts
  * 
- * Business-level TypeScript definitions for Billing, Invoices, and Cart Items.
+ * Business-level TypeScript definitions for Billing, Invoices, Cart Items, and Units.
  */
 
 export interface InvoiceItem {
@@ -9,31 +9,47 @@ export interface InvoiceItem {
   sNo: string;
   /** Product name (e.g. "Basmati Rice") */
   name: string;
-  /** Quantity sold, can be decimal or integer (e.g. "2", "0.5") */
+  /** Quantity sold, decimal or integer (e.g. "2", "0.5") */
   qty: string;
-  /** Unit price in currency (e.g. "90") */
+  /** Measurement unit (e.g. "KG", "PCS", "DOZEN", "L", "PKT") */
+  unit: string;
+  /** Unit price / rate in currency (e.g. "90") */
   price: string;
-  /** Line amount (qty * price) (e.g. "180") */
+  /** Optional discount percentage (e.g. "10" for 10%) */
+  discountPercent?: string;
+  /** Optional discount deduction amount (e.g. "18.00") */
+  discountAmount?: string;
+  /** Final line amount after discount (qty * price - discount) (e.g. "162.00") */
   amt: string;
 }
 
 export interface InvoiceData {
-  /** Shop or Business Name header */
+  /** Shop or Header title (default: "Billing Receipt") */
   shopName: string;
-  /** Formatted date string (e.g. "29/10/2026") */
+  /** Real-time date string (e.g. "30/10/2026") */
   date: string;
-  /** Invoice or receipt number (e.g. "38", "1001") */
+  /** Real-time timestamp string (e.g. "04:30 PM") */
+  time?: string;
+  /** Invoice or receipt number (e.g. "1", "INV-1") */
   invoiceNo: string;
-  /** Array of purchased items */
-  items: InvoiceItem[];
-  /** Total quantity count across all items */
-  totalQty: string;
-  /** Grand total payable amount after discounts */
-  grandTotal: string;
-  /** Optional customer name */
+  /** Customer name */
   customerName?: string;
-  /** Optional discount percentage applied (e.g. "5%") */
-  discountPercent?: string;
-  /** Optional discount deduction amount (e.g. "50") */
+  /** Customer phone number */
+  customerPhone?: string;
+  /** Array of purchased items with units & discounts */
+  items: InvoiceItem[];
+  /** Total quantity string across items */
+  totalQty: string;
+  /** Gross subtotal before discounts */
+  subtotal?: string;
+  /** Total discount amount saved across all items */
+  totalDiscount?: string;
+  /** Backward-compatible discount amount */
   discountAmount?: string;
+  /** Backward-compatible discount percentage */
+  discountPercent?: string;
+  /** Final payable amount after all discounts */
+  finalAmount?: string;
+  /** Alias for backward compatibility */
+  grandTotal: string;
 }
