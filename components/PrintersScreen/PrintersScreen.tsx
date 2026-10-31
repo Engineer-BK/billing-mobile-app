@@ -40,6 +40,8 @@ interface PrintersScreenProps {
   selectedProfile: PrinterProfileId;
   activeConfig: PrinterProfile;
   sampleInvoice: InvoiceData;
+  lastError?: string | null;
+  onClearError?: () => void;
   onSelectProfile: (profile: PrinterProfileId) => void;
   onScan: () => void;
   onConnect: (address: string, name: string) => void;
@@ -57,6 +59,8 @@ export function PrintersScreen({
   selectedProfile,
   activeConfig,
   sampleInvoice,
+  lastError,
+  onClearError,
   onSelectProfile,
   onScan,
   onConnect,
@@ -115,6 +119,57 @@ export function PrintersScreen({
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Hardware Diagnostic Error Banner (Visible when any printer connection error occurs) */}
+      {lastError ? (
+        <View
+          style={[
+            styles.diagnosticErrorCard,
+            {
+              backgroundColor: isDark ? '#3B1219' : '#FEF2F2',
+              borderColor: colors.error,
+            },
+          ]}
+        >
+          <View style={styles.diagnosticHeaderRow}>
+            <View style={styles.diagnosticTitleLeft}>
+              <MaterialCommunityIcons name="alert-octagon" size={20} color={colors.error} />
+              <Text style={[styles.diagnosticTitle, { color: colors.error }]}>
+                Hardware Connection Diagnostic
+              </Text>
+            </View>
+            {onClearError ? (
+              <TouchableOpacity onPress={onClearError} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <MaterialCommunityIcons name="close" size={18} color={colors.textSecondary} />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
+          <Text style={[styles.diagnosticErrorText, { color: colors.textPrimary }]}>
+            {lastError}
+          </Text>
+
+          <View
+            style={[
+              styles.troubleshootBox,
+              { backgroundColor: isDark ? '#2A1016' : '#FFFFFF', borderColor: colors.borderLight },
+            ]}
+          >
+            <Text style={[styles.troubleshootHeading, { color: colors.error }]}>
+              Fix for 58mm / 80mm Bluetooth Printers:
+            </Text>
+            <Text style={[styles.troubleshootItem, { color: colors.textSecondary }]}>
+              • Check phone Settings &gt; Bluetooth: Ensure printer is listed under Paired Devices (PIN: 0000 or 1234).
+            </Text>
+            <Text style={[styles.troubleshootItem, { color: colors.textSecondary }]}>
+              • Turn printer power OFF for 3 seconds, then turn back ON.
+            </Text>
+            <Text style={[styles.troubleshootItem, { color: colors.textSecondary }]}>
+              • Tap 'Scan BT' and select your printer from the Discovered list below.
+            </Text>
+          </View>
+        </View>
+      ) : null}
 
       {/* 2. Current Connected Printer Hero Card */}
       <View
@@ -988,5 +1043,49 @@ const styles = StyleSheet.create({
   livePreviewContainer: {
     alignItems: 'center',
     paddingTop: 16,
+  },
+  diagnosticErrorCard: {
+    borderWidth: 1.5,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 14,
+  },
+  diagnosticHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  diagnosticTitleLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  diagnosticTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  diagnosticErrorText: {
+    fontSize: 12,
+    fontWeight: '600',
+    lineHeight: 18,
+    marginBottom: 10,
+  },
+  troubleshootBox: {
+    borderRadius: 10,
+    borderWidth: 1,
+    padding: 10,
+    gap: 4,
+  },
+  troubleshootHeading: {
+    fontSize: 11,
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+  troubleshootItem: {
+    fontSize: 11,
+    fontWeight: '500',
+    lineHeight: 16,
   },
 });

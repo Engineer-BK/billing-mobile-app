@@ -60,9 +60,6 @@ function MainScreen(): React.JSX.Element {
   // Welcome / Splash Screen State (shows on app launch)
   const [showSplash, setShowSplash] = useState<boolean>(true);
 
-  // New Sale Screen State (shows when clicking "+ New Sale")
-  const [showSaleScreen, setShowSaleScreen] = useState<boolean>(false);
-
   // Invoices Records State (persistent list of bills with search & print)
   const [invoicesList, setInvoicesList] = useState<InvoiceData[]>([
     SAMPLE_INVOICE,
@@ -126,6 +123,8 @@ function MainScreen(): React.JSX.Element {
     printerName,
     isScanning,
     deviceList,
+    lastError,
+    clearLastError,
     discoverAndBindPrinter,
     connectToDevice,
     disconnectPrinter,
@@ -226,7 +225,7 @@ function MainScreen(): React.JSX.Element {
       `Catalog loaded with ${groceryProducts.length} products across 23 grocery categories.\n\nReady to add items to your sale!`,
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: '+ Create Sale', onPress: () => setShowSaleScreen(true) },
+        { text: '+ Create Sale', onPress: () => setActiveTab('sale') },
       ]
     );
   };
@@ -238,7 +237,6 @@ function MainScreen(): React.JSX.Element {
       savedInvoice,
       ...prev.filter((inv) => inv.invoiceNo !== savedInvoice.invoiceNo),
     ]);
-    setShowSaleScreen(false);
     if (shouldPrint) {
       handlePrint(savedInvoice);
     }
@@ -290,18 +288,6 @@ function MainScreen(): React.JSX.Element {
     return <WelcomeScreen onFinish={() => setShowSplash(false)} />;
   }
 
-  // New Sale Screen Gate
-  if (showSaleScreen) {
-    return (
-      <SaleScreen
-        initialInvoiceNo={parseInt(currentInvoice.invoiceNo, 10) || 1}
-        shopName={currentInvoice.shopName}
-        onBack={() => setShowSaleScreen(false)}
-        onSaveInvoice={handleSaveInvoice}
-      />
-    );
-  }
-
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <StatusBar
@@ -309,42 +295,20 @@ function MainScreen(): React.JSX.Element {
         backgroundColor={colors.background}
       />
 
-      {/* --- Main Tab Views --- */}
-      {activeTab === 'bills' ? (
-        // Tab 4: Invoices & Receipts Screen with Search & 1-Tap Print
-        <InvoicesScreen
-          invoices={invoicesList}
-          activeConfig={activeConfig}
-          onPressPrint={(inv) => handlePrint(inv)}
-          onPressNewSale={() => setShowSaleScreen(true)}
-          onDeleteInvoice={handleDeleteInvoice}
-          onChangeStatus={handleUpdateInvoiceStatus}
-        />
-      ) : activeTab === 'hardware' ? (
-        // Tab 2: Dedicated Thermal Printers Screen (Hardware)
-        <PrintersScreen
-          targetAddress={targetAddress}
-          printerName={printerName}
-          isScanning={isScanning}
-          isPrinting={isPrinting}
-          deviceList={deviceList}
-          selectedProfile={selectedProfile}
-          activeConfig={activeConfig}
-          sampleInvoice={currentInvoice}
-          onSelectProfile={handleSelectProfile}
-          onScan={discoverAndBindPrinter}
-          onConnect={connectToDevice}
-          onDisconnect={disconnectPrinter}
-          onTestPrint={handleTestPrint}
-          onPaperFeed={handlePaperFeed}
-        />
-      ) : (
-        // Tab 1: Home Dashboard (Clean Retail Operations)
+      {/* --- Main Tab Views (Preserved State with display: flex/none) --- */}
+
+      {/* Tab 1: Home Dashboard Tab */}
+      <View
+        style={[
+          styles.tabContent,
+          { display: activeTab === 'home' ? 'flex' : 'none' },
+        ]}
+      >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* 1. Distinctive FlashBill Header with Store Info */}
+          {/* Distinctive FlashBill Header with Store Info */}
           <FlashHeader
             storeName="FlashBill POS"
             printerName={printerName}
@@ -352,7 +316,7 @@ function MainScreen(): React.JSX.Element {
             onPressPrinterPill={() => setActiveTab('hardware')}
           />
 
-          {/* 2. Retail Flash Metrics Strip (Sales, Items, Total Invoices) */}
+          {/* Retail Flash Metrics Strip */}
           <FlashStats
             grandTotal={currentInvoice.grandTotal}
             totalQty={currentInvoice.totalQty}
@@ -360,15 +324,15 @@ function MainScreen(): React.JSX.Element {
             invoicesCount={invoicesList.length}
           />
 
-          {/* 3. High-Speed Retail POS Command Deck */}
+          {/* High-Speed Retail POS Command Deck */}
           <QuickActionGrid
-            onPressNewSale={() => setShowSaleScreen(true)}
+            onPressNewSale={() => setActiveTab('sale')}
             onPressInvoices={() => setActiveTab('bills')}
             onPressCatalog={handleBrowseCatalog}
             onPressPrinters={() => setActiveTab('hardware')}
           />
 
-          {/* 4. Active Transaction Hub Card with 1-Tap Print & Share */}
+          {/* Active Transaction Hub Card with 1-Tap Print & Share */}
           <RecentBillsCard
             invoice={currentInvoice}
             showPreview={showPreview}
@@ -378,7 +342,7 @@ function MainScreen(): React.JSX.Element {
             onPressMenu={() => setHomeMenuInvoice(currentInvoice)}
           />
 
-          {/* 5. True-to-Life Cream Monospace Receipt Preview */}
+          {/* True-to-Life Cream Monospace Receipt Preview */}
           {showPreview && (
             <ReceiptPreview
               activeConfig={activeConfig}
@@ -386,7 +350,66 @@ function MainScreen(): React.JSX.Element {
             />
           )}
         </ScrollView>
-      )}
+      </View>
+
+      {/* Tab 2: Sale Tab Screen (Full Draft State Preserved Across Tabs) */}
+      <View
+        style={[
+          styles.tabContent,
+          { display: activeTab === 'sale' ? 'flex' : 'none' },
+        ]}
+      >
+        <SaleScreen
+          initialInvoiceNo={parseInt(currentInvoice.invoiceNo, 10) || 1}
+          shopName={currentInvoice.shopName}
+          onBack={() => setActiveTab('home')}
+          onSaveInvoice={handleSaveInvoice}
+        />
+      </View>
+
+      {/* Tab 3: Invoices Tab Screen */}
+      <View
+        style={[
+          styles.tabContent,
+          { display: activeTab === 'bills' ? 'flex' : 'none' },
+        ]}
+      >
+        <InvoicesScreen
+          invoices={invoicesList}
+          activeConfig={activeConfig}
+          onPressPrint={(inv) => handlePrint(inv)}
+          onPressNewSale={() => setActiveTab('sale')}
+          onDeleteInvoice={handleDeleteInvoice}
+          onChangeStatus={handleUpdateInvoiceStatus}
+        />
+      </View>
+
+      {/* Tab 4: Thermal Printers Tab Screen */}
+      <View
+        style={[
+          styles.tabContent,
+          { display: activeTab === 'hardware' ? 'flex' : 'none' },
+        ]}
+      >
+        <PrintersScreen
+          targetAddress={targetAddress}
+          printerName={printerName}
+          isScanning={isScanning}
+          isPrinting={isPrinting}
+          deviceList={deviceList}
+          selectedProfile={selectedProfile}
+          activeConfig={activeConfig}
+          sampleInvoice={currentInvoice}
+          lastError={lastError}
+          onClearError={clearLastError}
+          onSelectProfile={handleSelectProfile}
+          onScan={discoverAndBindPrinter}
+          onConnect={connectToDevice}
+          onDisconnect={disconnectPrinter}
+          onTestPrint={handleTestPrint}
+          onPaperFeed={handlePaperFeed}
+        />
+      </View>
 
       {/* 3-Dot Options Popup Modal for Home Screen (Disappears on outside click) */}
       <InvoiceOptionsMenu
@@ -399,18 +422,10 @@ function MainScreen(): React.JSX.Element {
         onChangeStatus={(inv, newStatus) => handleUpdateInvoiceStatus(inv.invoiceNo, newStatus)}
       />
 
-      {/* Bottom Navigation Dock with Elevated "+ New Sale" FAB */}
+      {/* Bottom Navigation Dock: [ Home ] [ Sale ] [ Invoices ] [ Printers ] */}
       <BottomNavBar
         activeTab={activeTab}
-        onSelectTab={(tab) => {
-          setActiveTab(tab);
-          if (tab === 'sale') {
-            setShowSaleScreen(true);
-          }
-        }}
-        onPressNewSale={() => {
-          setShowSaleScreen(true);
-        }}
+        onSelectTab={(tab) => setActiveTab(tab)}
       />
     </SafeAreaView>
   );
@@ -426,6 +441,9 @@ export default function App(): React.JSX.Element {
 
 const styles = StyleSheet.create({
   safeArea: {
+    flex: 1,
+  },
+  tabContent: {
     flex: 1,
   },
   scrollContent: {

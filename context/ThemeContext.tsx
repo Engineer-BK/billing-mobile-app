@@ -20,9 +20,9 @@ export interface ThemeContextType {
 }
 
 const ThemeContext = createContext<ThemeContextType>({
-  theme: 'dark',
-  isDark: true,
-  colors: DarkTheme,
+  theme: 'light',
+  isDark: false,
+  colors: LightTheme,
   toggleTheme: () => {},
   setTheme: () => {},
 });
@@ -32,7 +32,7 @@ export function ThemeProvider({
 }: {
   children: React.ReactNode;
 }): React.JSX.Element {
-  const [theme, setTheme] = useState<ThemeMode>('dark');
+  const [theme, setTheme] = useState<ThemeMode>('light');
 
   const isDark = theme === 'dark';
   const colors = useMemo(() => (isDark ? DarkTheme : LightTheme), [isDark]);

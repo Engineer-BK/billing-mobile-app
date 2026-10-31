@@ -224,21 +224,14 @@ export function AddItemModal({
               >
                 {/* 1. Item Name Input */}
                 <View style={styles.inputWrapper}>
-                  <View
-                    style={[
-                      styles.floatingBadge,
-                      { backgroundColor: colors.surface },
-                    ]}
-                  >
-                    <Text style={[styles.floatingLabel, { color: colors.primary }]}>
-                      Item Name *
-                    </Text>
-                  </View>
+                  <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
+                    ITEM NAME <Text style={{ color: colors.primary }}>*</Text>
+                  </Text>
                   <TextInput
                     style={[
                       styles.textInput,
                       {
-                        borderColor: colors.primary,
+                        borderColor: itemName ? colors.primary : colors.borderLight,
                         color: colors.textPrimary,
                         backgroundColor: colors.surface,
                       },
@@ -255,21 +248,14 @@ export function AddItemModal({
                 <View style={styles.inputsRow}>
                   {/* Quantity Input */}
                   <View style={[styles.inputWrapper, { flex: 1.1 }]}>
-                    <View
-                      style={[
-                        styles.floatingBadge,
-                        { backgroundColor: colors.surface },
-                      ]}
-                    >
-                      <Text style={[styles.floatingLabel, { color: colors.primary }]}>
-                        Quantity *
-                      </Text>
-                    </View>
+                    <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
+                      QUANTITY <Text style={{ color: colors.primary }}>*</Text>
+                    </Text>
                     <TextInput
                       style={[
                         styles.textInput,
                         {
-                          borderColor: colors.borderLight,
+                          borderColor: qty ? colors.primary : colors.borderLight,
                           color: colors.textPrimary,
                           backgroundColor: colors.surface,
                         },
@@ -284,22 +270,15 @@ export function AddItemModal({
 
                   {/* Unit Dropdown Trigger */}
                   <View style={[styles.inputWrapper, { flex: 1 }]}>
-                    <View
-                      style={[
-                        styles.floatingBadge,
-                        { backgroundColor: colors.surface },
-                      ]}
-                    >
-                      <Text style={[styles.floatingLabel, { color: colors.primary }]}>
-                        Unit *
-                      </Text>
-                    </View>
+                    <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
+                      UNIT <Text style={{ color: colors.primary }}>*</Text>
+                    </Text>
                     <TouchableOpacity
                       style={[
                         styles.unitDropdownBtn,
                         {
                           borderColor: colors.borderLight,
-                          backgroundColor: colors.surfaceLight,
+                          backgroundColor: colors.surface,
                         },
                       ]}
                       onPress={() => {
@@ -324,21 +303,14 @@ export function AddItemModal({
                 <View style={styles.inputsRow}>
                   {/* Unit Price (₹) Input */}
                   <View style={[styles.inputWrapper, { flex: 1.1 }]}>
-                    <View
-                      style={[
-                        styles.floatingBadge,
-                        { backgroundColor: colors.surface },
-                      ]}
-                    >
-                      <Text style={[styles.floatingLabel, { color: colors.primary }]}>
-                        Unit Price (₹) *
-                      </Text>
-                    </View>
+                    <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
+                      UNIT PRICE (₹) <Text style={{ color: colors.primary }}>*</Text>
+                    </Text>
                     <TextInput
                       style={[
                         styles.textInput,
                         {
-                          borderColor: colors.borderLight,
+                          borderColor: price ? colors.primary : colors.borderLight,
                           color: colors.textPrimary,
                           backgroundColor: colors.surface,
                         },
@@ -353,21 +325,14 @@ export function AddItemModal({
 
                   {/* Discount (%) Input */}
                   <View style={[styles.inputWrapper, { flex: 1 }]}>
-                    <View
-                      style={[
-                        styles.floatingBadge,
-                        { backgroundColor: colors.surface },
-                      ]}
-                    >
-                      <Text style={[styles.floatingLabel, { color: colors.primary }]}>
-                        Discount (%)
-                      </Text>
-                    </View>
+                    <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
+                      DISCOUNT (%)
+                    </Text>
                     <TextInput
                       style={[
                         styles.textInput,
                         {
-                          borderColor: colors.borderLight,
+                          borderColor: discountPercent ? colors.primary : colors.borderLight,
                           color: colors.textPrimary,
                           backgroundColor: colors.surface,
                         },
@@ -713,24 +678,19 @@ const styles = StyleSheet.create({
     position: 'relative',
     marginVertical: 8,
   },
-  floatingBadge: {
-    position: 'absolute',
-    top: -9,
-    left: 12,
-    zIndex: 10,
-    paddingHorizontal: 6,
-  },
-  floatingLabel: {
-    fontSize: 11.5,
-    fontWeight: '700',
-    letterSpacing: 0.2,
+  fieldLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+    marginBottom: 6,
+    paddingHorizontal: 2,
   },
   textInput: {
-    borderWidth: 1.5,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
+    borderWidth: 1.2,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 46,
+    fontSize: 14,
     fontWeight: '600',
   },
   inputsRow: {
@@ -738,10 +698,10 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   unitDropdownBtn: {
-    borderWidth: 1.5,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    borderWidth: 1.2,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 46,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

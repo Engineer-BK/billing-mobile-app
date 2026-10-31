@@ -27,6 +27,7 @@ export function useBluetoothScanner({ onProfileAutoDetected }: UseBluetoothScann
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [deviceList, setDeviceList] = useState<BluetoothDevice[]>([]);
   const [showDeviceList, setShowDeviceList] = useState<boolean>(false);
+  const [lastError, setLastError] = useState<string | null>(null);
 
   /**
    * Request Bluetooth & Location permissions required on Android 12+ (Samsung Galaxy A34).
@@ -126,27 +127,21 @@ export function useBluetoothScanner({ onProfileAutoDetected }: UseBluetoothScann
 
       setDeviceList(uniqueDevices);
 
-      // Search for known POS hardware identifiers
-      const printerTarget = uniqueDevices.find((device) => {
-        const devName = (device.name || '').toUpperCase();
-        return (
-          devName.includes('80UB') ||
-          devName.includes('EZO') ||
-          devName.includes('SC588') ||
-          devName.includes('PRINTER') ||
-          devName.includes('POS') ||
-          devName.includes('MTP')
-        );
-      });
-
-      if (printerTarget) {
-        await connectToDevice(printerTarget.address, printerTarget.name || 'Thermal POS Printer');
-      } else if (uniqueDevices.length > 0) {
-        setShowDeviceList(true);
-        Alert.alert(
-          'Devices Discovered',
-          `Discovered ${uniqueDevices.length} Bluetooth device(s). Tap your printer in the list below to connect.`
-        );
+      // If exactly 1 device found and no previous target, connect directly
+      if (uniqueDevices.length === 1) {
+        await connectToDevice(uniqueDevices[0].address, uniqueDevices[0].name || 'Thermal POS Printer');
+      } else if (uniqueDevices.length > 1) {
+        // If there's an already saved targetAddress in the list, reconnect to it
+        const savedTarget = targetAddress ? uniqueDevices.find(d => d.address === targetAddress) : null;
+        if (savedTarget) {
+          await connectToDevice(savedTarget.address, savedTarget.name || 'Thermal POS Printer');
+        } else {
+          setShowDeviceList(true);
+          Alert.alert(
+            'Printers Discovered',
+            `Found ${uniqueDevices.length} Bluetooth devices.\n\nTap 'Connect' next to your 80mm or 58mm printer in the list below.`
+          );
+        }
       } else {
         Alert.alert(
           'Hardware Missing',
@@ -155,6 +150,7 @@ export function useBluetoothScanner({ onProfileAutoDetected }: UseBluetoothScann
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
+      setLastError(msg);
       Alert.alert('Discovery Exception', msg);
     } finally {
       setIsScanning(false);
@@ -167,6 +163,7 @@ export function useBluetoothScanner({ onProfileAutoDetected }: UseBluetoothScann
   const connectToDevice = async (address: string, name: string): Promise<void> => {
     try {
       setIsScanning(true);
+      setLastError(null);
       await BluetoothManager.connect(address);
       setTargetAddress(address);
       setPrinterName(name || address);
@@ -179,7 +176,11 @@ export function useBluetoothScanner({ onProfileAutoDetected }: UseBluetoothScann
       Alert.alert('Link Verified', `${name || 'Printer'} connected and bound successfully.`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      Alert.alert('Connection Failed', `Could not connect to ${name}: ${msg}`);
+      setLastError(msg);
+      Alert.alert(
+        'Connection Failed',
+        `Device: ${name || 'Printer'} (${address})\n\nDiagnostics:\n${msg}\n\nTroubleshooting Tips:\n1. Check if printer is paired in Android Settings > Bluetooth (PIN is usually 0000 or 1234).\n2. Turn printer OFF and back ON to reset connection.\n3. Make sure no other phone or application is connected to this printer.`
+      );
     } finally {
       setIsScanning(false);
     }
@@ -208,6 +209,8 @@ export function useBluetoothScanner({ onProfileAutoDetected }: UseBluetoothScann
     deviceList,
     showDeviceList,
     setShowDeviceList,
+    lastError,
+    clearLastError: () => setLastError(null),
     discoverAndBindPrinter,
     connectToDevice,
     disconnectPrinter,

@@ -22,7 +22,9 @@ import {
   SafeAreaView,
   StatusBar,
   Alert,
+  TouchableOpacity,
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { InvoiceData, InvoiceItem } from '../../types/billing';
 import { SaleTopBar } from './SaleTopBar';
@@ -38,7 +40,7 @@ import { SaleOptionsModal } from './SaleOptionsModal';
 interface SaleScreenProps {
   initialInvoiceNo?: number;
   shopName: string;
-  onBack: () => void;
+  onBack?: () => void;
   onSaveInvoice: (invoice: InvoiceData, shouldPrint?: boolean) => void;
 }
 
@@ -188,15 +190,34 @@ export function SaleScreen({
     setShowOptionsModal(true);
   };
 
-  return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
-      <StatusBar
-        barStyle={isDark ? 'light-content' : 'dark-content'}
-        backgroundColor={colors.background}
-      />
+  // Clear / Reset Sale
+  const handleClearSale = () => {
+    if (items.length > 0 || customerName || phoneNumber) {
+      Alert.alert(
+        'Reset Sale?',
+        'Are you sure you want to clear current items and customer details?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Clear All',
+            style: 'destructive',
+            onPress: () => {
+              setCustomerName('');
+              setPhoneNumber('');
+              setItems([]);
+            },
+          },
+        ]
+      );
+    } else {
+      Alert.alert('New Sale', 'Sale form is ready for new items.');
+    }
+  };
 
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* 1. Top App Bar */}
-      <SaleTopBar onBack={onBack} />
+      <SaleTopBar onBack={onBack} onClearSale={handleClearSale} />
 
       {/* 2. Subheader Bar (Invoice No. & Date) */}
       <SaleInvoiceSubheader
@@ -213,46 +234,71 @@ export function SaleScreen({
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Customer Outlined Floating-Label Input */}
-        <View style={styles.inputContainer}>
-          <View style={[styles.floatingLabelBadge, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.floatingLabel, { color: colors.primary }]}>
-              Customer *
+        {/* Customer Input Card */}
+        <View style={styles.fieldGroup}>
+          <View style={styles.labelRow}>
+            <MaterialCommunityIcons name="account-outline" size={16} color={colors.primary} />
+            <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
+              CUSTOMER NAME
             </Text>
+            <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '700' }}>*</Text>
           </View>
-          <TextInput
+          <View
             style={[
-              styles.outlinedInput,
+              styles.inputBox,
               {
-                borderColor: colors.primary,
-                color: colors.textPrimary,
                 backgroundColor: colors.surface,
+                borderColor: customerName ? colors.primary : colors.borderLight,
               },
             ]}
-            value={customerName}
-            onChangeText={setCustomerName}
-            placeholder="Enter Customer Name"
-            placeholderTextColor={colors.textMuted}
-          />
+          >
+            <TextInput
+              style={[styles.inputText, { color: colors.textPrimary }]}
+              value={customerName}
+              onChangeText={setCustomerName}
+              placeholder="e.g. Basir Khan (or Walk-in)"
+              placeholderTextColor={colors.textMuted}
+            />
+            {customerName.length > 0 && (
+              <TouchableOpacity onPress={() => setCustomerName('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <MaterialCommunityIcons name="close-circle" size={18} color={colors.textMuted} />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
-        {/* Phone Number Input */}
-        <View style={styles.inputContainer}>
-          <TextInput
+        {/* Phone Number Input Card */}
+        <View style={styles.fieldGroup}>
+          <View style={styles.labelRow}>
+            <MaterialCommunityIcons name="phone-outline" size={16} color={colors.textSecondary} />
+            <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
+              PHONE NUMBER
+            </Text>
+            <Text style={[styles.optionalBadge, { color: colors.textMuted }]}>Optional</Text>
+          </View>
+          <View
             style={[
-              styles.outlinedInputPlain,
+              styles.inputBox,
               {
-                borderColor: colors.borderLight,
-                color: colors.textPrimary,
                 backgroundColor: colors.surface,
+                borderColor: phoneNumber ? colors.primary : colors.borderLight,
               },
             ]}
-            value={phoneNumber}
-            onChangeText={setPhoneNumber}
-            placeholder="Phone Number"
-            placeholderTextColor={colors.textMuted}
-            keyboardType="phone-pad"
-          />
+          >
+            <TextInput
+              style={[styles.inputText, { color: colors.textPrimary }]}
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
+              placeholder="e.g. 98765 43210"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="phone-pad"
+            />
+            {phoneNumber.length > 0 && (
+              <TouchableOpacity onPress={() => setPhoneNumber('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <MaterialCommunityIcons name="close-circle" size={18} color={colors.textMuted} />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         {/* Dynamic Items List with Numbering */}
@@ -318,12 +364,12 @@ export function SaleScreen({
         }}
         onClearItems={() => setItems([])}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
   },
   scrollBody: {
@@ -333,35 +379,42 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 24,
   },
-  inputContainer: {
-    position: 'relative',
-    marginBottom: 16,
+  fieldGroup: {
+    marginBottom: 14,
   },
-  floatingLabelBadge: {
-    position: 'absolute',
-    top: -8,
-    left: 12,
-    zIndex: 10,
-    paddingHorizontal: 6,
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+    paddingHorizontal: 2,
   },
-  floatingLabel: {
-    fontSize: 12,
-    fontWeight: '700',
+  inputLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.6,
   },
-  outlinedInput: {
-    borderWidth: 1.5,
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    fontSize: 15,
+  optionalBadge: {
+    fontSize: 10,
     fontWeight: '600',
+    marginLeft: 'auto',
   },
-  outlinedInputPlain: {
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    fontSize: 15,
-    fontWeight: '500',
+  inputBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.2,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 48,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  inputText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    paddingVertical: 0,
   },
 });

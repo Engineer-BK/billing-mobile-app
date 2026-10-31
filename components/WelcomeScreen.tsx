@@ -1,13 +1,13 @@
 /**
  * components/WelcomeScreen.tsx
  * 
- * Unique Animated Welcome / Splash Screen for FlashBill.
+ * High-Speed Thermal POS Splash & Welcome Screen for FlashBill.
  * Features:
- * - Centered FlashBill brand emblem (using new flashBill2.png logo)
- * - App title & retail billing tagline
- * - Hardware platform badges at bottom: "Mobile + Thermal POS"
- * - Zero font dependency on boot for instant, crash-free launch
- * - Fully bound to FlashBill branding colors (constants/theme.ts)
+ * - Direct use of the transparent FlashBill brand emblem (assets/flash-bill-icon-for-any-usecases-app-icon-with-no-background.png)
+ * - Pure, borderless, crisp emblem rendering with smooth spring/fade animation
+ * - Elegant light theme default background with zero clipping artifacts
+ * - Prominent Developer Info: Er. Basir Ahmed Khan, B.Tech(Software Engineer)
+ * - Dual-Engine platform badges: Mobile POS + Thermal Bluetooth POS
  */
 
 import React, { useEffect, useRef } from 'react';
@@ -21,6 +21,7 @@ import {
   SafeAreaView,
   StatusBar,
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 
 interface WelcomeScreenProps {
@@ -30,7 +31,7 @@ interface WelcomeScreenProps {
 export function WelcomeScreen({ onFinish }: WelcomeScreenProps): React.JSX.Element {
   const { colors, isDark } = useTheme();
 
-  // Animations
+  // Entrance Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.85)).current;
   const bottomFade = useRef(new Animated.Value(0)).current;
@@ -40,7 +41,7 @@ export function WelcomeScreen({ onFinish }: WelcomeScreenProps): React.JSX.Eleme
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 800,
+        duration: 700,
         useNativeDriver: true,
       }),
       Animated.spring(scaleAnim, {
@@ -51,15 +52,15 @@ export function WelcomeScreen({ onFinish }: WelcomeScreenProps): React.JSX.Eleme
       }),
     ]).start();
 
-    // 2. Bottom Badge Entrance
+    // 2. Bottom Content Entrance
     Animated.timing(bottomFade, {
       toValue: 1,
-      duration: 600,
-      delay: 500,
+      duration: 500,
+      delay: 350,
       useNativeDriver: true,
     }).start();
 
-    // 3. Auto-transition after 2.4 seconds
+    // 3. Auto-transition into app after 2.4 seconds
     const timer = setTimeout(() => {
       onFinish();
     }, 2400);
@@ -79,10 +80,16 @@ export function WelcomeScreen({ onFinish }: WelcomeScreenProps): React.JSX.Eleme
         backgroundColor={colors.background}
       />
 
-      {/* Top Skip Button */}
+      {/* Top Bar with Skip Action */}
       <View style={styles.topBar}>
         <TouchableOpacity
-          style={[styles.skipBtn, { backgroundColor: colors.surfaceLight }]}
+          style={[
+            styles.skipBtn,
+            {
+              backgroundColor: colors.surfaceLight,
+              borderColor: colors.borderLight,
+            },
+          ]}
           onPress={onFinish}
           activeOpacity={0.7}
         >
@@ -92,7 +99,7 @@ export function WelcomeScreen({ onFinish }: WelcomeScreenProps): React.JSX.Eleme
         </TouchableOpacity>
       </View>
 
-      {/* Center Hero Emblem & Branding */}
+      {/* Center Hero: Pure Transparent FlashBill Emblem & Branding */}
       <View style={styles.centerContainer}>
         <Animated.View
           style={[
@@ -103,109 +110,128 @@ export function WelcomeScreen({ onFinish }: WelcomeScreenProps): React.JSX.Eleme
             },
           ]}
         >
-          {/* New FlashBill2 Logo with glow */}
-          <View style={[styles.logoShadowBox, { shadowColor: colors.primary }]}>
+          {/* Transparent Emblem with Subtle Ambient Halo */}
+          <View
+            style={[
+              styles.haloContainer,
+              {
+                backgroundColor: isDark
+                  ? 'rgba(14, 165, 233, 0.12)'
+                  : colors.primaryLight,
+              },
+            ]}
+          >
             <Image
-              source={require('../assets/icon.png')}
+              source={require('../assets/flash-bill-icon-for-any-usecases-app-icon-with-no-background.png')}
               style={styles.logoImage}
               resizeMode="contain"
             />
           </View>
 
-          <Text
-            style={[
-              styles.appName,
-              { color: colors.textPrimary },
-            ]}
-          >
+          {/* FlashBill Typography */}
+          <Text style={[styles.appName, { color: colors.textPrimary }]}>
             Flash<Text style={{ color: colors.primary }}>Bill</Text>
           </Text>
 
-          <Text
-            style={[
-              styles.tagline,
-              { color: colors.textSecondary },
-            ]}
-          >
+          <Text style={[styles.tagline, { color: colors.textSecondary }]}>
             Lightning-Fast Thermal POS Billing
           </Text>
 
-          <View style={[styles.speedPill, { backgroundColor: colors.primaryLight, borderColor: colors.primary }]}>
+          {/* Dual Engine 58mm & 80mm Badge */}
+          <View
+            style={[
+              styles.speedPill,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.primary,
+              },
+            ]}
+          >
             <Text style={{ fontSize: 13 }}>⚡</Text>
             <Text style={[styles.speedTxt, { color: colors.primary }]}>
-              DUAL-ENGINE 58mm & 80mm
+              DUAL-ENGINE 58mm & 80mm POS
             </Text>
           </View>
         </Animated.View>
       </View>
 
-      {/* Bottom Platform Architecture: Mobile + Bluetooth POS (matches requested layout) */}
+      {/* Bottom Container: Platforms + Developer Info */}
       <Animated.View style={[styles.bottomContainer, { opacity: bottomFade }]}>
-        <Text
-          style={[
-            styles.availableOnTitle,
-            { color: colors.textMuted },
-          ]}
-        >
-          AVAILABLE ON
-        </Text>
-
+        {/* Hardware Architecture Badges */}
         <View style={styles.platformRow}>
-          {/* Mobile Platform */}
-          <View style={[styles.platformCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <View
-              style={[
-                styles.iconTile,
-                {
-                  backgroundColor: colors.surfaceLight,
-                  borderColor: colors.borderLight,
-                },
-              ]}
-            >
-              <Text style={{ fontSize: 28 }}>📱</Text>
-            </View>
-            <Text
-              style={[
-                styles.platformLabel,
-                { color: colors.textPrimary },
-              ]}
-            >
-              Mobile
+          {/* Mobile POS Card */}
+          <View
+            style={[
+              styles.platformCard,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <Text style={{ fontSize: 24, marginBottom: 4 }}>📱</Text>
+            <Text style={[styles.platformLabel, { color: colors.textPrimary }]}>
+              Mobile POS
             </Text>
-            <Text style={[styles.platformSub, { color: colors.textSecondary }]}>Android POS</Text>
+            <Text style={[styles.platformSub, { color: colors.textSecondary }]}>
+              Android App
+            </Text>
           </View>
 
-          {/* Plus Connector */}
           <View style={styles.plusBox}>
             <Text style={[styles.plusTxt, { color: colors.secondary }]}>⚡</Text>
           </View>
 
-          {/* Thermal Bluetooth POS */}
-          <View style={[styles.platformCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <View
-              style={[
-                styles.iconTile,
-                {
-                  backgroundColor: colors.surfaceLight,
-                  borderColor: colors.borderLight,
-                },
-              ]}
-            >
-              <Text style={{ fontSize: 28 }}>🖨️</Text>
-            </View>
-            <Text
-              style={[
-                styles.platformLabel,
-                { color: colors.textPrimary },
-              ]}
-            >
+          {/* Thermal Bluetooth POS Card */}
+          <View
+            style={[
+              styles.platformCard,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <Text style={{ fontSize: 24, marginBottom: 4 }}>🖨️</Text>
+            <Text style={[styles.platformLabel, { color: colors.textPrimary }]}>
               Thermal POS
             </Text>
-            <Text style={[styles.platformSub, { color: colors.textSecondary }]}>Bluetooth</Text>
+            <Text style={[styles.platformSub, { color: colors.textSecondary }]}>
+              Bluetooth 80/58
+            </Text>
           </View>
         </View>
 
-        <Text style={[styles.versionTxt, { color: colors.textMuted }]}>v1.0.0 • Production Ready</Text>
+        {/* Developer Credit Card */}
+        <View
+          style={[
+            styles.devCard,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.borderLight,
+            },
+          ]}
+        >
+          <View style={styles.devHeaderRow}>
+            <MaterialCommunityIcons
+              name="shield-check"
+              size={13}
+              color={colors.primary}
+            />
+            <Text style={[styles.devLabel, { color: colors.textMuted }]}>
+              DEVELOPER INFO
+            </Text>
+          </View>
+          <Text style={[styles.devName, { color: colors.textPrimary }]}>
+            Er. Basir Ahmed Khan
+          </Text>
+          <Text style={[styles.devRole, { color: colors.primary }]}>
+            B.Tech (Software Engineer)
+          </Text>
+          <Text style={[styles.versionBadge, { color: colors.textMuted }]}>
+            FlashBill v1.0.0 • Production POS
+          </Text>
+        </View>
       </Animated.View>
     </SafeAreaView>
   );
@@ -222,13 +248,14 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   skipBtn: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: 20,
+    borderWidth: 1,
   },
   skipTxt: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   centerContainer: {
     alignItems: 'center',
@@ -238,28 +265,28 @@ const styles = StyleSheet.create({
   logoWrapper: {
     alignItems: 'center',
   },
-  logoShadowBox: {
-    shadowOpacity: 0.35,
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 16,
-    elevation: 10,
-    marginBottom: 18,
+  haloContainer: {
+    width: 146,
+    height: 146,
+    borderRadius: 73,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
   },
   logoImage: {
-    width: 130,
-    height: 130,
-    borderRadius: 28,
+    width: 110,
+    height: 110,
   },
   appName: {
-    fontSize: 34,
+    fontSize: 36,
     fontWeight: '900',
     letterSpacing: 0.5,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   tagline: {
     fontSize: 14,
     fontWeight: '600',
-    marginBottom: 16,
+    marginBottom: 14,
     textAlign: 'center',
   },
   speedPill: {
@@ -267,9 +294,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingVertical: 7,
     borderRadius: 20,
-    borderWidth: 1,
+    borderWidth: 1.5,
   },
   speedTxt: {
     fontSize: 11,
@@ -278,43 +305,29 @@ const styles = StyleSheet.create({
   },
   bottomContainer: {
     alignItems: 'center',
-    paddingBottom: 28,
-    paddingHorizontal: 24,
-  },
-  availableOnTitle: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.5,
-    marginBottom: 16,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+    width: '100%',
   },
   platformRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 16,
-    marginBottom: 18,
+    gap: 12,
+    marginBottom: 16,
     width: '100%',
   },
   platformCard: {
     flex: 1,
-    maxWidth: 130,
+    maxWidth: 135,
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 10,
-    borderRadius: 16,
-    borderWidth: 1,
-  },
-  iconTile: {
-    width: 52,
-    height: 52,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
     borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
     borderWidth: 1,
   },
   platformLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
   },
   platformSub: {
@@ -323,15 +336,46 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   plusBox: {
-    paddingHorizontal: 4,
+    paddingHorizontal: 2,
   },
   plusTxt: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '900',
   },
-  versionTxt: {
+  devCard: {
+    width: '100%',
+    maxWidth: 320,
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 2,
+  },
+  devHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 2,
+  },
+  devLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+  },
+  devName: {
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  devRole: {
     fontSize: 11,
+    fontWeight: '700',
+  },
+  versionBadge: {
+    fontSize: 10,
     fontWeight: '600',
-    letterSpacing: 0.5,
+    marginTop: 2,
+    letterSpacing: 0.4,
   },
 });

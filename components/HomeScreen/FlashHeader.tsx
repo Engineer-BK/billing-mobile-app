@@ -9,7 +9,7 @@
  */
 
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, Image } from 'react-native';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 
@@ -38,15 +38,15 @@ export function FlashHeader({
             style={[
               styles.avatarBox,
               {
-                backgroundColor: colors.primaryLight,
-                borderColor: colors.primary,
+                backgroundColor: colors.surfaceLight,
+                borderColor: colors.borderLight,
               },
             ]}
           >
-            <MaterialCommunityIcons
-              name="storefront-outline"
-              size={22}
-              color={colors.primary}
+            <Image
+              source={require('../../assets/flash-bill-icon-for-any-usecases-app-icon-with-no-background.png')}
+              style={styles.avatarImage}
+              resizeMode="contain"
             />
           </View>
 
@@ -167,6 +167,10 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  avatarImage: {
+    width: 32,
+    height: 32,
   },
   storeNameRow: {
     flexDirection: 'row',
