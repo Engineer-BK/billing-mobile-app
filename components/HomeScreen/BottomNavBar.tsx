@@ -84,8 +84,8 @@ export function BottomNavBar({
               <View
                 style={[
                   styles.iconWrapper,
-                  isActive && {
-                    backgroundColor: colors.primaryLight,
+                  {
+                    backgroundColor: isActive ? colors.primaryLight : 'transparent',
                   },
                 ]}
               >
@@ -137,9 +137,10 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   iconWrapper: {
-    paddingHorizontal: 16,
-    paddingVertical: 4,
-    borderRadius: 14,
+    width: 58,
+    height: 30,
+    borderRadius: 15,
+    overflow: 'hidden',
     marginBottom: 2,
     alignItems: 'center',
     justifyContent: 'center',

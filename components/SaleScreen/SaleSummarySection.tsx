@@ -35,11 +35,14 @@ export function SaleSummarySection({
 
   return (
     <View style={styles.container}>
-      {/* 1. Subtotal & Discount Rows (if discount applied) */}
+      {/* 1. Summary Card */}
       <View
         style={[
-          styles.summarySection,
-          { borderTopColor: colors.border },
+          styles.summaryCard,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.borderLight,
+          },
         ]}
       >
         {itemsCount > 0 && hasDiscount ? (
@@ -60,6 +63,12 @@ export function SaleSummarySection({
                 -₹{totalDiscount}
               </Text>
             </View>
+            <View
+              style={[
+                styles.divider,
+                { backgroundColor: colors.borderLight },
+              ]}
+            />
           </>
         ) : null}
 
@@ -86,7 +95,7 @@ export function SaleSummarySection({
               </Text>
             ) : (
               <Text style={[styles.dottedLine, { color: colors.textMuted }]}>
-                ----------------------
+                0.00
               </Text>
             )}
           </View>
@@ -121,9 +130,19 @@ const styles = StyleSheet.create({
   container: {
     marginTop: 8,
   },
-  summarySection: {
-    borderTopWidth: 1,
-    paddingTop: 12,
+  summaryCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 14,
+    marginBottom: 8,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  divider: {
+    height: 1,
+    marginVertical: 8,
   },
   summarySubRow: {
     flexDirection: 'row',
@@ -177,9 +196,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderRadius: 8,
-    marginTop: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    marginTop: 8,
   },
   planBannerTxt: {
     fontSize: 11,

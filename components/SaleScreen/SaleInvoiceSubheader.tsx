@@ -33,8 +33,8 @@ export function SaleInvoiceSubheader({
       style={[
         styles.subheaderBar,
         {
-          backgroundColor: colors.surfaceLight,
-          borderBottomColor: colors.border,
+          backgroundColor: colors.surface,
+          borderColor: colors.borderLight,
         },
       ]}
     >
@@ -96,8 +96,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
+    paddingHorizontal: 16,
+    marginHorizontal: 16,
+    marginTop: 10,
+    marginBottom: 4,
+    borderRadius: 14,
+    borderWidth: 1,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 1,
   },
   subheaderCol: {
     flex: 1,
