@@ -221,6 +221,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     marginTop: 2,
+    flexWrap: 'wrap',
   },
   itemFormula: {
     fontSize: 12,
@@ -239,6 +240,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    flexShrink: 0,
   },
   itemAmt: {
     fontSize: 15,

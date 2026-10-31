@@ -141,29 +141,43 @@ export function AccountModal({
                     >
                       <MaterialCommunityIcons name="store" size={20} color={colors.primary} />
                     </View>
-                    <View>
+                    <View style={styles.headerTextCol}>
                       <View style={styles.titleRow}>
-                        <Text style={[styles.storeTitle, { color: colors.textPrimary }]}>
+                        <Text
+                          style={[styles.storeTitle, { color: colors.textPrimary }]}
+                          numberOfLines={1}
+                        >
                           {user?.shopName || 'Store Account'}
                         </Text>
                         <MaterialCommunityIcons
                           name="check-decagram"
                           size={16}
                           color="#0EA5E9"
-                          style={{ marginLeft: 4 }}
+                          style={styles.verifiedBadgeIcon}
                         />
                       </View>
-                      <Text style={[styles.storeSubtitle, { color: colors.textSecondary }]}>
+                      <Text
+                        style={[styles.storeSubtitle, { color: colors.textSecondary }]}
+                        numberOfLines={1}
+                      >
                         {user?.email || 'Active Account'}
                       </Text>
                     </View>
                   </View>
 
                   <TouchableOpacity
+                    style={[
+                      styles.closeBtn,
+                      {
+                        backgroundColor: colors.surfaceLight,
+                        borderColor: colors.borderLight,
+                      },
+                    ]}
                     onPress={onClose}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    activeOpacity={0.7}
                   >
-                    <MaterialCommunityIcons name="close" size={22} color={colors.textMuted} />
+                    <MaterialCommunityIcons name="close" size={18} color={colors.textSecondary} />
                   </TouchableOpacity>
                 </View>
 
@@ -180,11 +194,17 @@ export function AccountModal({
                   >
                     <View style={styles.syncLeft}>
                       <View style={styles.pulseDot} />
-                      <View>
-                        <Text style={[styles.syncStatusTitle, { color: colors.textPrimary }]}>
+                      <View style={styles.syncTextCol}>
+                        <Text
+                          style={[styles.syncStatusTitle, { color: colors.textPrimary }]}
+                          numberOfLines={1}
+                        >
                           Google Cloud Active
                         </Text>
-                        <Text style={[styles.syncStatusSubtitle, { color: colors.textSecondary }]}>
+                        <Text
+                          style={[styles.syncStatusSubtitle, { color: colors.textSecondary }]}
+                          numberOfLines={1}
+                        >
                           Spark Plan • 100% Free Forever
                         </Text>
                       </View>
@@ -406,17 +426,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.55)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 20,
   },
   modalWrapper: {
     width: '100%',
     maxWidth: 440,
-    maxHeight: '85%',
+    maxHeight: '90%',
   },
   card: {
     borderRadius: 22,
     borderWidth: 1,
-    padding: 20,
+    padding: 18,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
     shadowRadius: 16,
@@ -426,36 +447,57 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingBottom: 16,
+    paddingBottom: 14,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(150, 150, 150, 0.15)',
   },
   headerLeft: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    flex: 1,
+    marginRight: 10,
   },
   storeBadge: {
-    width: 44,
-    height: 44,
+    width: 42,
+    height: 42,
     borderRadius: 12,
     borderWidth: 1,
     alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  headerTextCol: {
+    flex: 1,
     justifyContent: 'center',
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
   },
   storeTitle: {
     fontSize: 16,
     fontWeight: '800',
     letterSpacing: -0.2,
+    flexShrink: 1,
+  },
+  verifiedBadgeIcon: {
+    flexShrink: 0,
   },
   storeSubtitle: {
     fontSize: 12,
     marginTop: 2,
+    flexShrink: 1,
+  },
+  closeBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
   scrollBody: {
     paddingVertical: 14,
@@ -468,17 +510,23 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     marginBottom: 14,
+    gap: 10,
   },
   syncLeft: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+  },
+  syncTextCol: {
+    flex: 1,
   },
   pulseDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
     backgroundColor: '#10B981',
+    flexShrink: 0,
   },
   syncStatusTitle: {
     fontSize: 13,
@@ -492,6 +540,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 8,
+    flexShrink: 0,
   },
   syncNowTxt: {
     color: '#FFFFFF',
@@ -501,14 +550,16 @@ const styles = StyleSheet.create({
   metricsRow: {
     flexDirection: 'row',
     gap: 10,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   metricBox: {
     flex: 1,
-    padding: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
     borderRadius: 12,
     borderWidth: 1,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   metricVal: {
     fontSize: 18,
@@ -518,6 +569,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     marginTop: 2,
+    textAlign: 'center',
   },
   profileSection: {
     marginTop: 4,
@@ -547,14 +599,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 8,
+    paddingVertical: 9,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(150, 150, 150, 0.15)',
+    gap: 8,
   },
   fieldLabel: {
     fontSize: 13,
     fontWeight: '600',
-    width: 90,
+    minWidth: 80,
+    flexShrink: 0,
   },
   fieldValue: {
     fontSize: 13,

@@ -235,11 +235,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    flex: 1,
+    marginRight: 10,
   },
   badgeTxt: {
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 0.2,
+    flexShrink: 1,
   },
   themeToggleBtn: {
     width: 36,
@@ -248,6 +251,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   scrollContent: {
     paddingHorizontal: 20,

@@ -74,7 +74,7 @@ export function SaleSummarySection({
 
         {/* 2. Final Total Amount Row */}
         <View style={styles.totalRow}>
-          <View>
+          <View style={styles.totalLabelCol}>
             <Text style={[styles.totalLabel, { color: colors.textPrimary }]}>
               Total Amount
             </Text>
@@ -164,6 +164,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 8,
     marginTop: 4,
+    gap: 8,
+  },
+  totalLabelCol: {
+    flex: 1,
   },
   totalLabel: {
     fontSize: 16,
@@ -178,6 +182,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    flexShrink: 0,
   },
   rupeeSymbol: {
     fontSize: 18,

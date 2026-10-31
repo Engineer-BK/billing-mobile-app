@@ -48,7 +48,7 @@ export function SaleInvoiceSubheader({
           Invoice No.
         </Text>
         <View style={styles.subValueRow}>
-          <Text style={[styles.subValue, { color: colors.textPrimary }]}>
+          <Text style={[styles.subValue, { color: colors.textPrimary }]} numberOfLines={1}>
             {fullInvoiceNumber}
           </Text>
           <MaterialCommunityIcons
@@ -77,7 +77,7 @@ export function SaleInvoiceSubheader({
           Date
         </Text>
         <View style={styles.subValueRow}>
-          <Text style={[styles.subValue, { color: colors.textPrimary }]}>
+          <Text style={[styles.subValue, { color: colors.textPrimary }]} numberOfLines={1}>
             {formattedDate}
           </Text>
           <MaterialCommunityIcons
@@ -128,6 +128,7 @@ const styles = StyleSheet.create({
   subValue: {
     fontSize: 15,
     fontWeight: '800',
+    flexShrink: 1,
   },
 });
 

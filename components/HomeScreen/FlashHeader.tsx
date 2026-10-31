@@ -69,6 +69,7 @@ export function FlashHeader({
                 name="check-decagram"
                 size={16}
                 color="#0EA5E9"
+                style={styles.verifiedIcon}
               />
             </View>
             <View style={styles.subtitleRow}>
@@ -85,7 +86,10 @@ export function FlashHeader({
                   },
                 ]}
               />
-              <Text style={[styles.storeSubtitle, { color: colors.textSecondary }]}>
+              <Text
+                style={[styles.storeSubtitle, { color: colors.textSecondary }]}
+                numberOfLines={1}
+              >
                 {cloudStatus === 'synced'
                   ? 'Cloud Synced'
                   : cloudStatus === 'syncing'
@@ -168,6 +172,7 @@ export function FlashHeader({
               styles.printerStatusTxt,
               { color: isConnected ? colors.success : colors.primary },
             ]}
+            numberOfLines={1}
           >
             {isConnected ? `Printer Bound: ${printerName}` : 'No Printer Bound • Tap to Scan'}
           </Text>
@@ -206,9 +211,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   storeInfo: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
+    marginRight: 10,
   },
   avatarBox: {
     width: 44,
@@ -217,24 +224,29 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   avatarImage: {
     width: 32,
     height: 32,
   },
   storeTextCol: {
+    flex: 1,
     justifyContent: 'center',
-    maxWidth: 200,
   },
   storeNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
   },
   storeTitle: {
     fontSize: 16,
     fontWeight: '800',
     letterSpacing: 0.2,
+    flexShrink: 1,
+  },
+  verifiedIcon: {
+    flexShrink: 0,
   },
   subtitleRow: {
     flexDirection: 'row',
@@ -246,14 +258,17 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
+    flexShrink: 0,
   },
   storeSubtitle: {
     fontSize: 11,
+    flexShrink: 1,
   },
   rightActionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    flexShrink: 0,
   },
   themePill: {
     width: 38,
@@ -262,6 +277,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   printerPill: {
     flexDirection: 'row',
@@ -277,21 +293,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     flex: 1,
+    marginRight: 8,
   },
   statusDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
+    flexShrink: 0,
   },
   printerStatusTxt: {
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 0.2,
+    flexShrink: 1,
   },
   printerRight: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
+    flexShrink: 0,
   },
   tapActionTxt: {
     fontSize: 11,
