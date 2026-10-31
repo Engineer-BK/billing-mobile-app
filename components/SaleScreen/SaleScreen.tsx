@@ -50,9 +50,6 @@ export function SaleScreen({
 }: SaleScreenProps): React.JSX.Element {
   const { colors, isDark } = useTheme();
 
-  // Payment mode toggle: 'credit' vs 'cash'
-  const [paymentMode, setPaymentMode] = useState<'credit' | 'cash'>('credit');
-
   // Invoice Number & Prefix state (starts from 1 by default)
   const [invoiceNo, setInvoiceNo] = useState<string>(initialInvoiceNo.toString());
   const [invoicePrefix, setInvoicePrefix] = useState<string>('');
@@ -159,6 +156,7 @@ export function SaleScreen({
       totalDiscount: totalDiscount || '0.00',
       finalAmount: currentFinal,
       grandTotal: currentFinal,
+      status: 'PAID',
     };
   };
 
@@ -198,11 +196,7 @@ export function SaleScreen({
       />
 
       {/* 1. Top App Bar */}
-      <SaleTopBar
-        paymentMode={paymentMode}
-        onSelectPaymentMode={setPaymentMode}
-        onBack={onBack}
-      />
+      <SaleTopBar onBack={onBack} />
 
       {/* 2. Subheader Bar (Invoice No. & Date) */}
       <SaleInvoiceSubheader

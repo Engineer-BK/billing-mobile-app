@@ -31,7 +31,8 @@ export function RecentBillsCard({
   onPressShare,
   onPressMenu,
 }: RecentBillsCardProps): React.JSX.Element {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const isPaid = (invoice.status || 'PAID') === 'PAID';
 
   return (
     <View
@@ -53,11 +54,22 @@ export function RecentBillsCard({
             <View
               style={[
                 styles.saleBadge,
-                { backgroundColor: colors.successLight },
+                {
+                  backgroundColor: isPaid
+                    ? colors.successLight
+                    : isDark
+                    ? 'rgba(245, 158, 11, 0.2)'
+                    : '#FEF3C7',
+                },
               ]}
             >
-              <Text style={[styles.saleBadgeTxt, { color: colors.success }]}>
-                PAID SALE
+              <Text
+                style={[
+                  styles.saleBadgeTxt,
+                  { color: isPaid ? colors.success : '#D97706' },
+                ]}
+              >
+                {isPaid ? 'PAID SALE' : 'UNPAID'}
               </Text>
             </View>
             <Text style={[styles.invoiceNo, { color: colors.textSecondary }]}>

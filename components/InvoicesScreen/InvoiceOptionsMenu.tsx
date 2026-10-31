@@ -33,6 +33,7 @@ interface InvoiceOptionsMenuProps {
   onPrint: (invoice: InvoiceData) => void;
   onPreview: (invoice: InvoiceData) => void;
   onDelete: (invoice: InvoiceData) => void;
+  onChangeStatus?: (invoice: InvoiceData, newStatus: 'PAID' | 'UNPAID') => void;
 }
 
 export function InvoiceOptionsMenu({
@@ -42,6 +43,7 @@ export function InvoiceOptionsMenu({
   onPrint,
   onPreview,
   onDelete,
+  onChangeStatus,
 }: InvoiceOptionsMenuProps): React.JSX.Element | null {
   const { colors, isDark } = useTheme();
 
@@ -55,6 +57,8 @@ export function InvoiceOptionsMenu({
   };
 
   if (!invoice) return null;
+
+  const isPaid = (invoice.status || 'PAID') === 'PAID';
 
   return (
     <Modal
@@ -177,6 +181,27 @@ export function InvoiceOptionsMenu({
                         #{invoice.invoiceNo}
                       </Text>
                     </View>
+                    <View
+                      style={[
+                        styles.headerStatusBadge,
+                        {
+                          backgroundColor: isPaid
+                            ? colors.successLight
+                            : isDark
+                            ? 'rgba(245, 158, 11, 0.2)'
+                            : '#FEF3C7',
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.headerStatusTxt,
+                          { color: isPaid ? colors.success : '#D97706' },
+                        ]}
+                      >
+                        {isPaid ? 'PAID' : 'UNPAID'}
+                      </Text>
+                    </View>
                     <Text
                       style={[styles.headerCustomer, { color: colors.textPrimary }]}
                       numberOfLines={1}
@@ -198,6 +223,82 @@ export function InvoiceOptionsMenu({
                   </Text>
                 </View>
               </View>
+
+              {/* Quick Status Segment Switcher */}
+              {onChangeStatus && (
+                <View
+                  style={[
+                    styles.statusSegmentCard,
+                    {
+                      backgroundColor: colors.surfaceLight,
+                      borderColor: colors.borderLight,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.statusSegmentLabel, { color: colors.textSecondary }]}>
+                    STATUS:
+                  </Text>
+                  <View style={styles.statusSegmentRow}>
+                    <TouchableOpacity
+                      style={[
+                        styles.statusToggleBtn,
+                        isPaid && {
+                          backgroundColor: colors.success,
+                          borderColor: colors.success,
+                        },
+                      ]}
+                      onPress={() => {
+                        handleClose();
+                        onChangeStatus(invoice, 'PAID');
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <MaterialCommunityIcons
+                        name="check-circle"
+                        size={15}
+                        color={isPaid ? '#FFFFFF' : colors.textMuted}
+                      />
+                      <Text
+                        style={[
+                          styles.statusToggleTxt,
+                          { color: isPaid ? '#FFFFFF' : colors.textMuted },
+                        ]}
+                      >
+                        Paid
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[
+                        styles.statusToggleBtn,
+                        !isPaid && {
+                          backgroundColor: '#D97706',
+                          borderColor: '#D97706',
+                        },
+                      ]}
+                      onPress={() => {
+                        handleClose();
+                        onChangeStatus(invoice, 'UNPAID');
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <MaterialCommunityIcons
+                        name="clock-outline"
+                        size={15}
+                        color={!isPaid ? '#FFFFFF' : colors.textMuted}
+                      />
+                      <Text
+                        style={[
+                          styles.statusToggleTxt,
+                          { color: !isPaid ? '#FFFFFF' : colors.textMuted },
+                        ]}
+                      >
+                        Unpaid
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
 
               {/* Action 1: Print Receipt */}
               <TouchableOpacity
@@ -271,7 +372,56 @@ export function InvoiceOptionsMenu({
                 />
               </TouchableOpacity>
 
-              {/* Action 3: Delete Invoice */}
+              {/* Action 3: Change Status (Paid <-> Unpaid) */}
+              {onChangeStatus && (
+                <TouchableOpacity
+                  style={[styles.menuItem, { borderBottomColor: colors.borderLight }]}
+                  onPress={() => {
+                    handleClose();
+                    onChangeStatus(invoice, isPaid ? 'UNPAID' : 'PAID');
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <View
+                    style={[
+                      styles.menuIconCircle,
+                      {
+                        backgroundColor: isPaid
+                          ? (isDark ? 'rgba(245, 158, 11, 0.2)' : '#FEF3C7')
+                          : colors.successLight,
+                      },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name={isPaid ? 'clock-outline' : 'check-circle-outline'}
+                      size={22}
+                      color={isPaid ? '#D97706' : colors.success}
+                    />
+                  </View>
+                  <View style={styles.menuItemTextCol}>
+                    <Text
+                      style={[
+                        styles.menuItemTitle,
+                        { color: isPaid ? '#D97706' : colors.success },
+                      ]}
+                    >
+                      {isPaid ? 'Mark as Unpaid' : 'Mark as Paid'}
+                    </Text>
+                    <Text style={[styles.menuItemSub, { color: colors.textSecondary }]}>
+                      {isPaid
+                        ? 'Change status to Unpaid / Credit'
+                        : 'Change status to Paid Sale'}
+                    </Text>
+                  </View>
+                  <MaterialCommunityIcons
+                    name="swap-horizontal"
+                    size={20}
+                    color={isPaid ? '#D97706' : colors.success}
+                  />
+                </TouchableOpacity>
+              )}
+
+              {/* Action 4: Delete Invoice */}
               <TouchableOpacity
                 style={[styles.menuItem, { borderBottomColor: colors.borderLight }]}
                 onPress={() => setShowConfirmDelete(true)}
@@ -388,6 +538,50 @@ const styles = StyleSheet.create({
   badgeTxt: {
     fontSize: 12,
     fontWeight: '900',
+  },
+  headerStatusBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  headerStatusTxt: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  statusSegmentCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 8,
+    marginBottom: 6,
+  },
+  statusSegmentLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+  },
+  statusSegmentRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  statusToggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  statusToggleTxt: {
+    fontSize: 12,
+    fontWeight: '800',
   },
   headerCustomer: {
     fontSize: 16,

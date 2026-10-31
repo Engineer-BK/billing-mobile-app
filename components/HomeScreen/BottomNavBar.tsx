@@ -12,7 +12,7 @@ import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 
-export type NavTabId = 'home' | 'bills' | 'items' | 'hardware';
+export type NavTabId = 'home' | 'bills' | 'sale' | 'hardware';
 
 interface BottomNavBarProps {
   activeTab: NavTabId;
@@ -103,24 +103,24 @@ export function BottomNavBar({
           </TouchableOpacity>
         </View>
 
-        {/* Tab 3: Catalog */}
+        {/* Tab 3: Sale */}
         <TouchableOpacity
           style={styles.tabItem}
-          onPress={() => onSelectTab('items')}
+          onPress={() => onSelectTab('sale')}
           activeOpacity={0.7}
         >
           <MaterialCommunityIcons
-            name={activeTab === 'items' ? 'cube' : 'cube-outline'}
+            name={activeTab === 'sale' ? 'cart' : 'cart-outline'}
             size={22}
-            color={activeTab === 'items' ? colors.primary : colors.textMuted}
+            color={activeTab === 'sale' ? colors.primary : colors.textMuted}
           />
           <Text
             style={[
               styles.tabTxt,
-              { color: activeTab === 'items' ? colors.primary : colors.textMuted },
+              { color: activeTab === 'sale' ? colors.primary : colors.textMuted },
             ]}
           >
-            Catalog
+            Sale
           </Text>
         </TouchableOpacity>
 

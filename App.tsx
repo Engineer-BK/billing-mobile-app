@@ -81,6 +81,7 @@ function MainScreen(): React.JSX.Element {
       totalDiscount: '0.00',
       finalAmount: '920',
       grandTotal: '920',
+      status: 'PAID',
     },
     {
       shopName: 'Billing Receipt',
@@ -97,6 +98,7 @@ function MainScreen(): React.JSX.Element {
       totalDiscount: '22.50',
       finalAmount: '559.50',
       grandTotal: '559.50',
+      status: 'PAID',
     },
   ]);
 
@@ -259,12 +261,25 @@ function MainScreen(): React.JSX.Element {
             discountAmount: '0.00',
             grandTotal: '0.00',
             finalAmount: '0.00',
+            status: 'PAID',
           });
         }
       }
       return updated;
     });
     Alert.alert('Invoice Deleted', `Invoice #${invoiceNo} has been deleted.`);
+  };
+
+  // Handle Update Invoice Status (Paid <-> Unpaid)
+  const handleUpdateInvoiceStatus = (invoiceNo: string, newStatus: 'PAID' | 'UNPAID') => {
+    setInvoicesList((prev) =>
+      prev.map((inv) =>
+        inv.invoiceNo === invoiceNo ? { ...inv, status: newStatus } : inv
+      )
+    );
+    if (currentInvoice.invoiceNo === invoiceNo) {
+      setCurrentInvoice((prev) => ({ ...prev, status: newStatus }));
+    }
   };
 
   // State for Home Screen 3-dot popup modal
@@ -303,6 +318,7 @@ function MainScreen(): React.JSX.Element {
           onPressPrint={(inv) => handlePrint(inv)}
           onPressNewSale={() => setShowSaleScreen(true)}
           onDeleteInvoice={handleDeleteInvoice}
+          onChangeStatus={handleUpdateInvoiceStatus}
         />
       ) : activeTab === 'hardware' ? (
         // Tab 2: Dedicated Thermal Printers Screen (Hardware)
@@ -380,6 +396,7 @@ function MainScreen(): React.JSX.Element {
         onPrint={(inv) => handlePrint(inv)}
         onPreview={() => setShowPreview(true)}
         onDelete={(inv) => handleDeleteInvoice(inv.invoiceNo)}
+        onChangeStatus={(inv, newStatus) => handleUpdateInvoiceStatus(inv.invoiceNo, newStatus)}
       />
 
       {/* Bottom Navigation Dock with Elevated "+ New Sale" FAB */}
@@ -387,7 +404,9 @@ function MainScreen(): React.JSX.Element {
         activeTab={activeTab}
         onSelectTab={(tab) => {
           setActiveTab(tab);
-          if (tab === 'items') handleBrowseCatalog();
+          if (tab === 'sale') {
+            setShowSaleScreen(true);
+          }
         }}
         onPressNewSale={() => {
           setShowSaleScreen(true);

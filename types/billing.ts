@@ -52,4 +52,6 @@ export interface InvoiceData {
   finalAmount?: string;
   /** Alias for backward compatibility */
   grandTotal: string;
+  /** Payment status of the invoice: 'PAID' (default) or 'UNPAID' */
+  status?: 'PAID' | 'UNPAID';
 }

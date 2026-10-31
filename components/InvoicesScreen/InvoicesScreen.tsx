@@ -36,6 +36,7 @@ interface InvoicesScreenProps {
   onPressPrint: (invoice: InvoiceData) => void;
   onPressNewSale: () => void;
   onDeleteInvoice: (invoiceNo: string) => void;
+  onChangeStatus?: (invoiceNo: string, newStatus: 'PAID' | 'UNPAID') => void;
 }
 
 export function InvoicesScreen({
@@ -44,6 +45,7 @@ export function InvoicesScreen({
   onPressPrint,
   onPressNewSale,
   onDeleteInvoice,
+  onChangeStatus,
 }: InvoicesScreenProps): React.JSX.Element {
   const { colors, isDark } = useTheme();
 
@@ -186,6 +188,7 @@ export function InvoicesScreen({
         }
         renderItem={({ item }) => {
           const customer = item.customerName || 'Walk-in Customer';
+          const isPaid = (item.status || 'PAID') === 'PAID';
 
           return (
             <TouchableOpacity
@@ -223,11 +226,22 @@ export function InvoicesScreen({
                 <View
                   style={[
                     styles.statusPill,
-                    { backgroundColor: colors.successLight },
+                    {
+                      backgroundColor: isPaid
+                        ? colors.successLight
+                        : isDark
+                        ? 'rgba(245, 158, 11, 0.2)'
+                        : '#FEF3C7',
+                    },
                   ]}
                 >
-                  <Text style={[styles.statusTxt, { color: colors.success }]}>
-                    PAID SALE
+                  <Text
+                    style={[
+                      styles.statusTxt,
+                      { color: isPaid ? colors.success : '#D97706' },
+                    ]}
+                  >
+                    {isPaid ? 'PAID SALE' : 'UNPAID'}
                   </Text>
                 </View>
               </View>
@@ -334,6 +348,7 @@ export function InvoicesScreen({
         onPrint={(inv) => onPressPrint(inv)}
         onPreview={(inv) => setSelectedInvoice(inv)}
         onDelete={(inv) => onDeleteInvoice(inv.invoiceNo)}
+        onChangeStatus={(inv, newStatus) => onChangeStatus?.(inv.invoiceNo, newStatus)}
       />
     </View>
   );

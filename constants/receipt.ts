@@ -30,4 +30,5 @@ export const SAMPLE_INVOICE: InvoiceData = {
   totalDiscount: '0.00',
   finalAmount: '5826',
   grandTotal: '5826',
+  status: 'PAID',
 };
