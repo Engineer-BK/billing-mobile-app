@@ -1,39 +1,31 @@
 /**
  * components/HomeScreen/QuickActionGrid.tsx
  * 
- * High-Speed POS Command Deck.
+ * High-Speed POS Retail Command Deck.
  * 4 distinctive action cards powered by FlashBill branding colors:
- * - Emerald: 🖨️ 1-Tap Push Print (colors.success)
- * - Cyan/Electric Blue: 🔍 Bluetooth Scanner (colors.primary)
- * - Lightning Gold: 🔄 Switch 58mm / 80mm Hardware (colors.secondary)
- * - Royal Blue: 📦 Product Catalog (colors.primary)
+ * - Emerald: 🛒 + New Sale (Create fresh transaction)
+ * - Cyan/Tech Blue: 🧾 Invoices & Bills (View bill history & search)
+ * - Lightning Gold: 🖨️ Thermal Printers (Jump directly to dedicated printer tab)
+ * - Royal Blue: 📦 Product Catalog (150+ Grocery Items)
  */
 
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 
 interface QuickActionGridProps {
-  isPrinting: boolean;
-  isScanning: boolean;
-  hasPrinter: boolean;
-  selectedProfile: string;
-  onPressPrint: () => void;
-  onPressScan: () => void;
-  onPressToggleProfile: () => void;
+  onPressNewSale: () => void;
+  onPressInvoices: () => void;
   onPressCatalog: () => void;
+  onPressPrinters: () => void;
 }
 
 export function QuickActionGrid({
-  isPrinting,
-  isScanning,
-  hasPrinter,
-  selectedProfile,
-  onPressPrint,
-  onPressScan,
-  onPressToggleProfile,
+  onPressNewSale,
+  onPressInvoices,
   onPressCatalog,
+  onPressPrinters,
 }: QuickActionGridProps): React.JSX.Element {
   const { colors } = useTheme();
 
@@ -44,7 +36,7 @@ export function QuickActionGrid({
       </Text>
 
       <View style={styles.gridRow}>
-        {/* 1. 1-Tap Push Print (Hero Emerald) */}
+        {/* 1. New Sale (Hero Emerald) */}
         <TouchableOpacity
           style={[
             styles.actionCard,
@@ -52,10 +44,8 @@ export function QuickActionGrid({
               backgroundColor: colors.surface,
               borderColor: colors.border,
             },
-            (!hasPrinter || isPrinting) && styles.cardDisabled,
           ]}
-          onPress={onPressPrint}
-          disabled={!hasPrinter || isPrinting}
+          onPress={onPressNewSale}
           activeOpacity={0.7}
         >
           <View
@@ -64,25 +54,21 @@ export function QuickActionGrid({
               { backgroundColor: colors.successLight },
             ]}
           >
-            {isPrinting ? (
-              <ActivityIndicator size="small" color={colors.success} />
-            ) : (
-              <MaterialCommunityIcons
-                name="printer-pos"
-                size={24}
-                color={colors.success}
-              />
-            )}
+            <MaterialCommunityIcons
+              name="cart-plus"
+              size={24}
+              color={colors.success}
+            />
           </View>
           <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
-            Push Print
+            New Sale
           </Text>
           <Text style={[styles.cardSub, { color: colors.success }]}>
-            {hasPrinter ? 'Ready • 1-Tap' : 'Link Printer First'}
+            Create Bill • 1-Tap
           </Text>
         </TouchableOpacity>
 
-        {/* 2. Bluetooth Scanner (Electric Tech Blue) */}
+        {/* 2. Invoices (Electric Tech Blue) */}
         <TouchableOpacity
           style={[
             styles.actionCard,
@@ -91,8 +77,7 @@ export function QuickActionGrid({
               borderColor: colors.border,
             },
           ]}
-          onPress={onPressScan}
-          disabled={isScanning}
+          onPress={onPressInvoices}
           activeOpacity={0.7}
         >
           <View
@@ -101,59 +86,23 @@ export function QuickActionGrid({
               { backgroundColor: colors.primaryLight },
             ]}
           >
-            {isScanning ? (
-              <ActivityIndicator size="small" color={colors.primary} />
-            ) : (
-              <MaterialCommunityIcons
-                name="bluetooth-audio"
-                size={24}
-                color={colors.primary}
-              />
-            )}
+            <MaterialCommunityIcons
+              name="receipt"
+              size={24}
+              color={colors.primary}
+            />
           </View>
           <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
-            {isScanning ? 'Scanning...' : 'Pair Printer'}
+            Invoices
           </Text>
           <Text style={[styles.cardSub, { color: colors.primary }]}>
-            Nearby Devices
+            History & Search
           </Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.gridRow}>
-        {/* 3. Hardware Switcher Toggle (Lightning Gold) */}
-        <TouchableOpacity
-          style={[
-            styles.actionCard,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-            },
-          ]}
-          onPress={onPressToggleProfile}
-          activeOpacity={0.7}
-        >
-          <View
-            style={[
-              styles.iconTile,
-              { backgroundColor: colors.secondaryLight },
-            ]}
-          >
-            <MaterialCommunityIcons
-              name="swap-horizontal-bold"
-              size={24}
-              color={colors.secondary}
-            />
-          </View>
-          <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
-            Switch Roll
-          </Text>
-          <Text style={[styles.cardSub, { color: colors.secondary }]}>
-            {selectedProfile === 'SC588' ? 'Now: 58mm (32 Col)' : 'Now: 80mm (48 Col)'}
-          </Text>
-        </TouchableOpacity>
-
-        {/* 4. Product Catalog / Stock (Flash Tech Blue) */}
+        {/* 3. Product Catalog (Royal Blue) */}
         <TouchableOpacity
           style={[
             styles.actionCard,
@@ -182,6 +131,38 @@ export function QuickActionGrid({
           </Text>
           <Text style={[styles.cardSub, { color: colors.primary }]}>
             150+ Grocery Items
+          </Text>
+        </TouchableOpacity>
+
+        {/* 4. Thermal Printers Shortcut (Lightning Gold) */}
+        <TouchableOpacity
+          style={[
+            styles.actionCard,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            },
+          ]}
+          onPress={onPressPrinters}
+          activeOpacity={0.7}
+        >
+          <View
+            style={[
+              styles.iconTile,
+              { backgroundColor: colors.secondaryLight },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="printer-pos"
+              size={24}
+              color={colors.secondary}
+            />
+          </View>
+          <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
+            Printers
+          </Text>
+          <Text style={[styles.cardSub, { color: colors.secondary }]}>
+            58mm / 80mm Setup
           </Text>
         </TouchableOpacity>
       </View>

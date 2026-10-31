@@ -12,20 +12,18 @@ import React from 'react';
 import { StyleSheet, Text, View, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
-import { PrinterProfile } from '../../types/printer';
-
 interface FlashStatsProps {
   grandTotal: string;
   totalQty: string;
   itemsCount: number;
-  activeConfig: PrinterProfile;
+  invoicesCount: number;
 }
 
 export function FlashStats({
   grandTotal,
   totalQty,
   itemsCount,
-  activeConfig,
+  invoicesCount,
 }: FlashStatsProps): React.JSX.Element {
   const { colors } = useTheme();
 
@@ -110,7 +108,7 @@ export function FlashStats({
         </Text>
       </View>
 
-      {/* 3. Hardware Profile Card (Indigo Purple) */}
+      {/* 3. Invoices Count Card (Indigo Purple) */}
       <View
         style={[
           styles.statCard,
@@ -123,7 +121,7 @@ export function FlashStats({
       >
         <View style={styles.cardHeader}>
           <Text style={[styles.cardLabel, { color: colors.textSecondary }]}>
-            ACTIVE HARDWARE
+            TOTAL INVOICES
           </Text>
           <View
             style={[
@@ -132,7 +130,7 @@ export function FlashStats({
             ]}
           >
             <MaterialCommunityIcons
-              name="printer-pos"
+              name="receipt"
               size={16}
               color={colors.secondary}
             />
@@ -140,10 +138,11 @@ export function FlashStats({
         </View>
 
         <Text style={[styles.statValue, { color: colors.textPrimary }]}>
-          {activeConfig.lineWidth} Col
+          {invoicesCount}{' '}
+          <Text style={{ fontSize: 13, color: colors.textSecondary }}>Bills</Text>
         </Text>
         <Text style={[styles.statSub, { color: colors.secondary }]}>
-          {activeConfig.paperWidth} • {activeConfig.hasAutoCutter ? 'Auto-Cut' : 'Manual'}
+          Recorded in POS
         </Text>
       </View>
     </ScrollView>

@@ -35,23 +35,23 @@ import { InvoiceData } from './types/billing';
 
 // Custom Hooks & Native Dispatchers
 import { useBluetoothScanner } from './hooks/useBluetoothScanner';
-import { dispatchPrintReceipt } from './services/printJobService';
+import {
+  dispatchPrintReceipt,
+  dispatchTestPrint,
+  dispatchPaperFeed,
+} from './services/printJobService';
 
 // Navigation & Top-Level Screens
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { SaleScreen } from './components/SaleScreen/SaleScreen';
 import { InvoicesScreen } from './components/InvoicesScreen/InvoicesScreen';
+import { PrintersScreen } from './components/PrintersScreen/PrintersScreen';
 import { InvoiceOptionsMenu } from './components/InvoicesScreen/InvoiceOptionsMenu';
 import { BottomNavBar, NavTabId } from './components/HomeScreen/BottomNavBar';
 import { FlashHeader } from './components/HomeScreen/FlashHeader';
 import { FlashStats } from './components/HomeScreen/FlashStats';
 import { QuickActionGrid } from './components/HomeScreen/QuickActionGrid';
 import { RecentBillsCard } from './components/HomeScreen/RecentBillsCard';
-
-// Hardware & Preview Components
-import { ProfileSwitcher } from './components/ProfileSwitcher';
-import { DeviceStatusCard } from './components/DeviceStatusCard';
-import { DevicePickerSheet } from './components/DevicePickerSheet';
 import { ReceiptPreview } from './components/ReceiptPreview/ReceiptPreview';
 
 function MainScreen(): React.JSX.Element {
@@ -112,7 +112,6 @@ function MainScreen(): React.JSX.Element {
   // Active navigation tab & UI toggles
   const [activeTab, setActiveTab] = useState<NavTabId>('home');
   const [showPreview, setShowPreview] = useState<boolean>(true);
-  const [showHardwarePanel, setShowHardwarePanel] = useState<boolean>(false);
 
   // Active hardware profile configuration
   const [selectedProfile, setSelectedProfile] = useState<PrinterProfileId>('EZO80');
@@ -125,7 +124,6 @@ function MainScreen(): React.JSX.Element {
     printerName,
     isScanning,
     deviceList,
-    showDeviceList,
     discoverAndBindPrinter,
     connectToDevice,
     disconnectPrinter,
@@ -138,9 +136,9 @@ function MainScreen(): React.JSX.Element {
     if (!targetAddress) {
       Alert.alert(
         'Printer Needed',
-        'Please link your thermal printer first.\n\nTap "Pair Printer" to discover your SC588 or EZO 80UB.'
+        'Please link your thermal printer first.\n\nOpen the Printers tab to connect your 80mm or 58mm printer.'
       );
-      setShowHardwarePanel(true);
+      setActiveTab('hardware');
       return;
     }
 
@@ -160,13 +158,50 @@ function MainScreen(): React.JSX.Element {
     }
   };
 
-  // Toggle between 58mm and 80mm hardware
-  const handleToggleProfile = (): void => {
-    const nextProfile: PrinterProfileId = selectedProfile === 'SC588' ? 'EZO80' : 'SC588';
-    setSelectedProfile(nextProfile);
+  // Test Print Handler for PrintersScreen
+  const handleTestPrint = async (): Promise<void> => {
+    if (!targetAddress) {
+      Alert.alert('No Printer Linked', 'Please connect to a Bluetooth thermal printer first.');
+      return;
+    }
+    try {
+      setIsPrinting(true);
+      const result = await dispatchTestPrint(activeConfig);
+      if (result.success) {
+        Alert.alert('Test Print Dispatched', result.message || 'Diagnostic receipt sent to printer.');
+      } else {
+        Alert.alert('Print Error', result.message || 'Could not send test print.');
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      Alert.alert('Print Exception', msg);
+    } finally {
+      setIsPrinting(false);
+    }
+  };
+
+  // Paper Feed Handler for PrintersScreen
+  const handlePaperFeed = async (): Promise<void> => {
+    if (!targetAddress) {
+      Alert.alert('No Printer Linked', 'Please connect to a Bluetooth thermal printer first.');
+      return;
+    }
+    try {
+      const result = await dispatchPaperFeed(3);
+      if (!result.success) {
+        Alert.alert('Feed Error', result.message);
+      }
+    } catch (err: unknown) {
+      console.warn(err);
+    }
+  };
+
+  // Switch between 58mm and 80mm roll width
+  const handleSelectProfile = (profileId: PrinterProfileId): void => {
+    setSelectedProfile(profileId);
     Alert.alert(
       'Profile Switched',
-      `Active Roll: ${PRINTER_PROFILES[nextProfile].displayName}\nLine Width: ${PRINTER_PROFILES[nextProfile].lineWidth} Columns`
+      `Active Roll: ${PRINTER_PROFILES[profileId].displayName}\nLine Width: ${PRINTER_PROFILES[profileId].lineWidth} Columns`
     );
   };
 
@@ -269,70 +304,55 @@ function MainScreen(): React.JSX.Element {
           onPressNewSale={() => setShowSaleScreen(true)}
           onDeleteInvoice={handleDeleteInvoice}
         />
+      ) : activeTab === 'hardware' ? (
+        // Tab 2: Dedicated Thermal Printers Screen (Hardware)
+        <PrintersScreen
+          targetAddress={targetAddress}
+          printerName={printerName}
+          isScanning={isScanning}
+          isPrinting={isPrinting}
+          deviceList={deviceList}
+          selectedProfile={selectedProfile}
+          activeConfig={activeConfig}
+          sampleInvoice={currentInvoice}
+          onSelectProfile={handleSelectProfile}
+          onScan={discoverAndBindPrinter}
+          onConnect={connectToDevice}
+          onDisconnect={disconnectPrinter}
+          onTestPrint={handleTestPrint}
+          onPaperFeed={handlePaperFeed}
+        />
       ) : (
-        // Tabs 1 & 2: Home Dashboard & Hardware Controls
+        // Tab 1: Home Dashboard (Clean Retail Operations)
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* 1. Distinctive FlashBill Header with Store Info & Printer Pill */}
+          {/* 1. Distinctive FlashBill Header with Store Info */}
           <FlashHeader
             storeName="FlashBill POS"
             printerName={printerName}
             isConnected={!!targetAddress}
-            onPressPrinterPill={() => {
-              setShowHardwarePanel(!showHardwarePanel);
-              if (!targetAddress) discoverAndBindPrinter();
-            }}
+            onPressPrinterPill={() => setActiveTab('hardware')}
           />
 
-          {/* 2. Retail Flash Metrics Strip */}
+          {/* 2. Retail Flash Metrics Strip (Sales, Items, Total Invoices) */}
           <FlashStats
             grandTotal={currentInvoice.grandTotal}
             totalQty={currentInvoice.totalQty}
             itemsCount={currentInvoice.items.length}
-            activeConfig={activeConfig}
+            invoicesCount={invoicesList.length}
           />
 
-          {/* 3. High-Speed POS Command Deck (4 Brand Color Action Cards) */}
+          {/* 3. High-Speed Retail POS Command Deck */}
           <QuickActionGrid
-            isPrinting={isPrinting}
-            isScanning={isScanning}
-            hasPrinter={!!targetAddress}
-            selectedProfile={selectedProfile}
-            onPressPrint={() => handlePrint(currentInvoice)}
-            onPressScan={() => {
-              setShowHardwarePanel(true);
-              discoverAndBindPrinter();
-            }}
-            onPressToggleProfile={handleToggleProfile}
+            onPressNewSale={() => setShowSaleScreen(true)}
+            onPressInvoices={() => setActiveTab('bills')}
             onPressCatalog={handleBrowseCatalog}
+            onPressPrinters={() => setActiveTab('hardware')}
           />
 
-          {/* 4. Hardware Management Deck (Toggled or via tab) */}
-          {(showHardwarePanel || activeTab === 'hardware') && (
-            <View style={styles.hardwareSection}>
-              <DeviceStatusCard
-                printerName={printerName}
-                targetAddress={targetAddress}
-                activeConfig={activeConfig}
-                onDisconnect={disconnectPrinter}
-              />
-
-              <DevicePickerSheet
-                visible={showDeviceList}
-                devices={deviceList}
-                onSelectDevice={connectToDevice}
-              />
-
-              <ProfileSwitcher
-                selectedProfile={selectedProfile}
-                onSelectProfile={setSelectedProfile}
-              />
-            </View>
-          )}
-
-          {/* 5. Active Transaction Hub Card with 1-Tap Print & Share */}
+          {/* 4. Active Transaction Hub Card with 1-Tap Print & Share */}
           <RecentBillsCard
             invoice={currentInvoice}
             showPreview={showPreview}
@@ -342,7 +362,7 @@ function MainScreen(): React.JSX.Element {
             onPressMenu={() => setHomeMenuInvoice(currentInvoice)}
           />
 
-          {/* 6. True-to-Life Cream Monospace Receipt Preview */}
+          {/* 5. True-to-Life Cream Monospace Receipt Preview */}
           {showPreview && (
             <ReceiptPreview
               activeConfig={activeConfig}
@@ -367,7 +387,6 @@ function MainScreen(): React.JSX.Element {
         activeTab={activeTab}
         onSelectTab={(tab) => {
           setActiveTab(tab);
-          if (tab === 'hardware') setShowHardwarePanel(true);
           if (tab === 'items') handleBrowseCatalog();
         }}
         onPressNewSale={() => {
@@ -394,8 +413,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 24,
-  },
-  hardwareSection: {
-    marginBottom: 8,
   },
 });

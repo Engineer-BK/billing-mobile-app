@@ -224,3 +224,64 @@ export async function dispatchPrintReceipt(
     };
   }
 }
+
+/**
+ * Dispatches a diagnostic test receipt to verify printer connectivity,
+ * column alignment (32 cols for 58mm vs 48 cols for 80mm), and auto-cutter.
+ */
+export async function dispatchTestPrint(
+  activeConfig: PrinterProfile
+): Promise<PrintJobResult> {
+  const is80mm = activeConfig.lineWidth >= 48;
+  const testInvoice: InvoiceData = {
+    shopName: 'Billing Receipt',
+    date: '31/10/2026',
+    time: '02:30 PM',
+    invoiceNo: 'TEST-01',
+    customerName: 'Thermal Diagnostics',
+    items: [
+      {
+        sNo: '1',
+        name: is80mm ? '80MM HIGH-DENSITY LINE' : '58MM STANDARD LINE',
+        qty: '1',
+        unit: 'PCS',
+        price: '50.00',
+        amt: '50.00',
+      },
+      {
+        sNo: '2',
+        name: 'FONT & CUTTER CHECK',
+        qty: '2',
+        unit: 'KG',
+        price: '25.00',
+        amt: '50.00',
+      },
+    ],
+    totalQty: '3',
+    subtotal: '100.00',
+    totalDiscount: '0.00',
+    finalAmount: '100.00',
+    grandTotal: '100.00',
+  };
+
+  return dispatchPrintReceipt(activeConfig, testInvoice);
+}
+
+/**
+ * Feeds empty paper lines through the thermal mechanism.
+ */
+export async function dispatchPaperFeed(lines = 3): Promise<PrintJobResult> {
+  try {
+    await BluetoothEscposPrinter.printText('\n'.repeat(lines), {});
+    return {
+      success: true,
+      message: `Fed ${lines} lines of thermal paper.`,
+    };
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    return {
+      success: false,
+      message: `Feed Failed: ${errorMsg}`,
+    };
+  }
+}
