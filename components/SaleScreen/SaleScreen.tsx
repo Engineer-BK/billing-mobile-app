@@ -12,7 +12,7 @@
  * - Modals: ChangeInvoiceModal, CalendarModal, AddItemModal
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -27,6 +27,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { InvoiceData, InvoiceItem } from '../../types/billing';
+import { storageService } from '../../services/storageService';
 import { SaleTopBar } from './SaleTopBar';
 import { SaleInvoiceSubheader } from './SaleInvoiceSubheader';
 import { SaleItemsList } from './SaleItemsList';
@@ -55,6 +56,27 @@ export function SaleScreen({
   // Invoice Number & Prefix state (starts from 1 by default)
   const [invoiceNo, setInvoiceNo] = useState<string>(initialInvoiceNo.toString());
   const [invoicePrefix, setInvoicePrefix] = useState<string>('');
+
+  // Restore sequential invoice number on mount
+  useEffect(() => {
+    storageService.loadNextInvoiceNumber().then((savedNum) => {
+      if (savedNum && savedNum > 0) {
+        setInvoiceNo(savedNum.toString());
+      }
+    });
+  }, []);
+
+  // Update when initialInvoiceNo changes
+  useEffect(() => {
+    if (initialInvoiceNo) {
+      setInvoiceNo((prev) => {
+        const prevNum = parseInt(prev, 10);
+        return isNaN(prevNum) || prevNum < initialInvoiceNo
+          ? initialInvoiceNo.toString()
+          : prev;
+      });
+    }
+  }, [initialInvoiceNo]);
 
   // Date state
   const [saleDate, setSaleDate] = useState<Date>(new Date());
@@ -167,8 +189,10 @@ export function SaleScreen({
     const invoice = buildInvoicePayload();
     onSaveInvoice(invoice, false);
 
+    const nextNum = (parseInt(invoiceNo, 10) || 1) + 1;
+    storageService.saveNextInvoiceNumber(nextNum);
+
     if (andNew) {
-      const nextNum = (parseInt(invoiceNo, 10) || 1) + 1;
       setInvoiceNo(nextNum.toString());
       setCustomerName('');
       setPhoneNumber('');

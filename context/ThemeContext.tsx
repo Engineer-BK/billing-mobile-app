@@ -6,8 +6,9 @@
  * dynamically distributing retail colors across all components.
  */
 
-import React, { createContext, useContext, useState, useMemo } from 'react';
+import React, { createContext, useContext, useState, useMemo, useEffect, useCallback } from 'react';
 import { ThemeColors, DarkTheme, LightTheme } from '../constants/theme';
+import { storageService } from '../services/storageService';
 
 export type ThemeMode = 'dark' | 'light';
 
@@ -32,14 +33,32 @@ export function ThemeProvider({
 }: {
   children: React.ReactNode;
 }): React.JSX.Element {
-  const [theme, setTheme] = useState<ThemeMode>('light');
+  const [theme, setThemeState] = useState<ThemeMode>('light');
+
+  // Load persisted theme preference on app start
+  useEffect(() => {
+    storageService.loadTheme().then((saved) => {
+      if (saved) {
+        setThemeState(saved);
+      }
+    });
+  }, []);
+
+  const setTheme = useCallback((mode: ThemeMode) => {
+    setThemeState(mode);
+    storageService.saveTheme(mode);
+  }, []);
+
+  const toggleTheme = useCallback(() => {
+    setThemeState((prev) => {
+      const next: ThemeMode = prev === 'dark' ? 'light' : 'dark';
+      storageService.saveTheme(next);
+      return next;
+    });
+  }, []);
 
   const isDark = theme === 'dark';
   const colors = useMemo(() => (isDark ? DarkTheme : LightTheme), [isDark]);
-
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
-  };
 
   const value = useMemo(
     () => ({
@@ -49,7 +68,7 @@ export function ThemeProvider({
       toggleTheme,
       setTheme,
     }),
-    [theme, isDark, colors]
+    [theme, isDark, colors, toggleTheme, setTheme]
   );
 
   return (

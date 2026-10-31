@@ -8,7 +8,7 @@
  * - Connection and disconnection management
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Platform, PermissionsAndroid, Alert } from 'react-native';
 import {
   BluetoothManager,
@@ -16,6 +16,7 @@ import {
   DeviceListResponse,
 } from '../services/bluetoothPrinter';
 import { PrinterProfileId } from '../types/printer';
+import { storageService } from '../services/storageService';
 
 interface UseBluetoothScannerProps {
   onProfileAutoDetected?: (profile: PrinterProfileId) => void;
@@ -28,6 +29,19 @@ export function useBluetoothScanner({ onProfileAutoDetected }: UseBluetoothScann
   const [deviceList, setDeviceList] = useState<BluetoothDevice[]>([]);
   const [showDeviceList, setShowDeviceList] = useState<boolean>(false);
   const [lastError, setLastError] = useState<string | null>(null);
+
+  // Restore saved printer from persistent storage on mount
+  useEffect(() => {
+    storageService.loadSavedPrinter().then((saved) => {
+      if (saved && saved.address) {
+        setTargetAddress(saved.address);
+        setPrinterName(saved.name || saved.address);
+        if (saved.profileId) {
+          onProfileAutoDetected?.(saved.profileId);
+        }
+      }
+    });
+  }, []);
 
   /**
    * Request Bluetooth & Location permissions required on Android 12+ (Samsung Galaxy A34).
@@ -173,6 +187,14 @@ export function useBluetoothScanner({ onProfileAutoDetected }: UseBluetoothScann
       const detected = autoDetectProfileByName(name);
       onProfileAutoDetected?.(detected);
 
+      // Persist connected printer to AsyncStorage
+      await storageService.saveSavedPrinter({
+        address,
+        name: name || address,
+        profileId: detected,
+        lastConnectedAt: new Date().toISOString(),
+      });
+
       Alert.alert('Link Verified', `${name || 'Printer'} connected and bound successfully.`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -194,6 +216,7 @@ export function useBluetoothScanner({ onProfileAutoDetected }: UseBluetoothScann
       if (targetAddress) {
         await BluetoothManager.disconnect(targetAddress);
       }
+      await storageService.clearSavedPrinter();
       setTargetAddress(null);
       setPrinterName('None Linked');
       Alert.alert('Disconnected', 'Printer session terminated.');

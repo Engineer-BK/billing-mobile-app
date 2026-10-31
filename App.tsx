@@ -9,7 +9,7 @@
  * - Full Dark & Light Mode Theme Support
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -35,6 +35,7 @@ import { InvoiceData } from './types/billing';
 
 // Custom Hooks & Native Dispatchers
 import { useBluetoothScanner } from './hooks/useBluetoothScanner';
+import { storageService } from './services/storageService';
 import {
   dispatchPrintReceipt,
   dispatchTestPrint,
@@ -129,8 +130,30 @@ function MainScreen(): React.JSX.Element {
     connectToDevice,
     disconnectPrinter,
   } = useBluetoothScanner({
-    onProfileAutoDetected: (detected) => setSelectedProfile(detected),
+    onProfileAutoDetected: (detected) => {
+      setSelectedProfile(detected);
+      storageService.saveActiveProfile(detected);
+    },
   });
+
+  // Restore persistent invoices and roll profile from AsyncStorage on app startup
+  useEffect(() => {
+    storageService.loadInvoices().then((saved) => {
+      if (saved && saved.length > 0) {
+        setInvoicesList(saved);
+        setCurrentInvoice(saved[0]);
+      } else {
+        // Initial seeding for first launch
+        storageService.saveInvoices(invoicesList);
+      }
+    });
+
+    storageService.loadActiveProfile().then((savedProfile) => {
+      if (savedProfile) {
+        setSelectedProfile(savedProfile);
+      }
+    });
+  }, []);
 
   // 1-Tap Print Handler
   const handlePrint = async (targetInvoice: InvoiceData = currentInvoice): Promise<void> => {
@@ -200,6 +223,7 @@ function MainScreen(): React.JSX.Element {
   // Switch between 58mm and 80mm roll width
   const handleSelectProfile = (profileId: PrinterProfileId): void => {
     setSelectedProfile(profileId);
+    storageService.saveActiveProfile(profileId);
     Alert.alert(
       'Profile Switched',
       `Active Roll: ${PRINTER_PROFILES[profileId].displayName}\nLine Width: ${PRINTER_PROFILES[profileId].lineWidth} Columns`
@@ -233,10 +257,21 @@ function MainScreen(): React.JSX.Element {
   // Handle Save Invoice from SaleScreen
   const handleSaveInvoice = (savedInvoice: InvoiceData, shouldPrint?: boolean) => {
     setCurrentInvoice(savedInvoice);
-    setInvoicesList((prev) => [
-      savedInvoice,
-      ...prev.filter((inv) => inv.invoiceNo !== savedInvoice.invoiceNo),
-    ]);
+    setInvoicesList((prev) => {
+      const updated = [
+        savedInvoice,
+        ...prev.filter((inv) => inv.invoiceNo !== savedInvoice.invoiceNo),
+      ];
+      storageService.saveInvoices(updated);
+      return updated;
+    });
+
+    // Increment and persist sequential invoice counter
+    const currentNum = parseInt(savedInvoice.invoiceNo, 10);
+    if (!isNaN(currentNum)) {
+      storageService.saveNextInvoiceNumber(currentNum + 1);
+    }
+
     if (shouldPrint) {
       handlePrint(savedInvoice);
     }
@@ -246,6 +281,7 @@ function MainScreen(): React.JSX.Element {
   const handleDeleteInvoice = (invoiceNo: string) => {
     setInvoicesList((prev) => {
       const updated = prev.filter((inv) => inv.invoiceNo !== invoiceNo);
+      storageService.saveInvoices(updated);
       if (currentInvoice.invoiceNo === invoiceNo) {
         if (updated.length > 0) {
           setCurrentInvoice(updated[0]);
@@ -270,11 +306,13 @@ function MainScreen(): React.JSX.Element {
 
   // Handle Update Invoice Status (Paid <-> Unpaid)
   const handleUpdateInvoiceStatus = (invoiceNo: string, newStatus: 'PAID' | 'UNPAID') => {
-    setInvoicesList((prev) =>
-      prev.map((inv) =>
+    setInvoicesList((prev) => {
+      const updated = prev.map((inv) =>
         inv.invoiceNo === invoiceNo ? { ...inv, status: newStatus } : inv
-      )
-    );
+      );
+      storageService.saveInvoices(updated);
+      return updated;
+    });
     if (currentInvoice.invoiceNo === invoiceNo) {
       setCurrentInvoice((prev) => ({ ...prev, status: newStatus }));
     }
