@@ -15,6 +15,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { InvoiceData } from '../types/billing';
 import { PrinterProfileId } from '../types/printer';
+import { UserProfile } from '../types/auth';
 
 const STORAGE_KEYS = {
   INVOICES: '@flashbill:invoices_v1',
@@ -22,6 +23,7 @@ const STORAGE_KEYS = {
   SAVED_PRINTER: '@flashbill:saved_printer_v1',
   ACTIVE_PROFILE: '@flashbill:active_profile_v1',
   THEME_MODE: '@flashbill:theme_mode_v1',
+  USER_SESSION: '@flashbill:user_session_v1',
 } as const;
 
 export interface SavedPrinterInfo {
@@ -202,6 +204,50 @@ export const storageService = {
       return true;
     } catch (err) {
       console.warn('storageService.saveTheme error:', err);
+      return false;
+    }
+  },
+
+  // ==========================================
+  // 5. USER AUTH SESSION PERSISTENCE
+  // ==========================================
+
+  /**
+   * Load active user session from local storage.
+   */
+  async loadUserSession(): Promise<UserProfile | null> {
+    try {
+      const json = await AsyncStorage.getItem(STORAGE_KEYS.USER_SESSION);
+      if (!json) return null;
+      return JSON.parse(json) as UserProfile;
+    } catch (err) {
+      console.warn('storageService.loadUserSession error:', err);
+      return null;
+    }
+  },
+
+  /**
+   * Save active user session on login or registration.
+   */
+  async saveUserSession(user: UserProfile): Promise<boolean> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.USER_SESSION, JSON.stringify(user));
+      return true;
+    } catch (err) {
+      console.warn('storageService.saveUserSession error:', err);
+      return false;
+    }
+  },
+
+  /**
+   * Clear active user session on sign out.
+   */
+  async clearUserSession(): Promise<boolean> {
+    try {
+      await AsyncStorage.removeItem(STORAGE_KEYS.USER_SESSION);
+      return true;
+    } catch (err) {
+      console.warn('storageService.clearUserSession error:', err);
       return false;
     }
   },
