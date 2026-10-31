@@ -24,6 +24,7 @@ import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 
 // Theme Context & Branding
 import { ThemeProvider } from './context/ThemeContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { useTheme } from './hooks/useTheme';
 
 // Hardware Profiles & Defaults
@@ -44,6 +45,7 @@ import {
 
 // Navigation & Top-Level Screens
 import { WelcomeScreen } from './components/WelcomeScreen';
+import { AuthScreen } from './components/Auth/AuthScreen';
 import { SaleScreen } from './components/SaleScreen/SaleScreen';
 import { InvoicesScreen } from './components/InvoicesScreen/InvoicesScreen';
 import { PrintersScreen } from './components/PrintersScreen/PrintersScreen';
@@ -57,6 +59,7 @@ import { ReceiptPreview } from './components/ReceiptPreview/ReceiptPreview';
 
 function MainScreen(): React.JSX.Element {
   const { colors, isDark } = useTheme();
+  const { user, isLoading: authLoading, signOut } = useAuth();
 
   // Welcome / Splash Screen State (shows on app launch)
   const [showSplash, setShowSplash] = useState<boolean>(true);
@@ -321,10 +324,31 @@ function MainScreen(): React.JSX.Element {
   // State for Home Screen 3-dot popup modal
   const [homeMenuInvoice, setHomeMenuInvoice] = useState<InvoiceData | null>(null);
 
-  // Welcome Screen Gate (holds until splash duration and fonts are ready)
-  if (showSplash || !fontsLoaded) {
+  // Welcome Screen Gate (holds until splash duration, fonts, and auth state are ready)
+  if (showSplash || !fontsLoaded || authLoading) {
     return <WelcomeScreen onFinish={() => setShowSplash(false)} />;
   }
+
+  // Auth Gate: If no store account is logged in, show Auth Screen
+  if (!user) {
+    return <AuthScreen />;
+  }
+
+  // Confirm Sign Out Handler
+  const handleConfirmSignOut = () => {
+    Alert.alert(
+      'Sign Out of Store',
+      `Are you sure you want to sign out of ${user?.shopName || 'your store account'}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: () => signOut(),
+        },
+      ]
+    );
+  };
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
@@ -348,10 +372,11 @@ function MainScreen(): React.JSX.Element {
         >
           {/* Distinctive FlashBill Header with Store Info */}
           <FlashHeader
-            storeName="FlashBill POS"
+            storeName={user?.shopName || 'FlashBill POS'}
             printerName={printerName}
             isConnected={!!targetAddress}
             onPressPrinterPill={() => setActiveTab('hardware')}
+            onPressSignOut={handleConfirmSignOut}
           />
 
           {/* Retail Flash Metrics Strip */}
@@ -399,7 +424,7 @@ function MainScreen(): React.JSX.Element {
       >
         <SaleScreen
           initialInvoiceNo={parseInt(currentInvoice.invoiceNo, 10) || 1}
-          shopName={currentInvoice.shopName}
+          shopName={user?.shopName || currentInvoice.shopName}
           onBack={() => setActiveTab('home')}
           onSaveInvoice={handleSaveInvoice}
         />
@@ -472,7 +497,9 @@ function MainScreen(): React.JSX.Element {
 export default function App(): React.JSX.Element {
   return (
     <ThemeProvider>
-      <MainScreen />
+      <AuthProvider>
+        <MainScreen />
+      </AuthProvider>
     </ThemeProvider>
   );
 }

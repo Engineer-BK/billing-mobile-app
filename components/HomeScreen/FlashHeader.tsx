@@ -18,6 +18,7 @@ interface FlashHeaderProps {
   printerName: string;
   isConnected: boolean;
   onPressPrinterPill: () => void;
+  onPressSignOut?: () => void;
 }
 
 export function FlashHeader({
@@ -25,6 +26,7 @@ export function FlashHeader({
   printerName,
   isConnected,
   onPressPrinterPill,
+  onPressSignOut,
 }: FlashHeaderProps): React.JSX.Element {
   const { colors, isDark, toggleTheme } = useTheme();
 
@@ -67,24 +69,44 @@ export function FlashHeader({
           </View>
         </View>
 
-        {/* ☀️ / 🌙 Theme Toggle Button */}
-        <TouchableOpacity
-          style={[
-            styles.themePill,
-            {
-              backgroundColor: colors.surfaceLight,
-              borderColor: colors.borderLight,
-            },
-          ]}
-          onPress={toggleTheme}
-          activeOpacity={0.7}
-        >
-          <Ionicons
-            name={isDark ? 'moon' : 'sunny'}
-            size={16}
-            color={isDark ? colors.secondary : colors.primary}
-          />
-        </TouchableOpacity>
+        {/* Header Right Actions: Logout & Theme Toggle */}
+        <View style={styles.rightActionsRow}>
+          {onPressSignOut && (
+            <TouchableOpacity
+              style={[
+                styles.themePill,
+                {
+                  backgroundColor: colors.surfaceLight,
+                  borderColor: colors.borderLight,
+                },
+              ]}
+              onPress={onPressSignOut}
+              activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <MaterialCommunityIcons name="logout" size={15} color={colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+
+          {/* ☀️ / 🌙 Theme Toggle Button */}
+          <TouchableOpacity
+            style={[
+              styles.themePill,
+              {
+                backgroundColor: colors.surfaceLight,
+                borderColor: colors.borderLight,
+              },
+            ]}
+            onPress={toggleTheme}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name={isDark ? 'moon' : 'sunny'}
+              size={16}
+              color={isDark ? colors.secondary : colors.primary}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Printer Link Status Banner Pill */}
@@ -185,6 +207,11 @@ const styles = StyleSheet.create({
   storeSubtitle: {
     fontSize: 11,
     marginTop: 2,
+  },
+  rightActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   themePill: {
     width: 38,
