@@ -18,6 +18,8 @@ interface FlashHeaderProps {
   printerName: string;
   isConnected: boolean;
   onPressPrinterPill: () => void;
+  onPressMenu?: () => void;
+  onPressSettings?: () => void;
   onPressAccount?: () => void;
   onPressSignOut?: () => void;
   cloudStatus?: 'synced' | 'syncing' | 'offline';
@@ -28,6 +30,8 @@ export function FlashHeader({
   printerName,
   isConnected,
   onPressPrinterPill,
+  onPressMenu,
+  onPressSettings,
   onPressAccount,
   onPressSignOut,
   cloudStatus = 'synced',
@@ -36,13 +40,31 @@ export function FlashHeader({
 
   return (
     <View style={[styles.headerContainer, { borderBottomColor: colors.border }]}>
-      {/* Top Identity Row */}
+      {/* Top Identity Row: [ ☰ Drawer ] [ Store Identity ] [ ⚙️ Settings ] */}
       <View style={styles.topRow}>
-        {/* Store Avatar & Name (Interactive Account Trigger) */}
+        {/* Left: Modern Hamburger Drawer Toggle */}
+        {onPressMenu && (
+          <TouchableOpacity
+            style={[
+              styles.menuPill,
+              {
+                backgroundColor: colors.surfaceLight,
+                borderColor: colors.borderLight,
+              },
+            ]}
+            onPress={onPressMenu}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <MaterialCommunityIcons name="menu" size={22} color={colors.textPrimary} />
+          </TouchableOpacity>
+        )}
+
+        {/* Center: Store Avatar & Name (Interactive Account Trigger) */}
         <TouchableOpacity
           style={styles.storeInfo}
-          onPress={onPressAccount}
-          activeOpacity={onPressAccount ? 0.75 : 1}
+          onPress={onPressAccount || onPressMenu}
+          activeOpacity={0.75}
         >
           <View
             style={[
@@ -101,43 +123,24 @@ export function FlashHeader({
           </View>
         </TouchableOpacity>
 
-        {/* Header Right Actions: Account & Theme Toggle */}
+        {/* Right: Classy Single Settings Gear Action */}
         <View style={styles.rightActionsRow}>
-          {onPressAccount && (
+          {onPressSettings && (
             <TouchableOpacity
               style={[
-                styles.themePill,
+                styles.actionPill,
                 {
                   backgroundColor: colors.surfaceLight,
                   borderColor: colors.borderLight,
                 },
               ]}
-              onPress={onPressAccount}
+              onPress={onPressSettings}
               activeOpacity={0.7}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <MaterialCommunityIcons name="account-circle-outline" size={19} color={colors.primary} />
+              <MaterialCommunityIcons name="cog-outline" size={21} color={colors.primary} />
             </TouchableOpacity>
           )}
-
-          {/* ☀️ / 🌙 Theme Toggle Button */}
-          <TouchableOpacity
-            style={[
-              styles.themePill,
-              {
-                backgroundColor: colors.surfaceLight,
-                borderColor: colors.borderLight,
-              },
-            ]}
-            onPress={toggleTheme}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name={isDark ? 'moon' : 'sunny'}
-              size={16}
-              color={isDark ? colors.secondary : colors.primary}
-            />
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -264,13 +267,23 @@ const styles = StyleSheet.create({
     fontSize: 11,
     flexShrink: 1,
   },
+  menuPill: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+    flexShrink: 0,
+  },
   rightActionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     flexShrink: 0,
   },
-  themePill: {
+  actionPill: {
     width: 38,
     height: 38,
     borderRadius: 19,

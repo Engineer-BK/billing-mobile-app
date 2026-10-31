@@ -47,6 +47,8 @@ import {
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { AuthScreen } from './components/Auth/AuthScreen';
 import { AccountModal } from './components/Account/AccountModal';
+import { AppDrawer } from './components/Drawer/AppDrawer';
+import { SettingsModal } from './components/Settings/SettingsModal';
 import { SaleScreen } from './components/SaleScreen/SaleScreen';
 import { InvoicesScreen } from './components/InvoicesScreen/InvoicesScreen';
 import { PrintersScreen } from './components/PrintersScreen/PrintersScreen';
@@ -340,6 +342,10 @@ function MainScreen(): React.JSX.Element {
   // State for Account & Cloud Management Modal
   const [showAccountModal, setShowAccountModal] = useState<boolean>(false);
 
+  // State for Side Navigation Drawer & Settings Modal (Concept 1)
+  const [showDrawer, setShowDrawer] = useState<boolean>(false);
+  const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
+
   // Welcome Screen Gate (holds until splash duration, fonts, and auth state are ready)
   if (showSplash || !fontsLoaded || authLoading) {
     return <WelcomeScreen onFinish={() => setShowSplash(false)} />;
@@ -386,12 +392,14 @@ function MainScreen(): React.JSX.Element {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Distinctive FlashBill Header with Store Info */}
+          {/* Distinctive FlashBill Header with Store Info & Drawer Action */}
           <FlashHeader
             storeName={user?.shopName || 'FlashBill POS'}
             printerName={printerName}
             isConnected={!!targetAddress}
             onPressPrinterPill={() => setActiveTab('hardware')}
+            onPressMenu={() => setShowDrawer(true)}
+            onPressSettings={() => setShowSettingsModal(true)}
             onPressAccount={() => setShowAccountModal(true)}
             onPressSignOut={handleConfirmSignOut}
           />
@@ -507,6 +515,30 @@ function MainScreen(): React.JSX.Element {
         visible={showAccountModal}
         onClose={() => setShowAccountModal(false)}
         invoicesCount={invoicesList.length}
+      />
+
+      {/* Side Navigation Drawer (Concept 1) */}
+      <AppDrawer
+        visible={showDrawer}
+        onClose={() => setShowDrawer(false)}
+        activeTab={activeTab}
+        onSelectTab={(tab) => setActiveTab(tab)}
+        onOpenAccountModal={() => setShowAccountModal(true)}
+        onOpenSettingsModal={() => setShowSettingsModal(true)}
+        onSignOut={handleConfirmSignOut}
+      />
+
+      {/* POS Preferences & Settings Modal (Concept 1) */}
+      <SettingsModal
+        visible={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+        selectedProfile={selectedProfile}
+        onSelectProfile={(profile) => {
+          setSelectedProfile(profile);
+          storageService.saveActiveProfile(profile);
+        }}
+        onOpenStoreProfile={() => setShowAccountModal(true)}
+        onOpenPrintersTab={() => setActiveTab('hardware')}
       />
 
       {/* Bottom Navigation Dock: [ Home ] [ Sale ] [ Invoices ] [ Printers ] */}

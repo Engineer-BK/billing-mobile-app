@@ -215,23 +215,23 @@ export function SettingsModal({
                         <TouchableOpacity
                           style={[
                             styles.profileBtn,
-                            selectedProfile === 'M58' && {
+                            selectedProfile === 'SC588' && {
                               backgroundColor: colors.primary,
                               borderColor: colors.primary,
                             },
-                            selectedProfile !== 'M58' && {
+                            selectedProfile !== 'SC588' && {
                               backgroundColor: colors.surface,
                               borderColor: colors.borderLight,
                             },
                           ]}
-                          onPress={() => onSelectProfile('M58')}
+                          onPress={() => onSelectProfile('SC588')}
                           activeOpacity={0.7}
                         >
                           <Text
                             style={[
                               styles.profileBtnTxt,
                               {
-                                color: selectedProfile === 'M58' ? '#FFFFFF' : colors.textPrimary,
+                                color: selectedProfile === 'SC588' ? '#FFFFFF' : colors.textPrimary,
                               },
                             ]}
                           >
