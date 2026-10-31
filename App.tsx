@@ -46,6 +46,7 @@ import {
 // Navigation & Top-Level Screens
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { AuthScreen } from './components/Auth/AuthScreen';
+import { AccountModal } from './components/Account/AccountModal';
 import { SaleScreen } from './components/SaleScreen/SaleScreen';
 import { InvoicesScreen } from './components/InvoicesScreen/InvoicesScreen';
 import { PrintersScreen } from './components/PrintersScreen/PrintersScreen';
@@ -157,6 +158,18 @@ function MainScreen(): React.JSX.Element {
       }
     });
   }, []);
+
+  // Sync user shop name with sample receipt if still using placeholder
+  useEffect(() => {
+    if (user?.shopName) {
+      setCurrentInvoice((prev) => {
+        if (prev.shopName === 'AK GROCERY MART' || !prev.shopName) {
+          return { ...prev, shopName: user.shopName };
+        }
+        return prev;
+      });
+    }
+  }, [user?.shopName]);
 
   // 1-Tap Print Handler
   const handlePrint = async (targetInvoice: InvoiceData = currentInvoice): Promise<void> => {
@@ -324,6 +337,9 @@ function MainScreen(): React.JSX.Element {
   // State for Home Screen 3-dot popup modal
   const [homeMenuInvoice, setHomeMenuInvoice] = useState<InvoiceData | null>(null);
 
+  // State for Account & Cloud Management Modal
+  const [showAccountModal, setShowAccountModal] = useState<boolean>(false);
+
   // Welcome Screen Gate (holds until splash duration, fonts, and auth state are ready)
   if (showSplash || !fontsLoaded || authLoading) {
     return <WelcomeScreen onFinish={() => setShowSplash(false)} />;
@@ -376,6 +392,7 @@ function MainScreen(): React.JSX.Element {
             printerName={printerName}
             isConnected={!!targetAddress}
             onPressPrinterPill={() => setActiveTab('hardware')}
+            onPressAccount={() => setShowAccountModal(true)}
             onPressSignOut={handleConfirmSignOut}
           />
 
@@ -483,6 +500,13 @@ function MainScreen(): React.JSX.Element {
         onPreview={() => setShowPreview(true)}
         onDelete={(inv) => handleDeleteInvoice(inv.invoiceNo)}
         onChangeStatus={(inv, newStatus) => handleUpdateInvoiceStatus(inv.invoiceNo, newStatus)}
+      />
+
+      {/* Store Account & Cloud Sync Modal */}
+      <AccountModal
+        visible={showAccountModal}
+        onClose={() => setShowAccountModal(false)}
+        invoicesCount={invoicesList.length}
       />
 
       {/* Bottom Navigation Dock: [ Home ] [ Sale ] [ Invoices ] [ Printers ] */}

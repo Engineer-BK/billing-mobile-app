@@ -21,6 +21,7 @@ const AuthContext = createContext<AuthContextType>({
   signIn: async () => ({ success: false }),
   signUp: async () => ({ success: false }),
   signOut: async () => {},
+  updateProfile: async () => false,
   resetPassword: async () => ({ success: false }),
   clearError: () => {},
 });
@@ -204,6 +205,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
   }, []);
 
   /**
+   * Update Profile Details (Shop Name, Owner Name, Phone)
+   */
+  const updateProfile = useCallback(
+    async (data: Partial<UserProfile>): Promise<boolean> => {
+      if (!user) return false;
+      try {
+        const updated: UserProfile = {
+          ...user,
+          ...data,
+        };
+        await storageService.saveUserSession(updated);
+        setUser(updated);
+        return true;
+      } catch (err) {
+        console.warn('Update profile error:', err);
+        return false;
+      }
+    },
+    [user]
+  );
+
+  /**
    * Send Password Reset
    */
   const resetPassword = useCallback(
@@ -231,10 +254,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
       signIn,
       signUp,
       signOut,
+      updateProfile,
       resetPassword,
       clearError,
     }),
-    [user, isLoading, error, signIn, signUp, signOut, resetPassword, clearError]
+    [user, isLoading, error, signIn, signUp, signOut, updateProfile, resetPassword, clearError]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

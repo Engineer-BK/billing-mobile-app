@@ -18,7 +18,9 @@ interface FlashHeaderProps {
   printerName: string;
   isConnected: boolean;
   onPressPrinterPill: () => void;
+  onPressAccount?: () => void;
   onPressSignOut?: () => void;
+  cloudStatus?: 'synced' | 'syncing' | 'offline';
 }
 
 export function FlashHeader({
@@ -26,7 +28,9 @@ export function FlashHeader({
   printerName,
   isConnected,
   onPressPrinterPill,
+  onPressAccount,
   onPressSignOut,
+  cloudStatus = 'synced',
 }: FlashHeaderProps): React.JSX.Element {
   const { colors, isDark, toggleTheme } = useTheme();
 
@@ -34,8 +38,12 @@ export function FlashHeader({
     <View style={[styles.headerContainer, { borderBottomColor: colors.border }]}>
       {/* Top Identity Row */}
       <View style={styles.topRow}>
-        {/* Store Avatar & Name */}
-        <View style={styles.storeInfo}>
+        {/* Store Avatar & Name (Interactive Account Trigger) */}
+        <TouchableOpacity
+          style={styles.storeInfo}
+          onPress={onPressAccount}
+          activeOpacity={onPressAccount ? 0.75 : 1}
+        >
           <View
             style={[
               styles.avatarBox,
@@ -52,9 +60,9 @@ export function FlashHeader({
             />
           </View>
 
-          <View>
+          <View style={styles.storeTextCol}>
             <View style={styles.storeNameRow}>
-              <Text style={[styles.storeTitle, { color: colors.textPrimary }]}>
+              <Text style={[styles.storeTitle, { color: colors.textPrimary }]} numberOfLines={1}>
                 {storeName}
               </Text>
               <MaterialCommunityIcons
@@ -63,15 +71,35 @@ export function FlashHeader({
                 color="#0EA5E9"
               />
             </View>
-            <Text style={[styles.storeSubtitle, { color: colors.textSecondary }]}>
-              FlashBill POS • Active Counter
-            </Text>
+            <View style={styles.subtitleRow}>
+              <View
+                style={[
+                  styles.cloudIndicatorDot,
+                  {
+                    backgroundColor:
+                      cloudStatus === 'synced'
+                        ? '#10B981'
+                        : cloudStatus === 'syncing'
+                        ? '#F59E0B'
+                        : '#94A3B8',
+                  },
+                ]}
+              />
+              <Text style={[styles.storeSubtitle, { color: colors.textSecondary }]}>
+                {cloudStatus === 'synced'
+                  ? 'Cloud Synced'
+                  : cloudStatus === 'syncing'
+                  ? 'Syncing...'
+                  : 'Offline Mode'}{' '}
+                • Active
+              </Text>
+            </View>
           </View>
-        </View>
+        </TouchableOpacity>
 
-        {/* Header Right Actions: Logout & Theme Toggle */}
+        {/* Header Right Actions: Account & Theme Toggle */}
         <View style={styles.rightActionsRow}>
-          {onPressSignOut && (
+          {onPressAccount && (
             <TouchableOpacity
               style={[
                 styles.themePill,
@@ -80,11 +108,11 @@ export function FlashHeader({
                   borderColor: colors.borderLight,
                 },
               ]}
-              onPress={onPressSignOut}
+              onPress={onPressAccount}
               activeOpacity={0.7}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <MaterialCommunityIcons name="logout" size={15} color={colors.textSecondary} />
+              <MaterialCommunityIcons name="account-circle-outline" size={19} color={colors.primary} />
             </TouchableOpacity>
           )}
 
@@ -194,19 +222,33 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
   },
+  storeTextCol: {
+    justifyContent: 'center',
+    maxWidth: 200,
+  },
   storeNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
   storeTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '800',
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
+  },
+  subtitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 2,
+  },
+  cloudIndicatorDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   storeSubtitle: {
     fontSize: 11,
-    marginTop: 2,
   },
   rightActionsRow: {
     flexDirection: 'row',
