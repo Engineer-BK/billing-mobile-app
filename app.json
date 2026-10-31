@@ -16,7 +16,7 @@
       "package": "com.aftabrental.billingapp",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#FFFFFF"
+        "backgroundColor": "#0A1128"
       },
       "splash": {
         "image": "./assets/splash.png",
