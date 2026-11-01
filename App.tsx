@@ -230,7 +230,13 @@ function MainScreen(): React.JSX.Element {
   }, [user?.shopName]);
 
   // 1-Tap Print Handler
-  const handlePrint = async (targetInvoice: InvoiceData = currentInvoice): Promise<void> => {
+  const handlePrint = async (targetInvoice?: InvoiceData | null): Promise<void> => {
+    const inv = targetInvoice || currentInvoice;
+    if (!inv) {
+      Alert.alert('No Receipt', 'Please create a sale first before printing.');
+      return;
+    }
+
     if (!targetAddress) {
       Alert.alert(
         'Printer Needed',
@@ -242,7 +248,7 @@ function MainScreen(): React.JSX.Element {
 
     try {
       setIsPrinting(true);
-      const result = await dispatchPrintReceipt(activeConfig, targetInvoice);
+      const result = await dispatchPrintReceipt(activeConfig, inv);
       if (result.success) {
         Alert.alert('Printed Successfully', result.message || 'Receipt sent to printer.');
       } else {
@@ -305,11 +311,16 @@ function MainScreen(): React.JSX.Element {
   };
 
   // Share Receipt summary
-  const handleShare = async (targetInvoice: InvoiceData = currentInvoice): Promise<void> => {
+  const handleShare = async (targetInvoice?: InvoiceData | null): Promise<void> => {
+    const inv = targetInvoice || currentInvoice;
+    if (!inv) {
+      Alert.alert('No Receipt', 'Please create a sale first before sharing.');
+      return;
+    }
     try {
       await Share.share({
-        title: `Bill #${targetInvoice.invoiceNo}`,
-        message: `🧾 Billing Receipt\nInvoice No: ${targetInvoice.invoiceNo}\nCustomer: ${targetInvoice.customerName || 'Walk-in Customer'}\nDate: ${targetInvoice.date}\nTotal Amount: ₹${targetInvoice.grandTotal}\nTotal Items: ${targetInvoice.items.length}`,
+        title: `Bill #${inv.invoiceNo}`,
+        message: `🧾 Billing Receipt\nInvoice No: ${inv.invoiceNo}\nCustomer: ${inv.customerName || 'Walk-in Customer'}\nDate: ${inv.date}\nTotal Amount: ₹${inv.grandTotal}\nTotal Items: ${inv.items.length}`,
       });
     } catch (e) {
       console.warn(e);
@@ -361,21 +372,11 @@ function MainScreen(): React.JSX.Element {
     setInvoicesList((prev) => {
       const updated = prev.filter((inv) => inv.invoiceNo !== invoiceNo);
       storageService.saveInvoices(updated);
-      if (currentInvoice.invoiceNo === invoiceNo) {
+      if (currentInvoice?.invoiceNo === invoiceNo) {
         if (updated.length > 0) {
           setCurrentInvoice(updated[0]);
         } else {
-          setCurrentInvoice({
-            ...SAMPLE_INVOICE,
-            invoiceNo: '1',
-            items: [],
-            totalQty: '0',
-            subtotal: '0.00',
-            discountAmount: '0.00',
-            grandTotal: '0.00',
-            finalAmount: '0.00',
-            status: 'PAID',
-          });
+          setCurrentInvoice(null);
         }
       }
       return updated;
@@ -398,8 +399,8 @@ function MainScreen(): React.JSX.Element {
       storageService.saveInvoices(updated);
       return updated;
     });
-    if (currentInvoice.invoiceNo === invoiceNo) {
-      setCurrentInvoice((prev) => ({ ...prev, status: newStatus }));
+    if (currentInvoice?.invoiceNo === invoiceNo) {
+      setCurrentInvoice((prev) => (prev ? { ...prev, status: newStatus } : null));
     }
 
     // Background status update in Cloud Firestore
@@ -481,9 +482,9 @@ function MainScreen(): React.JSX.Element {
 
           {/* Retail Flash Metrics Strip */}
           <FlashStats
-            grandTotal={currentInvoice.grandTotal}
-            totalQty={currentInvoice.totalQty}
-            itemsCount={currentInvoice.items.length}
+            grandTotal={currentInvoice?.grandTotal || '0.00'}
+            totalQty={currentInvoice?.totalQty || '0'}
+            itemsCount={currentInvoice?.items?.length || 0}
             invoicesCount={invoicesList.length}
           />
 
@@ -502,11 +503,12 @@ function MainScreen(): React.JSX.Element {
             onTogglePreview={() => setShowPreview(!showPreview)}
             onPressPrint={() => handlePrint(currentInvoice)}
             onPressShare={() => handleShare(currentInvoice)}
-            onPressMenu={() => setHomeMenuInvoice(currentInvoice)}
+            onPressMenu={() => currentInvoice && setHomeMenuInvoice(currentInvoice)}
+            onPressNewSale={() => setActiveTab('sale')}
           />
 
           {/* True-to-Life Cream Monospace Receipt Preview */}
-          {showPreview && (
+          {showPreview && currentInvoice && (
             <ReceiptPreview
               activeConfig={activeConfig}
               invoice={currentInvoice}
@@ -523,8 +525,12 @@ function MainScreen(): React.JSX.Element {
         ]}
       >
         <SaleScreen
-          initialInvoiceNo={parseInt(currentInvoice.invoiceNo, 10) || 1}
-          shopName={user?.shopName || currentInvoice.shopName}
+          initialInvoiceNo={
+            currentInvoice
+              ? (parseInt(currentInvoice.invoiceNo, 10) || 0) + 1
+              : 1
+          }
+          shopName={user?.shopName || currentInvoice?.shopName || 'Billing Receipt'}
           onBack={() => setActiveTab('home')}
           onSaveInvoice={handleSaveInvoice}
         />
@@ -564,7 +570,7 @@ function MainScreen(): React.JSX.Element {
           deviceList={deviceList}
           selectedProfile={selectedProfile}
           activeConfig={activeConfig}
-          sampleInvoice={currentInvoice}
+          sampleInvoice={currentInvoice || SAMPLE_INVOICE}
           lastError={lastError}
           onClearError={clearLastError}
           onSelectProfile={handleSelectProfile}

@@ -49,7 +49,7 @@ export function RecentBillsCard({
         ]}
       >
         <MaterialCommunityIcons
-          name="receipt-text-outline"
+          name="receipt"
           size={44}
           color={colors.textMuted}
         />
