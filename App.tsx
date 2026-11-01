@@ -162,6 +162,45 @@ function MainScreen(): React.JSX.Element {
     });
   }, []);
 
+  // Reactive Cloud & Local Invoice Sync on User Login or Device Launch
+  useEffect(() => {
+    const currentUid = user?.uid;
+    if (!currentUid) return;
+
+    let isMounted = true;
+
+    async function syncUserInvoices(uid: string) {
+      try {
+        // 1. Immediately load local storage for instant 0ms UI render
+        const localInvoices = await storageService.loadInvoices();
+        if (isMounted && localInvoices && localInvoices.length > 0) {
+          setInvoicesList(localInvoices);
+          setCurrentInvoice(localInvoices[0]);
+        }
+
+        // 2. Multi-device pull from Cloud Firestore
+        const cloudInvoices = await syncService.pullAllInvoices(uid);
+        if (isMounted) {
+          if (cloudInvoices && cloudInvoices.length > 0) {
+            setInvoicesList(cloudInvoices);
+            setCurrentInvoice(cloudInvoices[0]);
+          } else if (localInvoices && localInvoices.length > 0) {
+            // Local has invoices but cloud is empty -> automatically backup local invoices to Firestore!
+            await syncService.syncAllLocalInvoices(uid);
+          }
+        }
+      } catch (err) {
+        console.warn('Sync user invoices error:', err);
+      }
+    }
+
+    syncUserInvoices(currentUid);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.uid]);
+
   // Sync user shop name with sample receipt if still using placeholder
   useEffect(() => {
     if (user?.shopName) {
@@ -535,6 +574,12 @@ function MainScreen(): React.JSX.Element {
         visible={showAccountModal}
         onClose={() => setShowAccountModal(false)}
         invoicesCount={invoicesList.length}
+        onSyncComplete={(synced) => {
+          if (synced && synced.length > 0) {
+            setInvoicesList(synced);
+            setCurrentInvoice(synced[0]);
+          }
+        }}
       />
 
       {/* Side Navigation Drawer (Concept 1) */}

@@ -30,16 +30,21 @@ import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../context/AuthContext';
 import { syncService } from '../../services/syncService';
 
+import { UserProfile } from '../../types/auth';
+import { InvoiceData } from '../../types/billing';
+
 interface AccountModalProps {
   visible: boolean;
   onClose: () => void;
   invoicesCount: number;
+  onSyncComplete?: (invoices: InvoiceData[]) => void;
 }
 
 export function AccountModal({
   visible,
   onClose,
   invoicesCount,
+  onSyncComplete,
 }: AccountModalProps): React.JSX.Element {
   const { colors, isDark } = useTheme();
   const { user, signOut, updateProfile } = useAuth();
@@ -91,10 +96,14 @@ export function AccountModal({
     setIsSyncing(true);
     try {
       const res = await syncService.syncAllLocalInvoices(user.uid);
+      const latest = await syncService.pullAllInvoices(user.uid);
       setIsSyncing(false);
       if (res.error) {
         Alert.alert('Cloud Sync Notice', res.error);
       } else {
+        if (onSyncComplete && latest.length > 0) {
+          onSyncComplete(latest);
+        }
         Alert.alert(
           'Google Cloud Synced',
           `Successfully verified and backed up ${res.syncedCount || invoicesCount} invoices to Cloud Firestore.`
