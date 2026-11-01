@@ -19,6 +19,8 @@ import {
   query,
   deleteDoc,
   serverTimestamp,
+  onSnapshot,
+  Unsubscribe,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { InvoiceData } from '../types/billing';
@@ -140,6 +142,71 @@ export const syncService = {
     } catch (err) {
       console.warn('syncService.pullAllInvoices notice:', err);
       return [];
+    }
+  },
+
+  /**
+   * Real-Time Invoices Listener: Automatically streams cloud invoices
+   * to the app whenever a bill is created, updated, or synced.
+   */
+  subscribeToInvoices(
+    userId: string,
+    onUpdate: (invoices: InvoiceData[]) => void
+  ): Unsubscribe {
+    if (!userId) return () => {};
+
+    try {
+      const invoicesColl = collection(db, 'users', userId, 'invoices');
+      const q = query(invoicesColl);
+
+      return onSnapshot(
+        q,
+        (snapshot) => {
+          if (snapshot.empty) return;
+
+          const invoices: InvoiceData[] = [];
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            invoices.push({
+              invoiceNo: data.invoiceNo || docSnap.id,
+              date: data.date || '',
+              time: data.time || '',
+              customerName: data.customerName || 'Walk-in Customer',
+              customerPhone: data.customerPhone || '',
+              status: data.status || 'PAID',
+              subtotal: data.subtotal || '0.00',
+              totalDiscount: data.totalDiscount || '0.00',
+              grandTotal: data.grandTotal || '0.00',
+              finalAmount: data.finalAmount || data.grandTotal || '0.00',
+              totalQty: data.totalQty || '0',
+              shopName: data.shopName || '',
+              items: data.items || [],
+            });
+          });
+
+          // Sort invoices sequentially descending (newest first)
+          invoices.sort((a, b) => {
+            const numA = parseInt(a.invoiceNo, 10) || 0;
+            const numB = parseInt(b.invoiceNo, 10) || 0;
+            return numB - numA;
+          });
+
+          if (invoices.length > 0) {
+            storageService.saveInvoices(invoices);
+            const maxInvoiceNo = Math.max(...invoices.map((inv) => parseInt(inv.invoiceNo, 10) || 0));
+            if (maxInvoiceNo > 0) {
+              storageService.saveNextInvoiceNumber(maxInvoiceNo + 1);
+            }
+            onUpdate(invoices);
+          }
+        },
+        (err) => {
+          console.warn('syncService.subscribeToInvoices notice:', err?.message || err);
+        }
+      );
+    } catch (err) {
+      console.warn('syncService.subscribeToInvoices setup error:', err);
+      return () => {};
     }
   },
 

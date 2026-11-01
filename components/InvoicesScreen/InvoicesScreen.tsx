@@ -22,6 +22,7 @@ import {
   FlatList,
   Platform,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
@@ -37,6 +38,8 @@ interface InvoicesScreenProps {
   onPressNewSale: () => void;
   onDeleteInvoice: (invoiceNo: string) => void;
   onChangeStatus?: (invoiceNo: string, newStatus: 'PAID' | 'UNPAID') => void;
+  onRefresh?: () => Promise<void> | void;
+  isRefreshing?: boolean;
 }
 
 export function InvoicesScreen({
@@ -46,6 +49,8 @@ export function InvoicesScreen({
   onPressNewSale,
   onDeleteInvoice,
   onChangeStatus,
+  onRefresh,
+  isRefreshing,
 }: InvoicesScreenProps): React.JSX.Element {
   const { colors, isDark } = useTheme();
 
@@ -160,6 +165,16 @@ export function InvoicesScreen({
         keyExtractor={(item, index) => `${item.invoiceNo}-${index}`}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          onRefresh ? (
+            <RefreshControl
+              refreshing={!!isRefreshing}
+              onRefresh={onRefresh}
+              colors={[colors.primary]}
+              tintColor={colors.primary}
+            />
+          ) : undefined
+        }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <MaterialCommunityIcons

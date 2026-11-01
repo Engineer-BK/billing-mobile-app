@@ -123,6 +123,7 @@ function MainScreen(): React.JSX.Element {
   // Active hardware profile configuration
   const [selectedProfile, setSelectedProfile] = useState<PrinterProfileId>('EZO80');
   const [isPrinting, setIsPrinting] = useState<boolean>(false);
+  const [isRefreshingInvoices, setIsRefreshingInvoices] = useState<boolean>(false);
   const activeConfig = PRINTER_PROFILES[selectedProfile];
 
   // Bluetooth scanning, permission handling, and device binding
@@ -196,10 +197,36 @@ function MainScreen(): React.JSX.Element {
 
     syncUserInvoices(currentUid);
 
+    // 3. Real-time Live Firestore Stream (auto-refreshes whenever invoices change)
+    const unsubscribe = syncService.subscribeToInvoices(currentUid, (liveInvoices) => {
+      if (isMounted && liveInvoices && liveInvoices.length > 0) {
+        setInvoicesList(liveInvoices);
+        setCurrentInvoice(liveInvoices[0]);
+      }
+    });
+
     return () => {
       isMounted = false;
+      unsubscribe();
     };
   }, [user?.uid]);
+
+  // Pull-to-refresh handler for Invoices screen
+  const handleRefreshInvoices = async () => {
+    if (!user?.uid) return;
+    setIsRefreshingInvoices(true);
+    try {
+      const refreshed = await syncService.pullAllInvoices(user.uid);
+      if (refreshed && refreshed.length > 0) {
+        setInvoicesList(refreshed);
+        setCurrentInvoice(refreshed[0]);
+      }
+    } catch (err) {
+      console.warn('Pull-to-refresh invoices error:', err);
+    } finally {
+      setIsRefreshingInvoices(false);
+    }
+  };
 
   // Sync user shop name with sample receipt if still using placeholder
   useEffect(() => {
@@ -528,6 +555,8 @@ function MainScreen(): React.JSX.Element {
           onPressNewSale={() => setActiveTab('sale')}
           onDeleteInvoice={handleDeleteInvoice}
           onChangeStatus={handleUpdateInvoiceStatus}
+          onRefresh={handleRefreshInvoices}
+          isRefreshing={isRefreshingInvoices}
         />
       </View>
 
