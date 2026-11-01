@@ -61,6 +61,18 @@ import { QuickActionGrid } from './components/HomeScreen/QuickActionGrid';
 import { RecentBillsCard } from './components/HomeScreen/RecentBillsCard';
 import { ReceiptPreview } from './components/ReceiptPreview/ReceiptPreview';
 
+// Helper to identify and discard legacy mock/sample invoices
+const isMockInvoice = (inv: InvoiceData): boolean => {
+  const isMockCustomer =
+    inv.customerName === 'Basir Ahmed Khan' ||
+    inv.customerName === 'Ayaan Malik' ||
+    inv.customerName === 'Zubair Ahmed';
+  const hasMockItems =
+    Array.isArray(inv.items) &&
+    inv.items.some((i) => i.name === 'CHANACHUR' || i.name === 'BHUJIA-700' || i.name === 'SUN R MIRC');
+  return isMockCustomer || hasMockItems;
+};
+
 function MainScreen(): React.JSX.Element {
   const { colors, isDark } = useTheme();
   const { user, isLoading: authLoading, signOut } = useAuth();
@@ -68,47 +80,11 @@ function MainScreen(): React.JSX.Element {
   // Welcome / Splash Screen State (shows on app launch)
   const [showSplash, setShowSplash] = useState<boolean>(true);
 
-  // Invoices Records State (persistent list of bills with search & print)
-  const [invoicesList, setInvoicesList] = useState<InvoiceData[]>([
-    SAMPLE_INVOICE,
-    {
-      shopName: 'Billing Receipt',
-      date: '30/10/2026',
-      time: '02:15 PM',
-      invoiceNo: '2',
-      customerName: 'Ayaan Malik',
-      items: [
-        { sNo: '1', name: 'BASMATI RICE', qty: '5', unit: 'KG', price: '120', amt: '600' },
-        { sNo: '2', name: 'SUNFLOWER OIL', qty: '2', unit: 'L', price: '160', amt: '320' },
-      ],
-      totalQty: '7',
-      subtotal: '920',
-      totalDiscount: '0.00',
-      finalAmount: '920',
-      grandTotal: '920',
-      status: 'PAID',
-    },
-    {
-      shopName: 'Billing Receipt',
-      date: '30/10/2026',
-      time: '01:40 PM',
-      invoiceNo: '3',
-      customerName: 'Zubair Ahmed',
-      items: [
-        { sNo: '1', name: 'WHOLE WHEAT ATTA', qty: '10', unit: 'KG', price: '45', discountPercent: '5', discountAmount: '22.50', amt: '427.50' },
-        { sNo: '2', name: 'SUGAR M-30', qty: '3', unit: 'KG', price: '44', amt: '132' },
-      ],
-      totalQty: '13',
-      subtotal: '582',
-      totalDiscount: '22.50',
-      finalAmount: '559.50',
-      grandTotal: '559.50',
-      status: 'PAID',
-    },
-  ]);
+  // Invoices Records State (initialized empty for real store data)
+  const [invoicesList, setInvoicesList] = useState<InvoiceData[]>([]);
 
-  // Active Invoice State (starts from Invoice #1)
-  const [currentInvoice, setCurrentInvoice] = useState<InvoiceData>(invoicesList[0]);
+  // Active Invoice State (most recent transaction)
+  const [currentInvoice, setCurrentInvoice] = useState<InvoiceData | null>(null);
 
   // Preload Retail Vector Icon Fonts
   const [fontsLoaded] = useFonts({
@@ -148,11 +124,19 @@ function MainScreen(): React.JSX.Element {
   useEffect(() => {
     storageService.loadInvoices().then((saved) => {
       if (saved && saved.length > 0) {
-        setInvoicesList(saved);
-        setCurrentInvoice(saved[0]);
+        const realInvoices = saved.filter((inv) => !isMockInvoice(inv));
+        if (realInvoices.length > 0) {
+          setInvoicesList(realInvoices);
+          setCurrentInvoice(realInvoices[0]);
+        } else {
+          // Clean legacy mock records
+          setInvoicesList([]);
+          setCurrentInvoice(null);
+          storageService.saveInvoices([]);
+        }
       } else {
-        // Initial seeding for first launch
-        storageService.saveInvoices(invoicesList);
+        setInvoicesList([]);
+        setCurrentInvoice(null);
       }
     });
 
@@ -173,8 +157,9 @@ function MainScreen(): React.JSX.Element {
     async function syncUserInvoices(uid: string) {
       try {
         // 1. Immediately load local storage for instant 0ms UI render
-        const localInvoices = await storageService.loadInvoices();
-        if (isMounted && localInvoices && localInvoices.length > 0) {
+        const rawLocal = await storageService.loadInvoices();
+        const localInvoices = (rawLocal || []).filter((inv) => !isMockInvoice(inv));
+        if (isMounted && localInvoices.length > 0) {
           setInvoicesList(localInvoices);
           setCurrentInvoice(localInvoices[0]);
         }
@@ -182,11 +167,12 @@ function MainScreen(): React.JSX.Element {
         // 2. Multi-device pull from Cloud Firestore
         const cloudInvoices = await syncService.pullAllInvoices(uid);
         if (isMounted) {
-          if (cloudInvoices && cloudInvoices.length > 0) {
-            setInvoicesList(cloudInvoices);
-            setCurrentInvoice(cloudInvoices[0]);
-          } else if (localInvoices && localInvoices.length > 0) {
-            // Local has invoices but cloud is empty -> automatically backup local invoices to Firestore!
+          const realCloud = (cloudInvoices || []).filter((inv) => !isMockInvoice(inv));
+          if (realCloud.length > 0) {
+            setInvoicesList(realCloud);
+            setCurrentInvoice(realCloud[0]);
+          } else if (localInvoices.length > 0) {
+            // Local has real invoices but cloud is empty -> automatically backup real invoices to Firestore!
             await syncService.syncAllLocalInvoices(uid);
           }
         }
@@ -199,9 +185,10 @@ function MainScreen(): React.JSX.Element {
 
     // 3. Real-time Live Firestore Stream (auto-refreshes whenever invoices change)
     const unsubscribe = syncService.subscribeToInvoices(currentUid, (liveInvoices) => {
-      if (isMounted && liveInvoices && liveInvoices.length > 0) {
-        setInvoicesList(liveInvoices);
-        setCurrentInvoice(liveInvoices[0]);
+      const realLive = (liveInvoices || []).filter((inv) => !isMockInvoice(inv));
+      if (isMounted && realLive.length > 0) {
+        setInvoicesList(realLive);
+        setCurrentInvoice(realLive[0]);
       }
     });
 
@@ -217,9 +204,10 @@ function MainScreen(): React.JSX.Element {
     setIsRefreshingInvoices(true);
     try {
       const refreshed = await syncService.pullAllInvoices(user.uid);
-      if (refreshed && refreshed.length > 0) {
-        setInvoicesList(refreshed);
-        setCurrentInvoice(refreshed[0]);
+      const real = (refreshed || []).filter((inv) => !isMockInvoice(inv));
+      if (real.length > 0) {
+        setInvoicesList(real);
+        setCurrentInvoice(real[0]);
       }
     } catch (err) {
       console.warn('Pull-to-refresh invoices error:', err);
@@ -232,7 +220,8 @@ function MainScreen(): React.JSX.Element {
   useEffect(() => {
     if (user?.shopName) {
       setCurrentInvoice((prev) => {
-        if (prev.shopName === 'AK GROCERY MART' || !prev.shopName) {
+        if (!prev) return null;
+        if (prev.shopName === 'Billing Receipt' || !prev.shopName) {
           return { ...prev, shopName: user.shopName };
         }
         return prev;

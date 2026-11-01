@@ -15,12 +15,13 @@ import { useTheme } from '../../hooks/useTheme';
 import { InvoiceData } from '../../types/billing';
 
 interface RecentBillsCardProps {
-  invoice: InvoiceData;
+  invoice: InvoiceData | null;
   showPreview: boolean;
   onTogglePreview: () => void;
   onPressPrint: () => void;
   onPressShare: () => void;
   onPressMenu?: () => void;
+  onPressNewSale?: () => void;
 }
 
 export function RecentBillsCard({
@@ -30,8 +31,79 @@ export function RecentBillsCard({
   onPressPrint,
   onPressShare,
   onPressMenu,
+  onPressNewSale,
 }: RecentBillsCardProps): React.JSX.Element {
   const { colors, isDark } = useTheme();
+
+  if (!invoice) {
+    return (
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+            alignItems: 'center',
+            paddingVertical: 24,
+          },
+        ]}
+      >
+        <MaterialCommunityIcons
+          name="receipt-text-outline"
+          size={44}
+          color={colors.textMuted}
+        />
+        <Text
+          style={{
+            fontSize: 16,
+            fontWeight: '700',
+            color: colors.textPrimary,
+            marginTop: 10,
+          }}
+        >
+          No Bills Created Yet
+        </Text>
+        <Text
+          style={{
+            fontSize: 13,
+            color: colors.textSecondary,
+            marginTop: 4,
+            textAlign: 'center',
+            paddingHorizontal: 24,
+            lineHeight: 18,
+          }}
+        >
+          Tap New Sale to create your first bill. It will be saved and printed here.
+        </Text>
+        {onPressNewSale && (
+          <TouchableOpacity
+            style={{
+              marginTop: 16,
+              backgroundColor: colors.primary,
+              paddingHorizontal: 20,
+              paddingVertical: 10,
+              borderRadius: 8,
+              flexDirection: 'row',
+              alignItems: 'center',
+            }}
+            onPress={onPressNewSale}
+            activeOpacity={0.8}
+          >
+            <MaterialCommunityIcons
+              name="plus"
+              size={18}
+              color="#FFFFFF"
+              style={{ marginRight: 6 }}
+            />
+            <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 13 }}>
+              Create First Sale
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  }
+
   const isPaid = (invoice.status || 'PAID') === 'PAID';
 
   return (
