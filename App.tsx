@@ -73,6 +73,19 @@ const isMockInvoice = (inv: InvoiceData): boolean => {
   return isMockCustomer || hasMockItems;
 };
 
+// Helper to detect gaps in invoice serial numbering (e.g. [1, 3] -> gap detected)
+const hasSequenceGaps = (invoices: InvoiceData[]): boolean => {
+  if (invoices.length <= 1) return false;
+  const numbers = invoices
+    .map((i) => parseInt(i.invoiceNo, 10))
+    .filter((n) => !isNaN(n))
+    .sort((a, b) => a - b);
+  for (let i = 0; i < numbers.length; i++) {
+    if (numbers[i] !== i + 1) return true;
+  }
+  return false;
+};
+
 function MainScreen(): React.JSX.Element {
   const { colors, isDark } = useTheme();
   const { user, isLoading: authLoading, signOut } = useAuth();
@@ -167,13 +180,22 @@ function MainScreen(): React.JSX.Element {
         // 2. Multi-device pull from Cloud Firestore
         const cloudInvoices = await syncService.pullAllInvoices(uid);
         if (isMounted) {
-          const realCloud = (cloudInvoices || []).filter((inv) => !isMockInvoice(inv));
+          let realCloud = (cloudInvoices || []).filter((inv) => !isMockInvoice(inv));
           if (realCloud.length > 0) {
+            // Auto-heal any gaps in sequence (e.g., #1 and #3 -> automatically re-numbers to #1 and #2)
+            if (hasSequenceGaps(realCloud)) {
+              realCloud = await syncService.resequenceInvoices(uid, realCloud);
+            }
             setInvoicesList(realCloud);
             setCurrentInvoice(realCloud[0]);
           } else if (localInvoices.length > 0) {
-            // Local has real invoices but cloud is empty -> automatically backup real invoices to Firestore!
+            let realLocal = localInvoices;
+            if (hasSequenceGaps(realLocal)) {
+              realLocal = await syncService.resequenceInvoices(uid, realLocal);
+            }
             await syncService.syncAllLocalInvoices(uid);
+            setInvoicesList(realLocal);
+            setCurrentInvoice(realLocal[0]);
           }
         }
       } catch (err) {
@@ -184,8 +206,11 @@ function MainScreen(): React.JSX.Element {
     syncUserInvoices(currentUid);
 
     // 3. Real-time Live Firestore Stream (auto-refreshes whenever invoices change)
-    const unsubscribe = syncService.subscribeToInvoices(currentUid, (liveInvoices) => {
-      const realLive = (liveInvoices || []).filter((inv) => !isMockInvoice(inv));
+    const unsubscribe = syncService.subscribeToInvoices(currentUid, async (liveInvoices) => {
+      let realLive = (liveInvoices || []).filter((inv) => !isMockInvoice(inv));
+      if (hasSequenceGaps(realLive)) {
+        realLive = await syncService.resequenceInvoices(currentUid, realLive);
+      }
       if (isMounted && realLive.length > 0) {
         setInvoicesList(realLive);
         setCurrentInvoice(realLive[0]);
@@ -204,7 +229,10 @@ function MainScreen(): React.JSX.Element {
     setIsRefreshingInvoices(true);
     try {
       const refreshed = await syncService.pullAllInvoices(user.uid);
-      const real = (refreshed || []).filter((inv) => !isMockInvoice(inv));
+      let real = (refreshed || []).filter((inv) => !isMockInvoice(inv));
+      if (hasSequenceGaps(real)) {
+        real = await syncService.resequenceInvoices(user.uid, real);
+      }
       if (real.length > 0) {
         setInvoicesList(real);
         setCurrentInvoice(real[0]);
@@ -213,6 +241,24 @@ function MainScreen(): React.JSX.Element {
       console.warn('Pull-to-refresh invoices error:', err);
     } finally {
       setIsRefreshingInvoices(false);
+    }
+  };
+
+  // Manual Trigger to re-sequence & maintain continuous 1, 2, 3... numbering
+  const handleResequenceInvoices = async () => {
+    if (!user?.uid || invoicesList.length === 0) return;
+    try {
+      const fixed = await syncService.resequenceInvoices(user.uid, invoicesList);
+      setInvoicesList(fixed);
+      if (fixed.length > 0) {
+        setCurrentInvoice(fixed[0]);
+      }
+      Alert.alert(
+        'Serial Numbers Maintained',
+        `All ${fixed.length} bills have been verified and re-indexed sequentially (1, 2, 3...) with zero missing numbers.`
+      );
+    } catch (err) {
+      console.warn('Resequence error:', err);
     }
   };
 
@@ -367,27 +413,29 @@ function MainScreen(): React.JSX.Element {
     }
   };
 
-  // Handle Delete Invoice
-  const handleDeleteInvoice = (invoiceNo: string) => {
-    setInvoicesList((prev) => {
-      const updated = prev.filter((inv) => inv.invoiceNo !== invoiceNo);
-      storageService.saveInvoices(updated);
-      if (currentInvoice?.invoiceNo === invoiceNo) {
-        if (updated.length > 0) {
-          setCurrentInvoice(updated[0]);
-        } else {
-          setCurrentInvoice(null);
-        }
-      }
-      return updated;
-    });
-
-    // Background delete in Cloud Firestore
+  // Handle Delete Invoice with Auto-Renumbering to maintain continuous 1, 2, 3... sequence
+  const handleDeleteInvoice = async (invoiceNo: string) => {
+    // 1. Delete the targeted bill from Cloud Firestore
     if (user?.uid) {
-      syncService.deleteInvoice(user.uid, invoiceNo);
+      await syncService.deleteInvoice(user.uid, invoiceNo);
     }
 
-    Alert.alert('Invoice Deleted', `Invoice #${invoiceNo} has been deleted.`);
+    const remaining = invoicesList.filter((inv) => inv.invoiceNo !== invoiceNo);
+
+    // 2. Automatically re-number remaining invoices so serial sequence is never disturbed
+    const resequenced = await syncService.resequenceInvoices(user?.uid || '', remaining);
+
+    setInvoicesList(resequenced);
+    if (resequenced.length > 0) {
+      setCurrentInvoice(resequenced[0]);
+    } else {
+      setCurrentInvoice(null);
+    }
+
+    Alert.alert(
+      'Invoice Deleted & Serial Maintained',
+      `Invoice #${invoiceNo} was removed. Remaining bills have been automatically re-numbered (1, 2, 3...) to keep your serial sequence unbroken.`
+    );
   };
 
   // Handle Update Invoice Status (Paid <-> Unpaid)
@@ -552,6 +600,7 @@ function MainScreen(): React.JSX.Element {
           onChangeStatus={handleUpdateInvoiceStatus}
           onRefresh={handleRefreshInvoices}
           isRefreshing={isRefreshingInvoices}
+          onResequence={handleResequenceInvoices}
         />
       </View>
 

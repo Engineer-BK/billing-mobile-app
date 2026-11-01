@@ -40,6 +40,7 @@ interface InvoicesScreenProps {
   onChangeStatus?: (invoiceNo: string, newStatus: 'PAID' | 'UNPAID') => void;
   onRefresh?: () => Promise<void> | void;
   isRefreshing?: boolean;
+  onResequence?: () => void;
 }
 
 export function InvoicesScreen({
@@ -51,6 +52,7 @@ export function InvoicesScreen({
   onChangeStatus,
   onRefresh,
   isRefreshing,
+  onResequence,
 }: InvoicesScreenProps): React.JSX.Element {
   const { colors, isDark } = useTheme();
 
@@ -62,6 +64,19 @@ export function InvoicesScreen({
 
   // Selected invoice for 3-dot options popup modal (disappears on outside click)
   const [menuInvoice, setMenuInvoice] = useState<InvoiceData | null>(null);
+
+  // Detect if any numbers are missing in the sequence (e.g. #2 missing between #1 and #3)
+  const hasGaps = useMemo(() => {
+    if (invoices.length <= 1) return false;
+    const nums = invoices
+      .map((i) => parseInt(i.invoiceNo, 10))
+      .filter((n) => !isNaN(n))
+      .sort((a, b) => a - b);
+    for (let i = 0; i < nums.length; i++) {
+      if (nums[i] !== i + 1) return true;
+    }
+    return false;
+  }, [invoices]);
 
   // Filter invoices based on search query
   const filteredInvoices = useMemo(() => {
@@ -125,6 +140,27 @@ export function InvoicesScreen({
           <Text style={styles.newSaleHeaderTxt}>New Sale</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Optional Sequence Gap Alert Banner */}
+      {hasGaps && onResequence ? (
+        <TouchableOpacity
+          style={[
+            styles.gapNoticeBanner,
+            {
+              backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#FEF3C7',
+              borderColor: '#F59E0B',
+            },
+          ]}
+          onPress={onResequence}
+          activeOpacity={0.8}
+        >
+          <MaterialCommunityIcons name="format-list-numbered" size={18} color="#D97706" />
+          <Text style={[styles.gapNoticeTxt, { color: isDark ? '#FCD34D' : '#92400E' }]}>
+            Serial gap detected. Tap to auto-renumber (1, 2, 3...)
+          </Text>
+          <MaterialCommunityIcons name="chevron-right" size={18} color="#D97706" />
+        </TouchableOpacity>
+      ) : null}
 
       {/* 2. Real-Time Search Bar */}
       <View
@@ -556,6 +592,22 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '800',
+  },
+  gapNoticeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 12,
+    gap: 8,
+  },
+  gapNoticeTxt: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700',
   },
 });
 

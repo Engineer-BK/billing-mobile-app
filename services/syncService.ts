@@ -237,6 +237,65 @@ export const syncService = {
   },
 
   /**
+   * Re-sequence / Renumber all invoices continuously (1, 2, 3...)
+   * Guarantees zero gaps in the serial numbering sequence when a bill is deleted.
+   */
+  async resequenceInvoices(
+    userId: string,
+    currentInvoices: InvoiceData[]
+  ): Promise<InvoiceData[]> {
+    if (!currentInvoices || currentInvoices.length === 0) {
+      await storageService.saveInvoices([]);
+      await storageService.saveNextInvoiceNumber(1);
+      return [];
+    }
+
+    // Sort chronologically ascending (oldest first)
+    const sortedAsc = [...currentInvoices].sort((a, b) => {
+      const numA = parseInt(a.invoiceNo, 10) || 0;
+      const numB = parseInt(b.invoiceNo, 10) || 0;
+      return numA - numB;
+    });
+
+    const resequenced: InvoiceData[] = [];
+    const oldNumbersToDelete: string[] = [];
+
+    sortedAsc.forEach((inv, index) => {
+      const newNo = String(index + 1);
+      if (inv.invoiceNo !== newNo) {
+        oldNumbersToDelete.push(inv.invoiceNo);
+      }
+      resequenced.push({
+        ...inv,
+        invoiceNo: newNo,
+      });
+    });
+
+    // In Cloud Firestore: remove obsolete document IDs and save updated IDs
+    if (userId) {
+      for (const oldNo of oldNumbersToDelete) {
+        await this.deleteInvoice(userId, oldNo);
+      }
+      for (const inv of resequenced) {
+        await this.pushInvoice(userId, inv);
+      }
+    }
+
+    // Sort descending for UI presentation (newest on top)
+    const sortedDesc = [...resequenced].sort((a, b) => {
+      const numA = parseInt(a.invoiceNo, 10) || 0;
+      const numB = parseInt(b.invoiceNo, 10) || 0;
+      return numB - numA;
+    });
+
+    // Save locally
+    await storageService.saveInvoices(sortedDesc);
+    await storageService.saveNextInvoiceNumber(sortedDesc.length + 1);
+
+    return sortedDesc;
+  },
+
+  /**
    * Save or Update Store Profile in Firestore (users/{userId}).
    */
   async saveUserProfile(userId: string, profile: Partial<UserProfile>): Promise<boolean> {
