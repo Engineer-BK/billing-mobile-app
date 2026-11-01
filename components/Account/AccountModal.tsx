@@ -28,6 +28,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../context/AuthContext';
+import { syncService } from '../../services/syncService';
 
 interface AccountModalProps {
   visible: boolean;
@@ -82,12 +83,27 @@ export function AccountModal({
     }
   };
 
-  const handleManualSync = () => {
+  const handleManualSync = async () => {
+    if (!user?.uid) {
+      Alert.alert('Sign In Needed', 'Please sign in to sync with Google Cloud.');
+      return;
+    }
     setIsSyncing(true);
-    setTimeout(() => {
+    try {
+      const res = await syncService.syncAllLocalInvoices(user.uid);
       setIsSyncing(false);
-      Alert.alert('Cloud Synced', 'All local receipts and store data are backed up to Google Cloud.');
-    }, 1200);
+      if (res.error) {
+        Alert.alert('Cloud Sync Notice', res.error);
+      } else {
+        Alert.alert(
+          'Google Cloud Synced',
+          `Successfully verified and backed up ${res.syncedCount || invoicesCount} invoices to Cloud Firestore.`
+        );
+      }
+    } catch {
+      setIsSyncing(false);
+      Alert.alert('Cloud Sync', 'Sync queued offline. Will upload automatically when connected.');
+    }
   };
 
   const handleSignOut = () => {

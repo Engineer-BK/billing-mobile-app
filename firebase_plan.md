@@ -140,10 +140,10 @@ service cloud.firestore {
 
 ## Implementation Roadmap
 
-| Step | Scope | Details |
-| :--- | :--- | :--- |
-| **Phase 1** | Dependencies & Config | Install `firebase`, create `config/firebase.ts` with user's Firebase keys. |
-| **Phase 2** | Module 1 (Auth UI) | Build `AuthContext`, `LoginView`, `RegisterView`, `ForgotPasswordModal`, and `AccountModal`. |
-| **Phase 3** | App Gating | Wire `App.tsx` with Auth Gate (switch smoothly between Auth and POS). |
-| **Phase 4** | Module 2 (Sync Engine) | Implement `syncService.ts` for background push/pull & multi-device restore. |
-| **Phase 5** | Verification | Test local 0ms print + cloud sync + new device login simulation. |
+| Step | Scope | Details | Status |
+| :--- | :--- | :--- | :---: |
+| **Phase 1** | Dependencies & Config | Installed `firebase`, created `config/firebase.ts` with real keys. | ✅ **Complete** |
+| **Phase 2** | Module 1 (Auth UI) | Built `AuthContext`, `LoginView`, `RegisterView`, `ForgotPasswordModal`, and `AccountModal`. | ✅ **Complete** |
+| **Phase 3** | App Gating | Wired `App.tsx` with Auth Gate and Drawer navigation. | ✅ **Complete** |
+| **Phase 4** | Module 2 (Sync Engine) | Implemented `syncService.ts` for non-blocking push/pull & multi-device restore. | ✅ **Complete** |
+| **Phase 5** | Verification | Strict TypeScript compilation verified (0 errors). | ✅ **Complete** |

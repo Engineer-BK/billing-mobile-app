@@ -2,17 +2,28 @@
  * context/AuthContext.tsx
  * 
  * Central Authentication & User Store Context for FlashBill POS.
+ * Integrated with Google Firebase Authentication & Cloud Firestore (Module 2).
  * 
  * Features:
+ * - Real Firebase Auth (signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail)
  * - Persistent session tracking via AsyncStorage
- * - Seamless plug-and-play architecture ready for Firebase Auth in Module 2
- * - Input validation and user-friendly error reporting
- * - Store profile management (Shop Name, Owner Name, Contact Phone)
+ * - Automatic Firestore profile sync (Shop Name, Owner Name, Contact Phone)
+ * - Multi-device history pull on login
+ * - Retail-friendly error mapping
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  sendPasswordResetEmail,
+  onAuthStateChanged,
+} from 'firebase/auth';
+import { auth } from '../config/firebase';
 import { UserProfile, AuthContextType } from '../types/auth';
 import { storageService } from '../services/storageService';
+import { syncService } from '../services/syncService';
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
@@ -26,6 +37,29 @@ const AuthContext = createContext<AuthContextType>({
   clearError: () => {},
 });
 
+function parseFirebaseError(err: any, fallback: string): string {
+  const code = err?.code || '';
+  switch (code) {
+    case 'auth/invalid-credential':
+    case 'auth/wrong-password':
+      return 'Incorrect email or password. Please verify and try again.';
+    case 'auth/user-not-found':
+      return 'No store account registered with this email. Please register.';
+    case 'auth/email-already-in-use':
+      return 'This email is already registered. Please sign in instead.';
+    case 'auth/weak-password':
+      return 'Password should be at least 6 characters.';
+    case 'auth/invalid-email':
+      return 'Please enter a valid email address.';
+    case 'auth/network-request-failed':
+      return 'Network error. Please check your internet connection.';
+    case 'auth/too-many-requests':
+      return 'Too many attempts. Access temporarily restricted. Try again later.';
+    default:
+      return err?.message || fallback;
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }): React.JSX.Element {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -33,25 +67,68 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
 
   // Restore active user session on app launch
   useEffect(() => {
-    async function restoreSession() {
+    let isMounted = true;
+
+    async function initializeAuthSession() {
       try {
-        const savedUser = await storageService.loadUserSession();
-        if (savedUser) {
-          setUser(savedUser);
+        // 1. Fast local cache restore (0ms screen launch)
+        const cachedUser = await storageService.loadUserSession();
+        if (cachedUser && isMounted) {
+          setUser(cachedUser);
         }
+
+        // 2. Listen for Firebase Auth state changes
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+          if (!isMounted) return;
+
+          if (firebaseUser) {
+            try {
+              // Attempt to fetch latest profile from Firestore
+              const cloudProfile = await syncService.getUserProfile(firebaseUser.uid);
+              const resolvedUser: UserProfile = {
+                uid: firebaseUser.uid,
+                email: firebaseUser.email || cachedUser?.email || '',
+                shopName: cloudProfile?.shopName || cachedUser?.shopName || 'Store Account',
+                ownerName: cloudProfile?.ownerName || cachedUser?.ownerName || 'Store Owner',
+                phone: cloudProfile?.phone || cachedUser?.phone || '',
+                createdAt: cloudProfile?.createdAt || cachedUser?.createdAt || new Date().toISOString(),
+                lastLoginAt: new Date().toISOString(),
+              };
+
+              await storageService.saveUserSession(resolvedUser);
+              if (isMounted) setUser(resolvedUser);
+            } catch (err) {
+              console.warn('Profile fetch notice on auth change:', err);
+            }
+          } else {
+            // User signed out in Firebase
+            if (!cachedUser) {
+              if (isMounted) setUser(null);
+            }
+          }
+          if (isMounted) setIsLoading(false);
+        });
+
+        return () => {
+          unsubscribe();
+        };
       } catch (err) {
-        console.warn('Failed to restore auth session:', err);
-      } finally {
-        setIsLoading(false);
+        console.warn('Failed to initialize auth session:', err);
+        if (isMounted) setIsLoading(false);
       }
     }
-    restoreSession();
+
+    initializeAuthSession();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const clearError = useCallback(() => setError(null), []);
 
   /**
-   * Sign In with Email & Password
+   * Sign In with Email & Password via Firebase Auth
    */
   const signIn = useCallback(
     async (email: string, pass: string): Promise<{ success: boolean; error?: string }> => {
@@ -68,7 +145,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
         return { success: false, error: msg };
       }
 
-      // Email format check
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(trimmedEmail)) {
         const msg = 'Please enter a valid email address.';
@@ -77,48 +153,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
         return { success: false, error: msg };
       }
 
-      if (trimmedPass.length < 6) {
-        const msg = 'Password must be at least 6 characters.';
-        setError(msg);
-        setIsLoading(false);
-        return { success: false, error: msg };
-      }
-
       try {
-        // Build or restore user profile
+        const userCredential = await signInWithEmailAndPassword(auth, trimmedEmail, trimmedPass);
+        const uid = userCredential.user.uid;
+
+        // Fetch cloud profile from Firestore
+        let cloudProfile = await syncService.getUserProfile(uid);
+        
+        // Multi-device restore: Pull existing invoices from Cloud Firestore
+        await syncService.pullAllInvoices(uid);
+
         const activeProfile: UserProfile = {
-          uid: 'usr_' + Math.abs(trimmedEmail.split('').reduce((a, b) => ((a << 5) - a + b.charCodeAt(0)) | 0, 0)).toString(36),
+          uid,
           email: trimmedEmail,
-          shopName: 'Billing Receipt', // Defaults to current store header or loaded profile
-          ownerName: trimmedEmail.split('@')[0].toUpperCase(),
-          phone: '',
+          shopName: cloudProfile?.shopName || 'Store Account',
+          ownerName: cloudProfile?.ownerName || trimmedEmail.split('@')[0].toUpperCase(),
+          phone: cloudProfile?.phone || '',
+          createdAt: cloudProfile?.createdAt || new Date().toISOString(),
           lastLoginAt: new Date().toISOString(),
         };
 
-        // Check if there was an existing saved profile with full store name
-        const existingSession = await storageService.loadUserSession();
-        if (existingSession && existingSession.email === trimmedEmail) {
-          activeProfile.shopName = existingSession.shopName || activeProfile.shopName;
-          activeProfile.ownerName = existingSession.ownerName || activeProfile.ownerName;
-          activeProfile.phone = existingSession.phone || activeProfile.phone;
-        }
-
+        // Cache session locally
         await storageService.saveUserSession(activeProfile);
         setUser(activeProfile);
         setIsLoading(false);
         return { success: true };
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'Sign in failed. Please try again.';
-        setError(msg);
+      } catch (err: any) {
+        console.warn('Firebase signIn error:', err);
+        const friendlyMsg = parseFirebaseError(err, 'Sign in failed. Please try again.');
+        setError(friendlyMsg);
         setIsLoading(false);
-        return { success: false, error: msg };
+        return { success: false, error: friendlyMsg };
       }
     },
     []
   );
 
   /**
-   * Register New Store Account
+   * Register New Store Account via Firebase Auth & Firestore
    */
   const signUp = useCallback(
     async (data: {
@@ -167,8 +239,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
       }
 
       try {
+        const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, trimmedPass);
+        const uid = userCredential.user.uid;
+
         const newProfile: UserProfile = {
-          uid: 'usr_' + Date.now().toString(36),
+          uid,
           email: trimmedEmail,
           shopName: trimmedShop,
           ownerName: trimmedOwner || 'Store Owner',
@@ -177,25 +252,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
           lastLoginAt: new Date().toISOString(),
         };
 
+        // Save profile to Cloud Firestore
+        await syncService.saveUserProfile(uid, newProfile);
+
+        // Cache session locally
         await storageService.saveUserSession(newProfile);
         setUser(newProfile);
         setIsLoading(false);
         return { success: true };
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'Registration failed.';
-        setError(msg);
+      } catch (err: any) {
+        console.warn('Firebase signUp error:', err);
+        const friendlyMsg = parseFirebaseError(err, 'Registration failed.');
+        setError(friendlyMsg);
         setIsLoading(false);
-        return { success: false, error: msg };
+        return { success: false, error: friendlyMsg };
       }
     },
     []
   );
 
   /**
-   * Sign Out
+   * Sign Out of Firebase Auth & Clear Local Storage
    */
   const signOut = useCallback(async (): Promise<void> => {
     try {
+      await firebaseSignOut(auth);
       await storageService.clearUserSession();
       setUser(null);
       setError(null);
@@ -205,7 +286,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
   }, []);
 
   /**
-   * Update Profile Details (Shop Name, Owner Name, Phone)
+   * Update Profile Details in Firestore and AsyncStorage
    */
   const updateProfile = useCallback(
     async (data: Partial<UserProfile>): Promise<boolean> => {
@@ -215,6 +296,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
           ...user,
           ...data,
         };
+        await syncService.saveUserProfile(user.uid, data);
         await storageService.saveUserSession(updated);
         setUser(updated);
         return true;
@@ -227,7 +309,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
   );
 
   /**
-   * Send Password Reset
+   * Send Password Reset Email via Firebase
    */
   const resetPassword = useCallback(
     async (email: string): Promise<{ success: boolean; message?: string; error?: string }> => {
@@ -237,11 +319,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
         return { success: false, error: 'Please enter a valid email address.' };
       }
 
-      // Ready for Firebase sendPasswordResetEmail in Module 2
-      return {
-        success: true,
-        message: `Password reset link sent to ${trimmedEmail}. Please check your inbox.`,
-      };
+      try {
+        await sendPasswordResetEmail(auth, trimmedEmail);
+        return {
+          success: true,
+          message: `Password reset link sent to ${trimmedEmail}. Please check your inbox.`,
+        };
+      } catch (err: any) {
+        console.warn('Firebase resetPassword error:', err);
+        const friendlyMsg = parseFirebaseError(err, 'Could not send reset email. Verify your email.');
+        return { success: false, error: friendlyMsg };
+      }
     },
     []
   );
@@ -271,4 +359,3 @@ export function useAuth(): AuthContextType {
   }
   return context;
 }
-

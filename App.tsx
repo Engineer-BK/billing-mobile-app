@@ -37,6 +37,7 @@ import { InvoiceData } from './types/billing';
 // Custom Hooks & Native Dispatchers
 import { useBluetoothScanner } from './hooks/useBluetoothScanner';
 import { storageService } from './services/storageService';
+import { syncService } from './services/syncService';
 import {
   dispatchPrintReceipt,
   dispatchTestPrint,
@@ -290,6 +291,11 @@ function MainScreen(): React.JSX.Element {
       storageService.saveNextInvoiceNumber(currentNum + 1);
     }
 
+    // Background non-blocking push to Cloud Firestore
+    if (user?.uid) {
+      syncService.pushInvoice(user.uid, savedInvoice);
+    }
+
     if (shouldPrint) {
       handlePrint(savedInvoice);
     }
@@ -319,6 +325,12 @@ function MainScreen(): React.JSX.Element {
       }
       return updated;
     });
+
+    // Background delete in Cloud Firestore
+    if (user?.uid) {
+      syncService.deleteInvoice(user.uid, invoiceNo);
+    }
+
     Alert.alert('Invoice Deleted', `Invoice #${invoiceNo} has been deleted.`);
   };
 
@@ -333,6 +345,14 @@ function MainScreen(): React.JSX.Element {
     });
     if (currentInvoice.invoiceNo === invoiceNo) {
       setCurrentInvoice((prev) => ({ ...prev, status: newStatus }));
+    }
+
+    // Background status update in Cloud Firestore
+    if (user?.uid) {
+      const target = invoicesList.find((inv) => inv.invoiceNo === invoiceNo);
+      if (target) {
+        syncService.pushInvoice(user.uid, { ...target, status: newStatus });
+      }
     }
   };
 
