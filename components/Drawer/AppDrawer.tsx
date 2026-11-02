@@ -190,34 +190,75 @@ export function AppDrawer({
 
             <TouchableOpacity
               style={styles.storeInfoTouchable}
-              onPress={() => handleAction(onOpenAccountModal)}
+              onPress={() => {
+                if (user?.isGuest) {
+                  handleClose();
+                  setTimeout(() => onSignOut(), 150);
+                } else {
+                  handleAction(onOpenAccountModal);
+                }
+              }}
               activeOpacity={0.7}
             >
               <View style={styles.storeNameRow}>
                 <Text style={[styles.storeTitle, { color: colors.textPrimary }]} numberOfLines={1}>
-                  {user?.shopName || 'Store Account'}
+                  {user?.isGuest ? 'Demo Supermarket' : (user?.shopName || 'Store Account')}
                 </Text>
-                <MaterialCommunityIcons
-                  name="check-decagram"
-                  size={16}
-                  color="#0EA5E9"
-                  style={styles.verifiedIcon}
-                />
+                {user?.isGuest ? (
+                  <View
+                    style={{
+                      backgroundColor: isDark ? 'rgba(245, 158, 11, 0.2)' : '#FEF3C7',
+                      paddingHorizontal: 6,
+                      paddingVertical: 2,
+                      borderRadius: 6,
+                      marginLeft: 6,
+                    }}
+                  >
+                    <Text style={{ fontSize: 10, fontWeight: '800', color: '#D97706' }}>
+                      DEMO
+                    </Text>
+                  </View>
+                ) : (
+                  <MaterialCommunityIcons
+                    name="check-decagram"
+                    size={16}
+                    color="#0EA5E9"
+                    style={styles.verifiedIcon}
+                  />
+                )}
               </View>
 
               <Text style={[styles.storeEmail, { color: colors.textSecondary }]} numberOfLines={1}>
-                {user?.ownerName ? `${user.ownerName} • ` : ''}
-                {user?.email || 'FlashBill Active'}
+                {user?.isGuest
+                  ? 'Guest Sandbox • Printer Locked'
+                  : (user?.ownerName ? `${user.ownerName} • ` : '') + (user?.email || 'FlashBill Active')}
               </Text>
             </TouchableOpacity>
 
-            {/* Cloud Status Indicator Chip */}
-            <View style={[styles.cloudChip, { backgroundColor: colors.surfaceLight }]}>
-              <View style={styles.statusDot} />
-              <Text style={[styles.cloudChipTxt, { color: colors.textSecondary }]}>
-                Google Cloud Synced • Active
-              </Text>
-            </View>
+            {/* Cloud Status Indicator Chip or Claim Account CTA */}
+            {user?.isGuest ? (
+              <TouchableOpacity
+                style={[
+                  styles.claimStoreBtn,
+                  { backgroundColor: colors.primary },
+                ]}
+                onPress={() => {
+                  handleClose();
+                  setTimeout(() => onSignOut(), 150);
+                }}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons name="store-plus" size={16} color="#FFFFFF" />
+                <Text style={styles.claimStoreBtnTxt}>Claim Real Store Account</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={[styles.cloudChip, { backgroundColor: colors.surfaceLight }]}>
+                <View style={styles.statusDot} />
+                <Text style={[styles.cloudChipTxt, { color: colors.textSecondary }]}>
+                  Google Cloud Synced • Active
+                </Text>
+              </View>
+            )}
           </View>
 
           {/* 2. Drawer Navigation Items */}
@@ -473,8 +514,19 @@ export function AppDrawer({
               onPress={() => handleAction(onSignOut)}
               activeOpacity={0.7}
             >
-              <MaterialCommunityIcons name="logout" size={20} color="#EF4444" />
-              <Text style={styles.signOutTxt}>Sign Out of Store</Text>
+              <MaterialCommunityIcons
+                name={user?.isGuest ? 'login' : 'logout'}
+                size={20}
+                color={user?.isGuest ? colors.primary : '#EF4444'}
+              />
+              <Text
+                style={[
+                  styles.signOutTxt,
+                  user?.isGuest && { color: colors.primary },
+                ]}
+              >
+                {user?.isGuest ? 'Exit Demo / Sign In' : 'Sign Out of Store'}
+              </Text>
             </TouchableOpacity>
 
             <Text style={[styles.versionTxt, { color: colors.textMuted }]}>
@@ -578,6 +630,21 @@ const styles = StyleSheet.create({
   cloudChipTxt: {
     fontSize: 10,
     fontWeight: '700',
+  },
+  claimStoreBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    marginTop: 10,
+    gap: 6,
+  },
+  claimStoreBtnTxt: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
   },
   drawerScrollContent: {
     paddingHorizontal: 12,

@@ -41,6 +41,8 @@ interface InvoicesScreenProps {
   onRefresh?: () => Promise<void> | void;
   isRefreshing?: boolean;
   onResequence?: () => void;
+  isGuest?: boolean;
+  onRegisterStore?: () => void;
 }
 
 export function InvoicesScreen({
@@ -53,6 +55,8 @@ export function InvoicesScreen({
   onRefresh,
   isRefreshing,
   onResequence,
+  isGuest = false,
+  onRegisterStore,
 }: InvoicesScreenProps): React.JSX.Element {
   const { colors, isDark } = useTheme();
 
@@ -140,6 +144,32 @@ export function InvoicesScreen({
           <Text style={styles.newSaleHeaderTxt}>New Sale</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Guest Mode Sandbox Notice Banner (Sub-Module 1.3) */}
+      {isGuest ? (
+        <TouchableOpacity
+          style={[
+            styles.guestNoticeBanner,
+            {
+              backgroundColor: isDark ? 'rgba(37, 99, 235, 0.12)' : '#EFF6FF',
+              borderColor: colors.primary,
+            },
+          ]}
+          onPress={onRegisterStore}
+          activeOpacity={0.8}
+        >
+          <MaterialCommunityIcons name="information" size={20} color={colors.primary} />
+          <View style={{ flex: 1, marginHorizontal: 8 }}>
+            <Text style={[styles.guestNoticeTitle, { color: colors.primary }]}>
+              Demo Sandbox ({invoices.length} Sample Receipts)
+            </Text>
+            <Text style={[styles.guestNoticeSub, { color: colors.textSecondary }]}>
+              Register store to enable thermal printing & official ledger.
+            </Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={20} color={colors.primary} />
+        </TouchableOpacity>
+      ) : null}
 
       {/* Optional Sequence Gap Alert Banner */}
       {hasGaps && onResequence ? (
@@ -608,6 +638,26 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 12,
     fontWeight: '700',
+  },
+  guestNoticeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    marginBottom: 12,
+    gap: 6,
+  },
+  guestNoticeTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  guestNoticeSub: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 2,
+    lineHeight: 15,
   },
 });
 

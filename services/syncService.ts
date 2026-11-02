@@ -35,8 +35,8 @@ export const syncService = {
    * Never throws or blocks retail checkout.
    */
   async pushInvoice(userId: string, invoice: InvoiceData): Promise<{ success: boolean; error?: string }> {
-    if (!userId || !invoice.invoiceNo) {
-      return { success: false, error: 'Invalid user ID or invoice number' };
+    if (!userId || userId === 'guest_user' || !invoice.invoiceNo) {
+      return { success: false, error: 'Guest or invalid user' };
     }
 
     try {
@@ -81,7 +81,7 @@ export const syncService = {
    * Background Delete: Remove invoice from Cloud Firestore.
    */
   async deleteInvoice(userId: string, invoiceNo: string): Promise<boolean> {
-    if (!userId || !invoiceNo) return false;
+    if (!userId || userId === 'guest_user' || !invoiceNo) return false;
     try {
       const invoiceRef = doc(db, 'users', userId, 'invoices', invoiceNo);
       await deleteDoc(invoiceRef);
@@ -97,7 +97,7 @@ export const syncService = {
    * logging into a new mobile phone.
    */
   async pullAllInvoices(userId: string): Promise<InvoiceData[]> {
-    if (!userId) return [];
+    if (!userId || userId === 'guest_user') return [];
     try {
       const invoicesColl = collection(db, 'users', userId, 'invoices');
       const snapshot = await getDocs(query(invoicesColl));
@@ -153,7 +153,7 @@ export const syncService = {
     userId: string,
     onUpdate: (invoices: InvoiceData[]) => void
   ): Unsubscribe {
-    if (!userId) return () => {};
+    if (!userId || userId === 'guest_user') return () => {};
 
     try {
       const invoicesColl = collection(db, 'users', userId, 'invoices');
@@ -214,7 +214,7 @@ export const syncService = {
    * Push all unsynced local invoices to Firestore (used on "Sync Now" button).
    */
   async syncAllLocalInvoices(userId: string): Promise<{ syncedCount: number; error?: string }> {
-    if (!userId) return { syncedCount: 0, error: 'User not signed in' };
+    if (!userId || userId === 'guest_user') return { syncedCount: 0, error: 'Guest or invalid user' };
     try {
       const localInvoices = await storageService.loadInvoices();
       if (!localInvoices || localInvoices.length === 0) {
@@ -271,8 +271,8 @@ export const syncService = {
       });
     });
 
-    // In Cloud Firestore: remove obsolete document IDs and save updated IDs
-    if (userId) {
+    // In Cloud Firestore: remove obsolete document IDs and save updated IDs (Real stores only)
+    if (userId && userId !== 'guest_user') {
       for (const oldNo of oldNumbersToDelete) {
         await this.deleteInvoice(userId, oldNo);
       }

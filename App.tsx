@@ -47,6 +47,7 @@ import {
 // Navigation & Top-Level Screens
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { AuthScreen } from './components/Auth/AuthScreen';
+import { GuestPrintModal } from './components/Auth/GuestPrintModal';
 import { AccountModal } from './components/Account/AccountModal';
 import { AppDrawer } from './components/Drawer/AppDrawer';
 import { SettingsModal } from './components/Settings/SettingsModal';
@@ -113,6 +114,7 @@ function MainScreen(): React.JSX.Element {
   const [selectedProfile, setSelectedProfile] = useState<PrinterProfileId>('EZO80');
   const [isPrinting, setIsPrinting] = useState<boolean>(false);
   const [isRefreshingInvoices, setIsRefreshingInvoices] = useState<boolean>(false);
+  const [showGuestPrintModal, setShowGuestPrintModal] = useState<boolean>(false);
   const activeConfig = PRINTER_PROFILES[selectedProfile];
 
   // Bluetooth scanning, permission handling, and device binding
@@ -302,8 +304,13 @@ function MainScreen(): React.JSX.Element {
     }
   }, [user?.shopName]);
 
-  // 1-Tap Print Handler
+  // 1-Tap Print Handler (with Sub-Module 1.4 Guest Gating)
   const handlePrint = async (targetInvoice?: InvoiceData | null): Promise<void> => {
+    if (user?.isGuest) {
+      setShowGuestPrintModal(true);
+      return;
+    }
+
     const inv = targetInvoice || currentInvoice;
     if (!inv) {
       Alert.alert('No Receipt', 'Please create a sale first before printing.');
@@ -337,6 +344,11 @@ function MainScreen(): React.JSX.Element {
 
   // Test Print Handler for PrintersScreen
   const handleTestPrint = async (): Promise<void> => {
+    if (user?.isGuest) {
+      setShowGuestPrintModal(true);
+      return;
+    }
+
     if (!targetAddress) {
       Alert.alert('No Printer Linked', 'Please connect to a Bluetooth thermal printer first.');
       return;
@@ -359,6 +371,11 @@ function MainScreen(): React.JSX.Element {
 
   // Paper Feed Handler for PrintersScreen
   const handlePaperFeed = async (): Promise<void> => {
+    if (user?.isGuest) {
+      setShowGuestPrintModal(true);
+      return;
+    }
+
     if (!targetAddress) {
       Alert.alert('No Printer Linked', 'Please connect to a Bluetooth thermal printer first.');
       return;
@@ -650,6 +667,8 @@ function MainScreen(): React.JSX.Element {
           onRefresh={handleRefreshInvoices}
           isRefreshing={isRefreshingInvoices}
           onResequence={handleResequenceInvoices}
+          isGuest={!!user?.isGuest}
+          onRegisterStore={() => setShowGuestPrintModal(true)}
         />
       </View>
 
@@ -726,6 +745,16 @@ function MainScreen(): React.JSX.Element {
         }}
         onOpenStoreProfile={() => setShowAccountModal(true)}
         onOpenPrintersTab={() => setActiveTab('hardware')}
+      />
+
+      {/* Guest Thermal Print Lock Conversion Modal (Sub-Module 1.4) */}
+      <GuestPrintModal
+        visible={showGuestPrintModal}
+        onClose={() => setShowGuestPrintModal(false)}
+        onRegister={async () => {
+          setShowGuestPrintModal(false);
+          await signOut();
+        }}
       />
 
       {/* Bottom Navigation Dock: [ Home ] [ Sale ] [ Invoices ] [ Printers ] */}
