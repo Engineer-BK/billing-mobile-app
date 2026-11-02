@@ -53,8 +53,8 @@ export function ReceiptModal({
   const handleShare = async () => {
     try {
       await Share.share({
-        title: `Bill #${invoice.invoiceNo}`,
-        message: `🧾 Billing Receipt\nInvoice No: ${invoice.invoiceNo}\nCustomer: ${invoice.customerName || 'Walk-in Customer'}\nDate: ${invoice.date}\nTotal Amount: ₹${invoice.grandTotal}\nTotal Items: ${invoice.items.length}`,
+        title: `Slip #${invoice.invoiceNo}`,
+        message: `📦 Delivery Slip\nInvoice No: ${invoice.invoiceNo}\nCustomer: ${invoice.customerName || 'Walk-in Customer'}\nDate: ${invoice.date}\nTotal Amount: ₹${invoice.grandTotal}\nTotal Items: ${invoice.items.length}`,
       });
     } catch (e) {
       console.warn(e);

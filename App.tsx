@@ -329,7 +329,7 @@ function MainScreen(): React.JSX.Element {
     if (user?.shopName) {
       setCurrentInvoice((prev) => {
         if (!prev) return null;
-        if (prev.shopName === 'Billing Receipt' || !prev.shopName) {
+        if (prev.shopName === 'Delivery Slip' || prev.shopName === 'Billing Receipt' || !prev.shopName) {
           return { ...prev, shopName: user.shopName };
         }
         return prev;
@@ -457,8 +457,8 @@ function MainScreen(): React.JSX.Element {
     }
     try {
       await Share.share({
-        title: `Bill #${inv.invoiceNo}`,
-        message: `🧾 Billing Receipt\nInvoice No: ${inv.invoiceNo}\nCustomer: ${inv.customerName || 'Walk-in Customer'}\nDate: ${inv.date}\nTotal Amount: ₹${inv.grandTotal}\nTotal Items: ${inv.items.length}`,
+        title: `Slip #${inv.invoiceNo}`,
+        message: `📦 Delivery Slip\nInvoice No: ${inv.invoiceNo}\nCustomer: ${inv.customerName || 'Walk-in Customer'}\nDate: ${inv.date}\nTotal Amount: ₹${inv.grandTotal}\nTotal Items: ${inv.items.length}`,
       });
     } catch (e) {
       console.warn(e);
@@ -716,7 +716,7 @@ function MainScreen(): React.JSX.Element {
       >
         <SaleScreen
           initialInvoiceNo={nextInvoiceNo}
-          shopName={user?.shopName || currentInvoice?.shopName || 'Billing Receipt'}
+          shopName={user?.shopName || currentInvoice?.shopName || 'Delivery Slip'}
           onBack={() => setActiveTab('home')}
           onSaveInvoice={handleSaveInvoice}
         />

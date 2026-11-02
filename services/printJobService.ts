@@ -76,9 +76,9 @@ export async function dispatchPrintReceipt(
       await BluetoothEscposPrinter.printText('\n'.repeat(activeConfig.feedLines.topSpace), {});
     }
 
-    // --- 3. Header Region: "Billing Receipt" (Centered, crisp 1x font) ---
+    // --- 3. Header Region: "Delivery Slip" (Centered, crisp 1x font) ---
     await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
-    await BluetoothEscposPrinter.printText('Billing Receipt\n', {
+    await BluetoothEscposPrinter.printText('Delivery Slip\n', {
       encoding: 'GBK',
       codepage: 0,
       widthtimes: 0,  // Standard 1x width: prevents oversized horizontal stretching
@@ -255,7 +255,7 @@ export async function dispatchPrintReceipt(
 
     return {
       success: true,
-      message: `Billing Receipt dispatched to ${activeConfig.displayName} at ${liveTime} successfully.${
+      message: `Delivery Slip dispatched to ${activeConfig.displayName} at ${liveTime} successfully.${
         activeConfig.hasAutoCutter ? '\n✂️ Auto-cutter blade triggered.' : ''
       }`,
     };
@@ -277,7 +277,7 @@ export async function dispatchTestPrint(
 ): Promise<PrintJobResult> {
   const is80mm = activeConfig.lineWidth >= 48;
   const testInvoice: InvoiceData = {
-    shopName: 'Billing Receipt',
+    shopName: 'Delivery Slip',
     date: '31/10/2026',
     time: '02:30 PM',
     invoiceNo: 'TEST-01',

@@ -86,9 +86,9 @@ export function ReceiptPreview({
           is58mm ? styles.receiptPaper58 : styles.receiptPaper80,
         ]}
       >
-        {/* Header: "Billing Receipt" */}
+        {/* Header: "Delivery Slip" */}
         <Text allowFontScaling={false} style={styles.paperCenterBold}>
-          Billing Receipt
+          Delivery Slip
         </Text>
 
         <DashedDivider />

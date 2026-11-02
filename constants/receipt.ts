@@ -7,7 +7,7 @@
 import { InvoiceData } from '../types/billing';
 
 export const SAMPLE_INVOICE: InvoiceData = {
-  shopName: 'Billing Receipt',
+  shopName: 'Delivery Slip',
   date: '30/10/2026',
   time: '04:30 PM',
   invoiceNo: '1',

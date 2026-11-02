@@ -161,7 +161,7 @@ export function SaleScreen({
     const currentFinal = finalAmount && finalAmount !== '0' ? finalAmount : '100';
 
     return {
-      shopName: 'Billing Receipt',
+      shopName: 'Delivery Slip',
       date: formattedDate,
       invoiceNo: fullInvoiceNumber,
       customerName: customerName.trim() || 'Walk-in Customer',
