@@ -9,7 +9,7 @@
  * - Full Dark & Light Mode Theme Support
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -96,6 +96,16 @@ function MainScreen(): React.JSX.Element {
 
   // Invoices Records State (initialized empty for real store data)
   const [invoicesList, setInvoicesList] = useState<InvoiceData[]>([]);
+
+  // Next sequential invoice number (Single Source of Truth across Sale & Invoices tabs)
+  const nextInvoiceNo = useMemo(() => {
+    if (!invoicesList || invoicesList.length === 0) return 1;
+    const maxNo = invoicesList.reduce((max, inv) => {
+      const num = parseInt(inv.invoiceNo, 10);
+      return !isNaN(num) && num > max ? num : max;
+    }, 0);
+    return maxNo + 1;
+  }, [invoicesList]);
 
   // Active Invoice State (most recent transaction)
   const [currentInvoice, setCurrentInvoice] = useState<InvoiceData | null>(null);
@@ -272,6 +282,7 @@ function MainScreen(): React.JSX.Element {
       setInvoicesList(reseq);
       if (reseq.length > 0) setCurrentInvoice(reseq[0]);
       await storageService.saveGuestInvoices(reseq);
+      await storageService.saveNextInvoiceNumber(reseq.length + 1);
       Alert.alert('Demo Bills Re-numbered', 'Demo bills re-sequenced sequentially.');
       return;
     }
@@ -430,7 +441,11 @@ function MainScreen(): React.JSX.Element {
   };
 
   // Handle Save Invoice from SaleScreen
-  const handleSaveInvoice = (savedInvoice: InvoiceData, shouldPrint?: boolean) => {
+  const handleSaveInvoice = (
+    savedInvoice: InvoiceData,
+    shouldPrint?: boolean,
+    andNew?: boolean
+  ) => {
     setCurrentInvoice(savedInvoice);
     setInvoicesList((prev) => {
       const updated = [
@@ -461,18 +476,32 @@ function MainScreen(): React.JSX.Element {
     if (shouldPrint) {
       handlePrint(savedInvoice);
     }
+
+    // Automatically navigate to Invoices tab upon successful creation (unless cashier tapped Save & New)
+    if (!andNew) {
+      setActiveTab('bills');
+    }
   };
 
   // Handle Delete Invoice with Auto-Renumbering to maintain continuous 1, 2, 3... sequence
   const handleDeleteInvoice = async (invoiceNo: string) => {
     if (user?.isGuest) {
       const remaining = invoicesList.filter((inv) => inv.invoiceNo !== invoiceNo);
-      setInvoicesList(remaining);
-      await storageService.saveGuestInvoices(remaining);
-      if (currentInvoice?.invoiceNo === invoiceNo) {
-        setCurrentInvoice(remaining[0] || null);
+      // Auto-renumber remaining guest demo invoices so serial sequence is never broken (1, 2, 3...)
+      const sortedAsc = [...remaining].sort((a, b) => (parseInt(a.invoiceNo, 10) || 0) - (parseInt(b.invoiceNo, 10) || 0));
+      const reseq = sortedAsc.map((inv, idx) => ({ ...inv, invoiceNo: String(idx + 1) })).sort((a, b) => (parseInt(b.invoiceNo, 10) || 0) - (parseInt(a.invoiceNo, 10) || 0));
+      setInvoicesList(reseq);
+      await storageService.saveGuestInvoices(reseq);
+      await storageService.saveNextInvoiceNumber(reseq.length + 1);
+      if (reseq.length > 0) {
+        setCurrentInvoice(reseq[0]);
+      } else {
+        setCurrentInvoice(null);
       }
-      Alert.alert('Demo Invoice Deleted', `Demo Invoice #${invoiceNo} removed from sandbox.`);
+      Alert.alert(
+        'Invoice Deleted & Serial Maintained',
+        `Invoice #${invoiceNo} removed. Remaining bills have been automatically re-numbered (1, 2, 3...) to keep your sequence unbroken.`
+      );
       return;
     }
 
@@ -492,6 +521,9 @@ function MainScreen(): React.JSX.Element {
     } else {
       setCurrentInvoice(null);
     }
+
+    // 3. Keep next sequential counter in sync
+    await storageService.saveNextInvoiceNumber(resequenced.length + 1);
 
     Alert.alert(
       'Invoice Deleted & Serial Maintained',
@@ -639,11 +671,7 @@ function MainScreen(): React.JSX.Element {
         ]}
       >
         <SaleScreen
-          initialInvoiceNo={
-            currentInvoice
-              ? (parseInt(currentInvoice.invoiceNo, 10) || 0) + 1
-              : 1
-          }
+          initialInvoiceNo={nextInvoiceNo}
           shopName={user?.shopName || currentInvoice?.shopName || 'Billing Receipt'}
           onBack={() => setActiveTab('home')}
           onSaveInvoice={handleSaveInvoice}

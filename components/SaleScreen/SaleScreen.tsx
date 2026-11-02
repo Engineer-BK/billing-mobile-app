@@ -42,7 +42,7 @@ interface SaleScreenProps {
   initialInvoiceNo?: number;
   shopName: string;
   onBack?: () => void;
-  onSaveInvoice: (invoice: InvoiceData, shouldPrint?: boolean) => void;
+  onSaveInvoice: (invoice: InvoiceData, shouldPrint?: boolean, andNew?: boolean) => void;
 }
 
 export function SaleScreen({
@@ -57,23 +57,15 @@ export function SaleScreen({
   const [invoiceNo, setInvoiceNo] = useState<string>(initialInvoiceNo.toString());
   const [invoicePrefix, setInvoicePrefix] = useState<string>('');
 
-  // Restore sequential invoice number on mount
+  // Keep invoiceNo strictly synchronized with initialInvoiceNo from Invoices tab
   useEffect(() => {
-    storageService.loadNextInvoiceNumber().then((savedNum) => {
-      if (savedNum && savedNum > 0) {
-        setInvoiceNo(savedNum.toString());
-      }
-    });
-  }, []);
-
-  // Update when initialInvoiceNo changes
-  useEffect(() => {
-    if (initialInvoiceNo) {
-      setInvoiceNo((prev) => {
-        const prevNum = parseInt(prev, 10);
-        return isNaN(prevNum) || prevNum < initialInvoiceNo
-          ? initialInvoiceNo.toString()
-          : prev;
+    if (initialInvoiceNo && initialInvoiceNo > 0) {
+      setInvoiceNo(initialInvoiceNo.toString());
+    } else {
+      storageService.loadNextInvoiceNumber().then((savedNum) => {
+        if (savedNum && savedNum > 0) {
+          setInvoiceNo(savedNum.toString());
+        }
       });
     }
   }, [initialInvoiceNo]);
@@ -184,27 +176,32 @@ export function SaleScreen({
     };
   };
 
+  // Helper to reset all input fields and prepare next invoice
+  const resetSaleForm = (nextNum?: number) => {
+    const upcomingNum = nextNum || ((parseInt(invoiceNo, 10) || 1) + 1);
+    setInvoiceNo(upcomingNum.toString());
+    setCustomerName('');
+    setPhoneNumber('');
+    setItems([]);
+    setSaleDate(new Date());
+  };
+
   // Handle Save
   const handleSave = (andNew = false) => {
     const invoice = buildInvoicePayload();
-    onSaveInvoice(invoice, false);
-
     const nextNum = (parseInt(invoiceNo, 10) || 1) + 1;
     storageService.saveNextInvoiceNumber(nextNum);
 
+    // 1. Immediately reset form input fields (customer name, phone, items) and advance invoice #
+    resetSaleForm(nextNum);
+
+    // 2. Commit invoice and automatically navigate to Invoices tab if !andNew
+    onSaveInvoice(invoice, false, andNew);
+
     if (andNew) {
-      setInvoiceNo(nextNum.toString());
-      setCustomerName('');
-      setPhoneNumber('');
-      setItems([]);
       Alert.alert(
         'Invoice Saved',
         `Invoice #${fullInvoiceNumber} saved! Ready for Invoice #${invoicePrefix}${nextNum}.`
-      );
-    } else {
-      Alert.alert(
-        'Invoice Saved',
-        `Invoice #${fullInvoiceNumber} saved for ₹${invoice.grandTotal}!`
       );
     }
   };
@@ -384,7 +381,11 @@ export function SaleScreen({
         onClose={() => setShowOptionsModal(false)}
         onPrintDirectly={() => {
           const invoice = buildInvoicePayload();
-          onSaveInvoice(invoice, true);
+          const nextNum = (parseInt(invoiceNo, 10) || 1) + 1;
+          storageService.saveNextInvoiceNumber(nextNum);
+          resetSaleForm(nextNum);
+          setShowOptionsModal(false);
+          onSaveInvoice(invoice, true, false);
         }}
         onClearItems={() => setItems([])}
       />
