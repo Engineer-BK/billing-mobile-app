@@ -94,8 +94,6 @@ export function ReceiptPreview({
         <DashedDivider />
 
         {/* Metadata Block */}
-        {/* 80mm: Left [Invoice No, Customer], Right [Date, Time] */}
-        {/* 58mm: Left [Inv No, Cust], Right [Date, Time] */}
         <View style={styles.metadataGrid}>
           {/* Row 1: Invoice No & Date */}
           <View style={styles.metaRow}>
@@ -108,69 +106,97 @@ export function ReceiptPreview({
           </View>
 
           {/* Row 2: Customer & Time */}
-          <View style={styles.metaRow}>
-            <Text allowFontScaling={false} style={styles.metaTxtLeft} numberOfLines={1}>
-              {is58mm ? `Cust: ${customerName.substring(0, 10)}` : `Customer: ${customerName.substring(0, 18)}`}
-            </Text>
-            <Text allowFontScaling={false} style={styles.metaTxtRight}>
-              Time: {displayTime}
-            </Text>
-          </View>
+          {is58mm && customerName.length > 11 ? (
+            <>
+              <View style={styles.metaRow}>
+                <Text allowFontScaling={false} style={styles.metaTxtLeft} numberOfLines={1}>
+                  Cust: {customerName}
+                </Text>
+              </View>
+              <View style={styles.metaRow}>
+                <Text allowFontScaling={false} style={styles.metaTxtLeft}>
+                  Time: {displayTime}
+                </Text>
+              </View>
+            </>
+          ) : (
+            <View style={styles.metaRow}>
+              <Text allowFontScaling={false} style={styles.metaTxtLeft} numberOfLines={1}>
+                {is58mm ? `Cust: ${customerName}` : `Customer: ${customerName.substring(0, 18)}`}
+              </Text>
+              <Text allowFontScaling={false} style={styles.metaTxtRight}>
+                Time: {displayTime}
+              </Text>
+            </View>
+          )}
         </View>
 
         <DashedDivider />
 
-        {/* Dynamic Table Header (Proportional Columns) */}
-        <View style={styles.tableRow}>
-          <Text
-            allowFontScaling={false}
-            style={[
-              styles.colHeader,
-              { flex: activeConfig.gridMetrics[0] },
-            ]}
-          >
-            #
-          </Text>
-          <Text
-            allowFontScaling={false}
-            style={[
-              styles.colHeader,
-              { flex: activeConfig.gridMetrics[1] },
-            ]}
-          >
-            {is58mm ? 'Item' : 'Item Description'}
-          </Text>
-          <Text
-            allowFontScaling={false}
-            style={[
-              styles.colHeader,
-              styles.txtRight,
-              { flex: activeConfig.gridMetrics[2] },
-            ]}
-          >
-            Qty/Unit
-          </Text>
-          <Text
-            allowFontScaling={false}
-            style={[
-              styles.colHeader,
-              styles.txtRight,
-              { flex: activeConfig.gridMetrics[3] },
-            ]}
-          >
-            Price
-          </Text>
-          <Text
-            allowFontScaling={false}
-            style={[
-              styles.colHeader,
-              styles.txtRight,
-              { flex: activeConfig.gridMetrics[4] },
-            ]}
-          >
-            Amount
-          </Text>
-        </View>
+        {/* Dynamic Table Header */}
+        {is58mm ? (
+          /* 58mm Clean 2-Column Header */
+          <View style={styles.tableRow}>
+            <Text allowFontScaling={false} style={[styles.colHeader, { flex: 2 }]}>
+              #  Item
+            </Text>
+            <Text allowFontScaling={false} style={[styles.colHeader, styles.txtRight, { flex: 1 }]}>
+              Amount
+            </Text>
+          </View>
+        ) : (
+          /* 80mm Proportional 5-Column Header - UNTOUCHED */
+          <View style={styles.tableRow}>
+            <Text
+              allowFontScaling={false}
+              style={[
+                styles.colHeader,
+                { flex: activeConfig.gridMetrics[0] },
+              ]}
+            >
+              #
+            </Text>
+            <Text
+              allowFontScaling={false}
+              style={[
+                styles.colHeader,
+                { flex: activeConfig.gridMetrics[1] },
+              ]}
+            >
+              Item Description
+            </Text>
+            <Text
+              allowFontScaling={false}
+              style={[
+                styles.colHeader,
+                styles.txtRight,
+                { flex: activeConfig.gridMetrics[2] },
+              ]}
+            >
+              Qty/Unit
+            </Text>
+            <Text
+              allowFontScaling={false}
+              style={[
+                styles.colHeader,
+                styles.txtRight,
+                { flex: activeConfig.gridMetrics[3] },
+              ]}
+            >
+              Price
+            </Text>
+            <Text
+              allowFontScaling={false}
+              style={[
+                styles.colHeader,
+                styles.txtRight,
+                { flex: activeConfig.gridMetrics[4] },
+              ]}
+            >
+              Amount
+            </Text>
+          </View>
+        )}
 
         <DashedDivider />
 
@@ -178,6 +204,36 @@ export function ReceiptPreview({
         {invoice.items.map((it) => {
           const unitStr = it.unit ? ` ${it.unit}` : '';
           const qtyUnitStr = `${it.qty}${unitStr}`.trim();
+
+          if (is58mm) {
+            return (
+              <View key={it.sNo} style={{ marginBottom: 4 }}>
+                {/* Line 1: # Item (left) + Amount (right) */}
+                <View style={styles.tableRow}>
+                  <Text
+                    allowFontScaling={false}
+                    numberOfLines={1}
+                    style={[styles.colCell, { flex: 2, fontWeight: '700' }]}
+                  >
+                    {`${it.sNo}  ${it.name.substring(0, 21)}`}
+                  </Text>
+                  <Text
+                    allowFontScaling={false}
+                    style={[styles.colCell, styles.txtRight, { flex: 1, fontWeight: '700' }]}
+                  >
+                    {it.amt}
+                  </Text>
+                </View>
+                {/* Line 2: Indented Qty x Price */}
+                <Text
+                  allowFontScaling={false}
+                  style={[styles.colCell, { color: '#475569', fontSize: 11, paddingLeft: 14 }]}
+                >
+                  {`${qtyUnitStr}  x  ${it.price}`}
+                </Text>
+              </View>
+            );
+          }
 
           return (
             <View key={it.sNo} style={styles.tableRow}>
@@ -275,6 +331,11 @@ export function ReceiptPreview({
         </View>
 
         <DashedDivider />
+
+        {/* Centered Polite Closing */}
+        <Text allowFontScaling={false} style={[styles.paperCenterBold, { fontSize: 11, marginVertical: 4 }]}>
+          Thank You! Visit Again
+        </Text>
 
         {/* Cutter / Tear Indicator */}
         {activeConfig.hasAutoCutter ? (

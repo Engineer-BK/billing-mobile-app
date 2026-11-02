@@ -92,9 +92,7 @@ export async function dispatchPrintReceipt(
     // Right: Date (up) & Time (below)
     await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.LEFT);
     if (is80mm) {
-      // 80mm layout (48 Columns):
-      // Line 1: Invoice No: 1                                Date: 30/10/2026
-      // Line 2: Customer: Basir Khan                           Time: 04:30 PM
+      // 80mm layout (48 Columns) - 100% UNTOUCHED
       const line1 = formatTwoColumns(
         `Invoice No: ${invoice.invoiceNo}`,
         `Date: ${liveDate}`,
@@ -107,95 +105,140 @@ export async function dispatchPrintReceipt(
       );
       await BluetoothEscposPrinter.printText(line1, {});
       await BluetoothEscposPrinter.printText(line2, {});
+      await BluetoothEscposPrinter.printText(dividerLine, {});
+
+      // --- 5. Table Header (#, Item Description, Qty/Unit, Price, Amount) ---
+      await BluetoothEscposPrinter.printColumn(
+        activeConfig.gridMetrics,
+        activeConfig.gridPositions,
+        activeConfig.headerColumns,
+        {}
+      );
+      await BluetoothEscposPrinter.printText(dividerLine, {});
+
+      // --- 6. Items List Loop (Includes Unit e.g. "2 KG") ---
+      for (const record of invoice.items) {
+        const unitText = record.unit ? ` ${record.unit}` : '';
+        const qtyWithUnit = `${record.qty}${unitText}`.trim();
+
+        await BluetoothEscposPrinter.printColumn(
+          activeConfig.gridMetrics,
+          activeConfig.gridPositions,
+          [
+            record.sNo,
+            record.name.substring(0, activeConfig.nameCharLimit),
+            qtyWithUnit,
+            record.price,
+            record.amt,
+          ],
+          {}
+        );
+      }
+      await BluetoothEscposPrinter.printText(dividerLine, {});
+
+      // --- 7. Summary Totals (80mm) ---
+      const subtotalValue = invoice.subtotal || invoice.grandTotal;
+      const discountValue = invoice.totalDiscount || (invoice.discountAmount ? invoice.discountAmount : '0.00');
+      const finalAmountValue = invoice.finalAmount || invoice.grandTotal;
+
+      // Line A: Total Items/Qty
+      await BluetoothEscposPrinter.printColumn(
+        activeConfig.totalMetrics,
+        activeConfig.totalPositions,
+        ['Total Items/Qty:', invoice.totalQty],
+        {}
+      );
+
+      // Line B: Subtotal
+      await BluetoothEscposPrinter.printColumn(
+        activeConfig.totalMetrics,
+        activeConfig.totalPositions,
+        ['Subtotal:', subtotalValue],
+        {}
+      );
+
+      // Line C: Total Discount
+      await BluetoothEscposPrinter.printColumn(
+        activeConfig.totalMetrics,
+        activeConfig.totalPositions,
+        ['Total Discount:', `-${discountValue}`],
+        {}
+      );
+
+      // Line D: Final Amount
+      await BluetoothEscposPrinter.printColumn(
+        activeConfig.totalMetrics,
+        activeConfig.totalPositions,
+        ['Final Amount:', finalAmountValue],
+        {}
+      );
+      await BluetoothEscposPrinter.printText(dividerLine, {});
     } else {
-      // 58mm layout (32 Columns):
-      // Line 1: Inv No: 1               Date: 30/10/26
-      // Line 2: Cust: Basir Khan        Time: 04:30 PM
+      // 58mm layout (32 Columns) - Modern 2-Line Retail Layout (Zero Cut-offs / Zero Orphans)
       const shortYear = String(year).slice(-2);
       const shortDate = `${day}/${month}/${shortYear}`;
       const line1 = formatTwoColumns(
         `Inv No: ${invoice.invoiceNo}`,
         `Date: ${shortDate}`,
-        activeConfig.lineWidth
-      );
-      const line2 = formatTwoColumns(
-        `Cust: ${customer}`,
-        `Time: ${liveTime}`,
-        activeConfig.lineWidth
+        32
       );
       await BluetoothEscposPrinter.printText(line1, {});
-      await BluetoothEscposPrinter.printText(line2, {});
+
+      // Customer line: if longer than 11 chars, print on own line to avoid name truncation
+      if (customer.length > 11) {
+        await BluetoothEscposPrinter.printText(`Cust: ${customer}\n`, {});
+        await BluetoothEscposPrinter.printText(`Time: ${liveTime}\n`, {});
+      } else {
+        const line2 = formatTwoColumns(
+          `Cust: ${customer}`,
+          `Time: ${liveTime}`,
+          32
+        );
+        await BluetoothEscposPrinter.printText(line2, {});
+      }
+      await BluetoothEscposPrinter.printText(dividerLine, {});
+
+      // --- 5. Table Header: #  Item (left) vs Amount (right) ---
+      const tableHeader = formatTwoColumns('#  Item', 'Amount', 32);
+      await BluetoothEscposPrinter.printText(tableHeader, {});
+      await BluetoothEscposPrinter.printText(dividerLine, {});
+
+      // --- 6. Items List Loop (2-Line format) ---
+      for (const record of invoice.items) {
+        const unitText = record.unit ? ` ${record.unit}` : '';
+        const qtyWithUnit = `${record.qty}${unitText}`.trim();
+
+        // Line 1: # Item Name (up to 21 chars) + Amount (right-aligned)
+        const itemHeading = `${record.sNo}  ${record.name.substring(0, 21)}`;
+        const line1Item = formatTwoColumns(itemHeading, record.amt, 32);
+        await BluetoothEscposPrinter.printText(line1Item, {});
+
+        // Line 2: Indented Qty x Price
+        const priceInfo = `     ${qtyWithUnit}  x  ${record.price}\n`;
+        await BluetoothEscposPrinter.printText(priceInfo, {});
+      }
+      await BluetoothEscposPrinter.printText(dividerLine, {});
+
+      // --- 7. Summary Totals (58mm 32 Columns) ---
+      const subtotalValue = invoice.subtotal || invoice.grandTotal;
+      const discountValue = invoice.totalDiscount || (invoice.discountAmount ? invoice.discountAmount : '0.00');
+      const finalAmountValue = invoice.finalAmount || invoice.grandTotal;
+
+      const lineQty = formatTwoColumns('Total Items/Qty:', invoice.totalQty, 32);
+      const lineSub = formatTwoColumns('Subtotal:', subtotalValue, 32);
+      const lineDisc = formatTwoColumns('Total Discount:', `-${discountValue}`, 32);
+      const lineFinal = formatTwoColumns('Final Amount:', finalAmountValue, 32);
+
+      await BluetoothEscposPrinter.printText(lineQty, {});
+      await BluetoothEscposPrinter.printText(lineSub, {});
+      await BluetoothEscposPrinter.printText(lineDisc, {});
+      await BluetoothEscposPrinter.printText(lineFinal, {});
+      await BluetoothEscposPrinter.printText(dividerLine, {});
+
+      // Centered Polite Closing
+      await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
+      await BluetoothEscposPrinter.printText('Thank You! Visit Again\n', {});
     }
-    await BluetoothEscposPrinter.printText(dividerLine, {});
-
-    // --- 5. Table Header (#, Item Description, Qty/Unit, Price, Amount) ---
-    await BluetoothEscposPrinter.printColumn(
-      activeConfig.gridMetrics,
-      activeConfig.gridPositions,
-      activeConfig.headerColumns,
-      {}
-    );
-    await BluetoothEscposPrinter.printText(dividerLine, {});
-
-    // --- 6. Items List Loop (Includes Unit e.g. "2 KG") ---
-    for (const record of invoice.items) {
-      const unitText = record.unit ? ` ${record.unit}` : '';
-      const qtyWithUnit = `${record.qty}${unitText}`.trim();
-
-      await BluetoothEscposPrinter.printColumn(
-        activeConfig.gridMetrics,
-        activeConfig.gridPositions,
-        [
-          record.sNo,
-          record.name.substring(0, activeConfig.nameCharLimit),
-          qtyWithUnit,
-          record.price,
-          record.amt,
-        ],
-        {}
-      );
-    }
-    await BluetoothEscposPrinter.printText(dividerLine, {});
-
-    // --- 7. Summary Totals (Total Items/Qty, Subtotal, Total Discount, Final Amount) ---
-    const subtotalValue = invoice.subtotal || invoice.grandTotal;
-    const discountValue = invoice.totalDiscount || (invoice.discountAmount ? invoice.discountAmount : '0.00');
-    const finalAmountValue = invoice.finalAmount || invoice.grandTotal;
-
-    // Line A: Total Items/Qty
-    await BluetoothEscposPrinter.printColumn(
-      activeConfig.totalMetrics,
-      activeConfig.totalPositions,
-      ['Total Items/Qty:', invoice.totalQty],
-      {}
-    );
-
-    // Line B: Subtotal
-    await BluetoothEscposPrinter.printColumn(
-      activeConfig.totalMetrics,
-      activeConfig.totalPositions,
-      ['Subtotal:', subtotalValue],
-      {}
-    );
-
-    // Line C: Total Discount
-    await BluetoothEscposPrinter.printColumn(
-      activeConfig.totalMetrics,
-      activeConfig.totalPositions,
-      ['Total Discount:', `-${discountValue}`],
-      {}
-    );
-
-    // Line D: Final Amount
-    await BluetoothEscposPrinter.printColumn(
-      activeConfig.totalMetrics,
-      activeConfig.totalPositions,
-      ['Final Amount:', finalAmountValue],
-      {}
-    );
-
-    // Closing divider line
-    await BluetoothEscposPrinter.printText(dividerLine, {});
 
     // --- 8. Paper Feed & Auto-Cut ---
     if (activeConfig.feedLines.bottomSpace > 0) {

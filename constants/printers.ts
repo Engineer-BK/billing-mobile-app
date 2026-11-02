@@ -16,20 +16,17 @@ export const PRINTER_PROFILES: Record<PrinterProfileId, PrinterProfile> = {
     badge: '2-Inch • 32 Col',
     paperWidth: '58mm Roll',
     lineWidth: 32,
-    nameCharLimit: 9,
+    nameCharLimit: 22,
     hasAutoCutter: false,
-    // Column layout: # (2) + Item (9) + Qty/Unit (8) + Price (6) + Amount (7) = 32
-    gridMetrics: [2, 9, 8, 6, 7],
+    // Modern 2-Line Column layout: #  Item (22) + Amount (10) = 32
+    gridMetrics: [22, 10],
     gridPositions: [
       BluetoothEscposPrinter.ALIGN.LEFT,
-      BluetoothEscposPrinter.ALIGN.LEFT,
-      BluetoothEscposPrinter.ALIGN.RIGHT,
-      BluetoothEscposPrinter.ALIGN.RIGHT,
       BluetoothEscposPrinter.ALIGN.RIGHT,
     ],
-    headerColumns: ['#', 'Item', 'Qty/Unit', 'Price', 'Amount'],
-    // Summary row: Label (20) + Value (12) = 32
-    totalMetrics: [20, 12],
+    headerColumns: ['#  Item', 'Amount'],
+    // Summary row: Label (18) + Value (14) = 32
+    totalMetrics: [18, 14],
     totalPositions: [
       BluetoothEscposPrinter.ALIGN.LEFT,
       BluetoothEscposPrinter.ALIGN.RIGHT,
