@@ -25,6 +25,7 @@ import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 // Theme Context & Branding
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { LicenseProvider, useLicense } from './context/LicenseContext';
 import { useTheme } from './hooks/useTheme';
 
 // Hardware Profiles & Defaults
@@ -48,6 +49,7 @@ import {
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { AuthScreen } from './components/Auth/AuthScreen';
 import { GuestPrintModal } from './components/Auth/GuestPrintModal';
+import { ActivationModal } from './components/License/ActivationModal';
 import { AccountModal } from './components/Account/AccountModal';
 import { AppDrawer } from './components/Drawer/AppDrawer';
 import { SettingsModal } from './components/Settings/SettingsModal';
@@ -126,6 +128,16 @@ function MainScreen(): React.JSX.Element {
   const [isRefreshingInvoices, setIsRefreshingInvoices] = useState<boolean>(false);
   const [showGuestPrintModal, setShowGuestPrintModal] = useState<boolean>(false);
   const activeConfig = PRINTER_PROFILES[selectedProfile];
+
+  // Licensing & Activation Engine (Module 2)
+  const {
+    isActivated,
+    canPrint,
+    plan,
+    showActivationModal,
+    openActivationModal,
+    closeActivationModal,
+  } = useLicense();
 
   // Bluetooth scanning, permission handling, and device binding
   const {
@@ -315,10 +327,15 @@ function MainScreen(): React.JSX.Element {
     }
   }, [user?.shopName]);
 
-  // 1-Tap Print Handler (with Sub-Module 1.4 Guest Gating)
+  // 1-Tap Print Handler (with Sub-Module 1.4 Guest & 2.4 License Gating)
   const handlePrint = async (targetInvoice?: InvoiceData | null): Promise<void> => {
     if (user?.isGuest) {
       setShowGuestPrintModal(true);
+      return;
+    }
+
+    if (!canPrint && !isActivated) {
+      openActivationModal();
       return;
     }
 
@@ -360,6 +377,11 @@ function MainScreen(): React.JSX.Element {
       return;
     }
 
+    if (!canPrint && !isActivated) {
+      openActivationModal();
+      return;
+    }
+
     if (!targetAddress) {
       Alert.alert('No Printer Linked', 'Please connect to a Bluetooth thermal printer first.');
       return;
@@ -384,6 +406,11 @@ function MainScreen(): React.JSX.Element {
   const handlePaperFeed = async (): Promise<void> => {
     if (user?.isGuest) {
       setShowGuestPrintModal(true);
+      return;
+    }
+
+    if (!canPrint && !isActivated) {
+      openActivationModal();
       return;
     }
 
@@ -624,6 +651,8 @@ function MainScreen(): React.JSX.Element {
             onPressAccount={() => setShowAccountModal(true)}
             onPressSignOut={handleConfirmSignOut}
             isGuest={!!user?.isGuest}
+            isActivated={canPrint || isActivated}
+            onPressActivate={openActivationModal}
           />
 
           {/* Retail Flash Metrics Strip */}
@@ -749,6 +778,7 @@ function MainScreen(): React.JSX.Element {
             setCurrentInvoice(synced[0]);
           }
         }}
+        onOpenActivationModal={openActivationModal}
       />
 
       {/* Side Navigation Drawer (Concept 1) */}
@@ -760,6 +790,7 @@ function MainScreen(): React.JSX.Element {
         onOpenAccountModal={() => setShowAccountModal(true)}
         onOpenSettingsModal={() => setShowSettingsModal(true)}
         onSignOut={handleConfirmSignOut}
+        onOpenActivationModal={openActivationModal}
       />
 
       {/* POS Preferences & Settings Modal (Concept 1) */}
@@ -785,6 +816,12 @@ function MainScreen(): React.JSX.Element {
         }}
       />
 
+      {/* Store Licensing & Activation Modal (Module 2) */}
+      <ActivationModal
+        visible={showActivationModal}
+        onClose={closeActivationModal}
+      />
+
       {/* Bottom Navigation Dock: [ Home ] [ Sale ] [ Invoices ] [ Printers ] */}
       <BottomNavBar
         activeTab={activeTab}
@@ -798,7 +835,9 @@ export default function App(): React.JSX.Element {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <MainScreen />
+        <LicenseProvider>
+          <MainScreen />
+        </LicenseProvider>
       </AuthProvider>
     </ThemeProvider>
   );

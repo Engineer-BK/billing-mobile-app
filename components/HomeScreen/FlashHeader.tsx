@@ -24,6 +24,8 @@ interface FlashHeaderProps {
   onPressSignOut?: () => void;
   cloudStatus?: 'synced' | 'syncing' | 'offline';
   isGuest?: boolean;
+  isActivated?: boolean;
+  onPressActivate?: () => void;
 }
 
 export function FlashHeader({
@@ -37,6 +39,8 @@ export function FlashHeader({
   onPressSignOut,
   cloudStatus = 'synced',
   isGuest = false,
+  isActivated = false,
+  onPressActivate,
 }: FlashHeaderProps): React.JSX.Element {
   const { colors, isDark, toggleTheme } = useTheme();
 
@@ -103,13 +107,48 @@ export function FlashHeader({
                     DEMO
                   </Text>
                 </View>
+              ) : isActivated ? (
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 3,
+                    marginLeft: 4,
+                  }}
+                >
+                  <MaterialCommunityIcons
+                    name="check-decagram"
+                    size={16}
+                    color="#0EA5E9"
+                    style={styles.verifiedIcon}
+                  />
+                  <View
+                    style={{
+                      backgroundColor: isDark ? 'rgba(14, 165, 233, 0.2)' : '#E0F2FE',
+                      paddingHorizontal: 5,
+                      paddingVertical: 1,
+                      borderRadius: 4,
+                    }}
+                  >
+                    <Text style={{ fontSize: 9, fontWeight: '900', color: '#0284C7' }}>PRO</Text>
+                  </View>
+                </View>
               ) : (
-                <MaterialCommunityIcons
-                  name="check-decagram"
-                  size={16}
-                  color="#0EA5E9"
-                  style={styles.verifiedIcon}
-                />
+                <TouchableOpacity
+                  onPress={onPressActivate || onPressAccount}
+                  style={{
+                    backgroundColor: isDark ? 'rgba(245, 158, 11, 0.2)' : '#FEF3C7',
+                    paddingHorizontal: 6,
+                    paddingVertical: 2,
+                    borderRadius: 6,
+                    marginLeft: 6,
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={{ fontSize: 10, fontWeight: '800', color: '#D97706' }}>
+                    FREE TIER
+                  </Text>
+                </TouchableOpacity>
               )}
             </View>
             <View style={styles.subtitleRow}>
@@ -118,6 +157,8 @@ export function FlashHeader({
                   styles.cloudIndicatorDot,
                   {
                     backgroundColor: isGuest
+                      ? '#F59E0B'
+                      : !isActivated
                       ? '#F59E0B'
                       : cloudStatus === 'synced'
                       ? '#10B981'
@@ -130,17 +171,19 @@ export function FlashHeader({
               <Text
                 style={[
                   styles.storeSubtitle,
-                  { color: isGuest ? '#D97706' : colors.textSecondary },
+                  { color: isGuest || !isActivated ? '#D97706' : colors.textSecondary },
                 ]}
                 numberOfLines={1}
               >
                 {isGuest
                   ? 'Demo Mode • Printer Locked'
+                  : !isActivated
+                  ? 'Free Tier • Printer Locked (Tap to Activate)'
                   : (cloudStatus === 'synced'
                       ? 'Cloud Synced'
                       : cloudStatus === 'syncing'
                       ? 'Syncing...'
-                      : 'Offline Mode') + ' • Active'}
+                      : 'Offline Mode') + ' • Pro Store'}
               </Text>
             </View>
           </View>

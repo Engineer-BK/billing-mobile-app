@@ -16,6 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { InvoiceData } from '../types/billing';
 import { PrinterProfileId } from '../types/printer';
 import { UserProfile } from '../types/auth';
+import { LicenseVerificationResult } from '../types/license';
 import { DEMO_GUEST_INVOICES } from '../constants/receipt';
 
 const STORAGE_KEYS = {
@@ -26,6 +27,7 @@ const STORAGE_KEYS = {
   ACTIVE_PROFILE: '@flashbill:active_profile_v1',
   THEME_MODE: '@flashbill:theme_mode_v1',
   USER_SESSION: '@flashbill:user_session_v1',
+  STORE_LICENSE: '@flashbill:store_license_v1',
 } as const;
 
 export interface SavedPrinterInfo {
@@ -302,6 +304,50 @@ export const storageService = {
       return true;
     } catch (err) {
       console.warn('storageService.clearUserSession error:', err);
+      return false;
+    }
+  },
+
+  // ==========================================
+  // 6. STORE LICENSING & ACTIVATION (Module 2)
+  // ==========================================
+
+  /**
+   * Save store activation metadata to local offline cache.
+   */
+  async saveLocalLicense(license: LicenseVerificationResult): Promise<boolean> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.STORE_LICENSE, JSON.stringify(license));
+      return true;
+    } catch (err) {
+      console.warn('storageService.saveLocalLicense error:', err);
+      return false;
+    }
+  },
+
+  /**
+   * Load store activation metadata from local offline cache.
+   */
+  async loadLocalLicense(): Promise<LicenseVerificationResult | null> {
+    try {
+      const json = await AsyncStorage.getItem(STORAGE_KEYS.STORE_LICENSE);
+      if (!json) return null;
+      return JSON.parse(json) as LicenseVerificationResult;
+    } catch (err) {
+      console.warn('storageService.loadLocalLicense error:', err);
+      return null;
+    }
+  },
+
+  /**
+   * Clear local store license cache.
+   */
+  async clearLocalLicense(): Promise<boolean> {
+    try {
+      await AsyncStorage.removeItem(STORAGE_KEYS.STORE_LICENSE);
+      return true;
+    } catch (err) {
+      console.warn('storageService.clearLocalLicense error:', err);
       return false;
     }
   },

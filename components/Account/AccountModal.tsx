@@ -28,6 +28,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../context/AuthContext';
+import { useLicense } from '../../context/LicenseContext';
 import { syncService } from '../../services/syncService';
 
 import { UserProfile } from '../../types/auth';
@@ -38,6 +39,7 @@ interface AccountModalProps {
   onClose: () => void;
   invoicesCount: number;
   onSyncComplete?: (invoices: InvoiceData[]) => void;
+  onOpenActivationModal?: () => void;
 }
 
 export function AccountModal({
@@ -45,9 +47,11 @@ export function AccountModal({
   onClose,
   invoicesCount,
   onSyncComplete,
+  onOpenActivationModal,
 }: AccountModalProps): React.JSX.Element {
   const { colors, isDark } = useTheme();
   const { user, signOut, updateProfile } = useAuth();
+  const { isActivated, plan, licenseKey } = useLicense();
 
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [shopName, setShopName] = useState<string>(user?.shopName || '');
@@ -254,6 +258,77 @@ export function AccountModal({
                           <Text style={styles.syncNowTxt}>Sync Now</Text>
                         </View>
                       )}
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Store License & Printing Entitlement Card (Module 2) */}
+                  <View
+                    style={[
+                      styles.syncCard,
+                      {
+                        backgroundColor: isActivated
+                          ? (isDark ? 'rgba(16, 185, 129, 0.12)' : '#F0FDF4')
+                          : (isDark ? 'rgba(245, 158, 11, 0.12)' : '#FFFBEB'),
+                        borderColor: isActivated ? '#86EFAC' : '#FCD34D',
+                        marginTop: 10,
+                      },
+                    ]}
+                  >
+                    <View style={styles.syncLeft}>
+                      <View
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 16,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: isActivated ? '#DCFCE7' : '#FEF3C7',
+                          marginRight: 8,
+                        }}
+                      >
+                        <MaterialCommunityIcons
+                          name={isActivated ? 'shield-check' : 'lock-outline'}
+                          size={18}
+                          color={isActivated ? '#16A34A' : '#D97706'}
+                        />
+                      </View>
+                      <View style={styles.syncTextCol}>
+                        <Text style={[styles.syncStatusTitle, { color: colors.textPrimary }]}>
+                          {isActivated ? `${plan || 'PRO'} License Active` : 'Free Store Tier'}
+                        </Text>
+                        <Text
+                          style={[styles.syncStatusSubtitle, { color: colors.textSecondary }]}
+                          numberOfLines={1}
+                        >
+                          {isActivated ? 'Thermal Printing Unlocked' : 'Thermal Printing Locked'}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <TouchableOpacity
+                      style={[
+                        styles.syncNowBtn,
+                        {
+                          backgroundColor: isActivated ? '#10B981' : colors.primary,
+                        },
+                      ]}
+                      onPress={() => {
+                        onClose();
+                        if (onOpenActivationModal) {
+                          setTimeout(() => onOpenActivationModal(), 200);
+                        }
+                      }}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <MaterialCommunityIcons
+                          name={isActivated ? 'eye-outline' : 'key-star'}
+                          size={15}
+                          color="#FFFFFF"
+                        />
+                        <Text style={styles.syncNowTxt}>
+                          {isActivated ? 'View Key' : 'Activate'}
+                        </Text>
+                      </View>
                     </TouchableOpacity>
                   </View>
 

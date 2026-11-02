@@ -4,6 +4,8 @@
  * Authentication and User/Store Profile type definitions.
  */
 
+import { LicensePlan } from './license';
+
 export interface UserProfile {
   uid: string;
   email: string;
@@ -11,6 +13,12 @@ export interface UserProfile {
   ownerName: string;
   phone: string;
   isGuest?: boolean;
+  isActivated?: boolean;
+  canPrint?: boolean;
+  plan?: LicensePlan;
+  licenseKey?: string;
+  activatedAt?: number | string;
+  expiresAt?: number | string | null;
   createdAt?: string;
   lastLoginAt?: string;
 }

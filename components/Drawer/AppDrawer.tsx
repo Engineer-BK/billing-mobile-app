@@ -30,6 +30,7 @@ import {
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../context/AuthContext';
+import { useLicense } from '../../context/LicenseContext';
 import { NavTabId } from '../HomeScreen/BottomNavBar';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -43,6 +44,7 @@ interface AppDrawerProps {
   onOpenAccountModal: () => void;
   onOpenSettingsModal: () => void;
   onSignOut: () => void;
+  onOpenActivationModal?: () => void;
 }
 
 export function AppDrawer({
@@ -53,9 +55,11 @@ export function AppDrawer({
   onOpenAccountModal,
   onOpenSettingsModal,
   onSignOut,
+  onOpenActivationModal,
 }: AppDrawerProps): React.JSX.Element {
   const { colors, isDark, toggleTheme } = useTheme();
   const { user } = useAuth();
+  const { isActivated, plan } = useLicense();
 
   const slideAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -424,6 +428,50 @@ export function AppDrawer({
               <Text style={[styles.navLabel, { color: colors.textPrimary }]}>
                 POS Preferences
               </Text>
+            </TouchableOpacity>
+
+            {/* Store License & Activation (Module 2) */}
+            <TouchableOpacity
+              style={[
+                styles.navItem,
+                !isActivated && !user?.isGuest && {
+                  backgroundColor: isDark ? 'rgba(245, 158, 11, 0.12)' : '#FEF3C7',
+                },
+              ]}
+              onPress={() => {
+                if (onOpenActivationModal) {
+                  handleAction(onOpenActivationModal);
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              <MaterialCommunityIcons
+                name={isActivated ? 'shield-check' : 'key-star'}
+                size={22}
+                color={isActivated ? '#10B981' : '#D97706'}
+              />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text
+                  style={[
+                    styles.navLabel,
+                    {
+                      color: isActivated ? colors.textPrimary : '#D97706',
+                      fontWeight: '800',
+                      marginLeft: 0,
+                    },
+                  ]}
+                >
+                  {isActivated ? `${plan || 'PRO'} License Active` : 'Activate Thermal Printing'}
+                </Text>
+                <Text style={{ fontSize: 10, color: colors.textSecondary, marginTop: 1 }}>
+                  {isActivated ? '0ms ESC/POS printing unlocked' : 'Redeem voucher or contact sales'}
+                </Text>
+              </View>
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={18}
+                color={isActivated ? colors.textMuted : '#D97706'}
+              />
             </TouchableOpacity>
 
             {/* Appearance Section */}
