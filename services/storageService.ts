@@ -16,9 +16,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { InvoiceData } from '../types/billing';
 import { PrinterProfileId } from '../types/printer';
 import { UserProfile } from '../types/auth';
+import { DEMO_GUEST_INVOICES } from '../constants/receipt';
 
 const STORAGE_KEYS = {
   INVOICES: '@flashbill:invoices_v1',
+  GUEST_INVOICES: '@flashbill:guest_demo_invoices_v1',
   NEXT_INVOICE_NUM: '@flashbill:next_invoice_num_v1',
   SAVED_PRINTER: '@flashbill:saved_printer_v1',
   ACTIVE_PROFILE: '@flashbill:active_profile_v1',
@@ -66,6 +68,58 @@ export const storageService = {
       return true;
     } catch (err) {
       console.warn('storageService.saveInvoices error:', err);
+      return false;
+    }
+  },
+
+  // ==========================================
+  // 1B. GUEST / DEMO SANDBOX INVOICES (Module 1.2)
+  // ==========================================
+
+  /**
+   * Load guest demo invoices from isolated storage key.
+   * Auto-seeds DEMO_GUEST_INVOICES on first guest session.
+   */
+  async loadGuestInvoices(): Promise<InvoiceData[]> {
+    try {
+      const json = await AsyncStorage.getItem(STORAGE_KEYS.GUEST_INVOICES);
+      if (!json) {
+        await AsyncStorage.setItem(STORAGE_KEYS.GUEST_INVOICES, JSON.stringify(DEMO_GUEST_INVOICES));
+        return DEMO_GUEST_INVOICES;
+      }
+      const parsed = JSON.parse(json);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed as InvoiceData[];
+      }
+      return DEMO_GUEST_INVOICES;
+    } catch (err) {
+      console.warn('storageService.loadGuestInvoices error:', err);
+      return DEMO_GUEST_INVOICES;
+    }
+  },
+
+  /**
+   * Save guest demo invoices to isolated storage key.
+   */
+  async saveGuestInvoices(invoices: InvoiceData[]): Promise<boolean> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.GUEST_INVOICES, JSON.stringify(invoices));
+      return true;
+    } catch (err) {
+      console.warn('storageService.saveGuestInvoices error:', err);
+      return false;
+    }
+  },
+
+  /**
+   * Clear guest demo invoices when exiting or resetting.
+   */
+  async clearGuestInvoices(): Promise<boolean> {
+    try {
+      await AsyncStorage.removeItem(STORAGE_KEYS.GUEST_INVOICES);
+      return true;
+    } catch (err) {
+      console.warn('storageService.clearGuestInvoices error:', err);
       return false;
     }
   },

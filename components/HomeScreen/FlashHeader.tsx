@@ -23,6 +23,7 @@ interface FlashHeaderProps {
   onPressAccount?: () => void;
   onPressSignOut?: () => void;
   cloudStatus?: 'synced' | 'syncing' | 'offline';
+  isGuest?: boolean;
 }
 
 export function FlashHeader({
@@ -35,6 +36,7 @@ export function FlashHeader({
   onPressAccount,
   onPressSignOut,
   cloudStatus = 'synced',
+  isGuest = false,
 }: FlashHeaderProps): React.JSX.Element {
   const { colors, isDark, toggleTheme } = useTheme();
 
@@ -87,37 +89,58 @@ export function FlashHeader({
               <Text style={[styles.storeTitle, { color: colors.textPrimary }]} numberOfLines={1}>
                 {storeName}
               </Text>
-              <MaterialCommunityIcons
-                name="check-decagram"
-                size={16}
-                color="#0EA5E9"
-                style={styles.verifiedIcon}
-              />
+              {isGuest ? (
+                <View
+                  style={{
+                    backgroundColor: isDark ? 'rgba(245, 158, 11, 0.2)' : '#FEF3C7',
+                    paddingHorizontal: 6,
+                    paddingVertical: 2,
+                    borderRadius: 6,
+                    marginLeft: 6,
+                  }}
+                >
+                  <Text style={{ fontSize: 10, fontWeight: '800', color: '#D97706' }}>
+                    DEMO
+                  </Text>
+                </View>
+              ) : (
+                <MaterialCommunityIcons
+                  name="check-decagram"
+                  size={16}
+                  color="#0EA5E9"
+                  style={styles.verifiedIcon}
+                />
+              )}
             </View>
             <View style={styles.subtitleRow}>
               <View
                 style={[
                   styles.cloudIndicatorDot,
                   {
-                    backgroundColor:
-                      cloudStatus === 'synced'
-                        ? '#10B981'
-                        : cloudStatus === 'syncing'
-                        ? '#F59E0B'
-                        : '#94A3B8',
+                    backgroundColor: isGuest
+                      ? '#F59E0B'
+                      : cloudStatus === 'synced'
+                      ? '#10B981'
+                      : cloudStatus === 'syncing'
+                      ? '#F59E0B'
+                      : '#94A3B8',
                   },
                 ]}
               />
               <Text
-                style={[styles.storeSubtitle, { color: colors.textSecondary }]}
+                style={[
+                  styles.storeSubtitle,
+                  { color: isGuest ? '#D97706' : colors.textSecondary },
+                ]}
                 numberOfLines={1}
               >
-                {cloudStatus === 'synced'
-                  ? 'Cloud Synced'
-                  : cloudStatus === 'syncing'
-                  ? 'Syncing...'
-                  : 'Offline Mode'}{' '}
-                • Active
+                {isGuest
+                  ? 'Demo Mode • Printer Locked'
+                  : (cloudStatus === 'synced'
+                      ? 'Cloud Synced'
+                      : cloudStatus === 'syncing'
+                      ? 'Syncing...'
+                      : 'Offline Mode') + ' • Active'}
               </Text>
             </View>
           </View>

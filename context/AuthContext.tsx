@@ -32,6 +32,7 @@ const AuthContext = createContext<AuthContextType>({
   signIn: async () => ({ success: false }),
   signUp: async () => ({ success: false }),
   signOut: async () => {},
+  continueAsGuest: () => {},
   updateProfile: async () => false,
   resetPassword: async () => ({ success: false }),
   clearError: () => {},
@@ -272,18 +273,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
   );
 
   /**
+   * Enter Guest / Demo Sandbox Mode (Module 1.1)
+   * Allows instant UI and POS exploration with zero registration friction.
+   */
+  const continueAsGuest = useCallback((): void => {
+    setError(null);
+    const guestUser: UserProfile = {
+      uid: 'guest_user',
+      email: 'demo@flashbill.pos',
+      shopName: 'Demo Supermarket',
+      ownerName: 'Guest Merchant',
+      phone: '9876543210',
+      isGuest: true,
+      createdAt: new Date().toISOString(),
+      lastLoginAt: new Date().toISOString(),
+    };
+    setUser(guestUser);
+  }, []);
+
+  /**
    * Sign Out of Firebase Auth & Clear Local Storage
    */
   const signOut = useCallback(async (): Promise<void> => {
     try {
-      await firebaseSignOut(auth);
-      await storageService.clearUserSession();
+      if (!user?.isGuest) {
+        await firebaseSignOut(auth);
+        await storageService.clearUserSession();
+      }
       setUser(null);
       setError(null);
     } catch (err) {
       console.warn('Sign out error:', err);
+      setUser(null);
     }
-  }, []);
+  }, [user?.isGuest]);
 
   /**
    * Update Profile Details in Firestore and AsyncStorage
@@ -342,11 +365,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
       signIn,
       signUp,
       signOut,
+      continueAsGuest,
       updateProfile,
       resetPassword,
       clearError,
     }),
-    [user, isLoading, error, signIn, signUp, signOut, updateProfile, resetPassword, clearError]
+    [user, isLoading, error, signIn, signUp, signOut, continueAsGuest, updateProfile, resetPassword, clearError]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

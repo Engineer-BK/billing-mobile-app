@@ -25,6 +25,7 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
+import { useAuth } from '../../context/AuthContext';
 import { LoginView } from './LoginView';
 import { RegisterView } from './RegisterView';
 import { ForgotPasswordModal } from './ForgotPasswordModal';
@@ -37,6 +38,7 @@ interface AuthScreenProps {
 
 export function AuthScreen({ initialTab = 'login' }: AuthScreenProps): React.JSX.Element {
   const { colors, isDark, toggleTheme } = useTheme();
+  const { continueAsGuest } = useAuth();
 
   const [activeTab, setActiveTab] = useState<AuthTab>(initialTab);
   const [showForgotModal, setShowForgotModal] = useState<boolean>(false);
@@ -196,6 +198,36 @@ export function AuthScreen({ initialTab = 'login' }: AuthScreenProps): React.JSX
             )}
           </View>
 
+          {/* Guest / Demo Mode Onboarding Trigger (Sub-Module 1.1) */}
+          <View style={styles.guestContainer}>
+            <View style={styles.dividerRow}>
+              <View style={[styles.dividerLine, { backgroundColor: colors.borderLight }]} />
+              <Text style={[styles.dividerTxt, { color: colors.textMuted }]}>OR</Text>
+              <View style={[styles.dividerLine, { backgroundColor: colors.borderLight }]} />
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.guestBtn,
+                {
+                  borderColor: colors.primary,
+                  backgroundColor: isDark ? 'rgba(37, 99, 235, 0.12)' : '#EFF6FF',
+                },
+              ]}
+              onPress={continueAsGuest}
+              activeOpacity={0.8}
+            >
+              <MaterialCommunityIcons name="compass-outline" size={20} color={colors.primary} />
+              <Text style={[styles.guestBtnTxt, { color: colors.primary }]}>
+                Explore as Guest (Demo Mode) →
+              </Text>
+            </TouchableOpacity>
+
+            <Text style={[styles.guestSubtext, { color: colors.textSecondary }]}>
+              Test 58mm/80mm bills, draft sales & explore with 3 preloaded bills. No signup required.
+            </Text>
+          </View>
+
           {/* Security & Offline Badge */}
           <View style={styles.securityFooter}>
             <MaterialCommunityIcons name="shield-check" size={16} color="#10B981" />
@@ -329,6 +361,48 @@ const styles = StyleSheet.create({
   securityTxt: {
     fontSize: 12,
     fontWeight: '600',
+  },
+  guestContainer: {
+    marginTop: 20,
+    alignItems: 'center',
+    width: '100%',
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 16,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  dividerTxt: {
+    fontSize: 12,
+    fontWeight: '700',
+    marginHorizontal: 12,
+  },
+  guestBtn: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    gap: 8,
+  },
+  guestBtnTxt: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  guestSubtext: {
+    fontSize: 12,
+    fontWeight: '500',
+    textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 16,
+    paddingHorizontal: 10,
   },
 });
 

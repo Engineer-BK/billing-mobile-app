@@ -32,3 +32,45 @@ export const SAMPLE_INVOICE: InvoiceData = {
   grandTotal: '5826',
   status: 'PAID',
 };
+
+/**
+ * Pre-configured sample invoices used exclusively in Guest Demo Mode (Module 1.2).
+ * These give casual Play Store visitors an active, vibrant store experience with 0ms local speed.
+ */
+export const DEMO_GUEST_INVOICES: InvoiceData[] = [
+  SAMPLE_INVOICE,
+  {
+    shopName: 'Demo Supermarket',
+    date: '30/10/2026',
+    time: '02:15 PM',
+    invoiceNo: '2',
+    customerName: 'Ayaan Malik',
+    items: [
+      { sNo: '1', name: 'BASMATI RICE', qty: '5', unit: 'KG', price: '120', amt: '600' },
+      { sNo: '2', name: 'SUNFLOWER OIL', qty: '2', unit: 'L', price: '160', amt: '320' },
+    ],
+    totalQty: '7',
+    subtotal: '920',
+    totalDiscount: '0.00',
+    finalAmount: '920',
+    grandTotal: '920',
+    status: 'PAID',
+  },
+  {
+    shopName: 'Demo Supermarket',
+    date: '30/10/2026',
+    time: '01:40 PM',
+    invoiceNo: '3',
+    customerName: 'Zubair Ahmed',
+    items: [
+      { sNo: '1', name: 'WHOLE WHEAT ATTA', qty: '10', unit: 'KG', price: '45', discountPercent: '5', discountAmount: '22.50', amt: '427.50' },
+      { sNo: '2', name: 'SUGAR M-30', qty: '3', unit: 'KG', price: '44', amt: '132' },
+    ],
+    totalQty: '13',
+    subtotal: '582',
+    totalDiscount: '22.50',
+    finalAmount: '559.50',
+    grandTotal: '559.50',
+    status: 'PAID',
+  },
+];

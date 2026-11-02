@@ -135,35 +135,45 @@ function MainScreen(): React.JSX.Element {
 
   // Restore persistent invoices and roll profile from AsyncStorage on app startup
   useEffect(() => {
-    storageService.loadInvoices().then((saved) => {
-      if (saved && saved.length > 0) {
-        const realInvoices = saved.filter((inv) => !isMockInvoice(inv));
-        if (realInvoices.length > 0) {
-          setInvoicesList(realInvoices);
-          setCurrentInvoice(realInvoices[0]);
+    if (user?.isGuest) {
+      // Sub-Module 1.2: Load isolated guest demo invoices with 3 preloaded bills
+      storageService.loadGuestInvoices().then((guestBills) => {
+        setInvoicesList(guestBills);
+        setCurrentInvoice(guestBills[0] || null);
+      });
+    } else {
+      // Real store accounts load from clean real storage key
+      storageService.loadInvoices().then((saved) => {
+        if (saved && saved.length > 0) {
+          const realInvoices = saved.filter((inv) => !isMockInvoice(inv));
+          if (realInvoices.length > 0) {
+            setInvoicesList(realInvoices);
+            setCurrentInvoice(realInvoices[0]);
+          } else {
+            // Clean legacy mock records
+            setInvoicesList([]);
+            setCurrentInvoice(null);
+            storageService.saveInvoices([]);
+          }
         } else {
-          // Clean legacy mock records
           setInvoicesList([]);
           setCurrentInvoice(null);
-          storageService.saveInvoices([]);
         }
-      } else {
-        setInvoicesList([]);
-        setCurrentInvoice(null);
-      }
-    });
+      });
+    }
 
     storageService.loadActiveProfile().then((savedProfile) => {
       if (savedProfile) {
         setSelectedProfile(savedProfile);
       }
     });
-  }, []);
+  }, [user?.isGuest]);
 
   // Reactive Cloud & Local Invoice Sync on User Login or Device Launch
   useEffect(() => {
     const currentUid = user?.uid;
-    if (!currentUid) return;
+    // Cloud sync ONLY runs for real users, NEVER for guest users!
+    if (!currentUid || user?.isGuest) return;
 
     let isMounted = true;
 
@@ -221,10 +231,18 @@ function MainScreen(): React.JSX.Element {
       isMounted = false;
       unsubscribe();
     };
-  }, [user?.uid]);
+  }, [user?.uid, user?.isGuest]);
 
   // Pull-to-refresh handler for Invoices screen
   const handleRefreshInvoices = async () => {
+    if (user?.isGuest) {
+      setIsRefreshingInvoices(true);
+      const guestBills = await storageService.loadGuestInvoices();
+      setInvoicesList(guestBills);
+      setCurrentInvoice(guestBills[0] || null);
+      setIsRefreshingInvoices(false);
+      return;
+    }
     if (!user?.uid) return;
     setIsRefreshingInvoices(true);
     try {
@@ -246,6 +264,15 @@ function MainScreen(): React.JSX.Element {
 
   // Manual Trigger to re-sequence & maintain continuous 1, 2, 3... numbering
   const handleResequenceInvoices = async () => {
+    if (user?.isGuest) {
+      const sortedAsc = [...invoicesList].sort((a, b) => (parseInt(a.invoiceNo, 10) || 0) - (parseInt(b.invoiceNo, 10) || 0));
+      const reseq = sortedAsc.map((inv, idx) => ({ ...inv, invoiceNo: String(idx + 1) })).sort((a, b) => (parseInt(b.invoiceNo, 10) || 0) - (parseInt(a.invoiceNo, 10) || 0));
+      setInvoicesList(reseq);
+      if (reseq.length > 0) setCurrentInvoice(reseq[0]);
+      await storageService.saveGuestInvoices(reseq);
+      Alert.alert('Demo Bills Re-numbered', 'Demo bills re-sequenced sequentially.');
+      return;
+    }
     if (!user?.uid || invoicesList.length === 0) return;
     try {
       const fixed = await syncService.resequenceInvoices(user.uid, invoicesList);
@@ -393,18 +420,24 @@ function MainScreen(): React.JSX.Element {
         savedInvoice,
         ...prev.filter((inv) => inv.invoiceNo !== savedInvoice.invoiceNo),
       ];
-      storageService.saveInvoices(updated);
+      if (user?.isGuest) {
+        storageService.saveGuestInvoices(updated);
+      } else {
+        storageService.saveInvoices(updated);
+      }
       return updated;
     });
 
-    // Increment and persist sequential invoice counter
+    // Increment and persist sequential invoice counter (Real stores only)
     const currentNum = parseInt(savedInvoice.invoiceNo, 10);
     if (!isNaN(currentNum)) {
-      storageService.saveNextInvoiceNumber(currentNum + 1);
+      if (!user?.isGuest) {
+        storageService.saveNextInvoiceNumber(currentNum + 1);
+      }
     }
 
-    // Background non-blocking push to Cloud Firestore
-    if (user?.uid) {
+    // Background non-blocking push to Cloud Firestore (Real stores only)
+    if (user?.uid && !user.isGuest) {
       syncService.pushInvoice(user.uid, savedInvoice);
     }
 
@@ -415,6 +448,17 @@ function MainScreen(): React.JSX.Element {
 
   // Handle Delete Invoice with Auto-Renumbering to maintain continuous 1, 2, 3... sequence
   const handleDeleteInvoice = async (invoiceNo: string) => {
+    if (user?.isGuest) {
+      const remaining = invoicesList.filter((inv) => inv.invoiceNo !== invoiceNo);
+      setInvoicesList(remaining);
+      await storageService.saveGuestInvoices(remaining);
+      if (currentInvoice?.invoiceNo === invoiceNo) {
+        setCurrentInvoice(remaining[0] || null);
+      }
+      Alert.alert('Demo Invoice Deleted', `Demo Invoice #${invoiceNo} removed from sandbox.`);
+      return;
+    }
+
     // 1. Delete the targeted bill from Cloud Firestore
     if (user?.uid) {
       await syncService.deleteInvoice(user.uid, invoiceNo);
@@ -444,15 +488,19 @@ function MainScreen(): React.JSX.Element {
       const updated = prev.map((inv) =>
         inv.invoiceNo === invoiceNo ? { ...inv, status: newStatus } : inv
       );
-      storageService.saveInvoices(updated);
+      if (user?.isGuest) {
+        storageService.saveGuestInvoices(updated);
+      } else {
+        storageService.saveInvoices(updated);
+      }
       return updated;
     });
     if (currentInvoice?.invoiceNo === invoiceNo) {
       setCurrentInvoice((prev) => (prev ? { ...prev, status: newStatus } : null));
     }
 
-    // Background status update in Cloud Firestore
-    if (user?.uid) {
+    // Background status update in Cloud Firestore (Real stores only)
+    if (user?.uid && !user.isGuest) {
       const target = invoicesList.find((inv) => inv.invoiceNo === invoiceNo);
       if (target) {
         syncService.pushInvoice(user.uid, { ...target, status: newStatus });
@@ -518,7 +566,7 @@ function MainScreen(): React.JSX.Element {
         >
           {/* Distinctive FlashBill Header with Store Info & Drawer Action */}
           <FlashHeader
-            storeName={user?.shopName || 'FlashBill POS'}
+            storeName={user?.isGuest ? 'Demo Supermarket' : (user?.shopName || 'FlashBill POS')}
             printerName={printerName}
             isConnected={!!targetAddress}
             onPressPrinterPill={() => setActiveTab('hardware')}
@@ -526,6 +574,7 @@ function MainScreen(): React.JSX.Element {
             onPressSettings={() => setShowSettingsModal(true)}
             onPressAccount={() => setShowAccountModal(true)}
             onPressSignOut={handleConfirmSignOut}
+            isGuest={!!user?.isGuest}
           />
 
           {/* Retail Flash Metrics Strip */}

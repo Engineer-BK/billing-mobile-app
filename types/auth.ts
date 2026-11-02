@@ -10,6 +10,7 @@ export interface UserProfile {
   shopName: string;
   ownerName: string;
   phone: string;
+  isGuest?: boolean;
   createdAt?: string;
   lastLoginAt?: string;
 }
@@ -27,6 +28,7 @@ export interface AuthContextType {
     pass: string;
   }) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
+  continueAsGuest: () => void;
   updateProfile: (data: Partial<UserProfile>) => Promise<boolean>;
   resetPassword: (email: string) => Promise<{ success: boolean; message?: string; error?: string }>;
   clearError: () => void;
