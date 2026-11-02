@@ -14,6 +14,7 @@
     },
     "android": {
       "package": "com.aftabrental.billingapp",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A1128"
@@ -37,7 +38,7 @@
         "expo-build-properties",
         {
           "android": {
-            "minSdkVersion": 31
+            "minSdkVersion": 26
           }
         }
       ],

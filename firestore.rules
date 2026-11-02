@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. Multi-Tenant User Isolation (Profile & Invoices)
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Covers all subcollections (like /invoices/{invoiceNo})
+      match /{allChildren=**} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // 2. License Vouchers Protection
+    match /licenses/{licenseKey} {
+      // Allow single voucher lookup by code; block listing/querying all vouchers
+      allow get: if request.auth != null;
+      allow list: if false;
+
+      // Allow claiming an available voucher atomically
+      allow update: if request.auth != null
+        && resource.data.status == "AVAILABLE"
+        && request.resource.data.status == "CLAIMED"
+        && request.resource.data.claimedByUid == request.auth.uid;
+
+      // Prevent client creation or deletion (Admin only)
+      allow create, delete: if false;
+    }
+  }
+}

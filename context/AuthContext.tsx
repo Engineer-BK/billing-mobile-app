@@ -158,6 +158,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
         const userCredential = await signInWithEmailAndPassword(auth, trimmedEmail, trimmedPass);
         const uid = userCredential.user.uid;
 
+        // Multi-tenant hygiene: Purge prior local cache before hydrating fresh account
+        await storageService.purgeUserData();
+
         // Fetch cloud profile from Firestore
         let cloudProfile = await syncService.getUserProfile(uid);
         
@@ -243,6 +246,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
         const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, trimmedPass);
         const uid = userCredential.user.uid;
 
+        // Multi-tenant hygiene: Purge prior local cache before creating new account
+        await storageService.purgeUserData();
+
         const newProfile: UserProfile = {
           uid,
           email: trimmedEmail,
@@ -292,18 +298,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
   }, []);
 
   /**
-   * Sign Out of Firebase Auth & Clear Local Storage
+   * Sign Out of Firebase Auth & Purge Local Account Data
    */
   const signOut = useCallback(async (): Promise<void> => {
     try {
       if (!user?.isGuest) {
         await firebaseSignOut(auth);
+        await storageService.purgeUserData();
+      } else {
+        await storageService.clearGuestInvoices();
         await storageService.clearUserSession();
       }
       setUser(null);
       setError(null);
     } catch (err) {
       console.warn('Sign out error:', err);
+      try {
+        await storageService.purgeUserData();
+      } catch {
+        // ignore
+      }
       setUser(null);
     }
   }, [user?.isGuest]);

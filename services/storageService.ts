@@ -74,6 +74,19 @@ export const storageService = {
     }
   },
 
+  /**
+   * Clear all saved invoices from local storage.
+   */
+  async clearInvoices(): Promise<boolean> {
+    try {
+      await AsyncStorage.removeItem(STORAGE_KEYS.INVOICES);
+      return true;
+    } catch (err) {
+      console.warn('storageService.clearInvoices error:', err);
+      return false;
+    }
+  },
+
   // ==========================================
   // 1B. GUEST / DEMO SANDBOX INVOICES (Module 1.2)
   // ==========================================
@@ -154,6 +167,19 @@ export const storageService = {
       return true;
     } catch (err) {
       console.warn('storageService.saveNextInvoiceNumber error:', err);
+      return false;
+    }
+  },
+
+  /**
+   * Reset the sequential invoice counter.
+   */
+  async clearNextInvoiceNumber(): Promise<boolean> {
+    try {
+      await AsyncStorage.removeItem(STORAGE_KEYS.NEXT_INVOICE_NUM);
+      return true;
+    } catch (err) {
+      console.warn('storageService.clearNextInvoiceNumber error:', err);
       return false;
     }
   },
@@ -348,6 +374,30 @@ export const storageService = {
       return true;
     } catch (err) {
       console.warn('storageService.clearLocalLicense error:', err);
+      return false;
+    }
+  },
+
+  // ==========================================
+  // 7. MULTI-TENANT LOGOUT PURGE
+  // ==========================================
+
+  /**
+   * Purge all user-specific data upon logout or account switch.
+   * Clears: user session, invoices, invoice sequence counter, and cached store license.
+   * Safely preserves device hardware settings (paired printer, roll profile, theme).
+   */
+  async purgeUserData(): Promise<boolean> {
+    try {
+      await AsyncStorage.multiRemove([
+        STORAGE_KEYS.USER_SESSION,
+        STORAGE_KEYS.INVOICES,
+        STORAGE_KEYS.NEXT_INVOICE_NUM,
+        STORAGE_KEYS.STORE_LICENSE,
+      ]);
+      return true;
+    } catch (err) {
+      console.warn('storageService.purgeUserData error:', err);
       return false;
     }
   },

@@ -157,9 +157,15 @@ function MainScreen(): React.JSX.Element {
     },
   });
 
-  // Restore persistent invoices and roll profile from AsyncStorage on app startup
+  // Restore persistent invoices and roll profile from AsyncStorage on app startup or user switch
   useEffect(() => {
-    if (user?.isGuest) {
+    if (!user) {
+      setInvoicesList([]);
+      setCurrentInvoice(null);
+      return;
+    }
+
+    if (user.isGuest) {
       // Sub-Module 1.2: Load isolated guest demo invoices with 3 preloaded bills
       storageService.loadGuestInvoices().then((guestBills) => {
         setInvoicesList(guestBills);
@@ -191,13 +197,19 @@ function MainScreen(): React.JSX.Element {
         setSelectedProfile(savedProfile);
       }
     });
-  }, [user?.isGuest]);
+  }, [user?.uid, user?.isGuest]);
 
   // Reactive Cloud & Local Invoice Sync on User Login or Device Launch
   useEffect(() => {
     const currentUid = user?.uid;
     // Cloud sync ONLY runs for real users, NEVER for guest users!
-    if (!currentUid || user?.isGuest) return;
+    if (!currentUid || user?.isGuest) {
+      if (!currentUid) {
+        setInvoicesList([]);
+        setCurrentInvoice(null);
+      }
+      return;
+    }
 
     let isMounted = true;
 
@@ -211,7 +223,7 @@ function MainScreen(): React.JSX.Element {
           setCurrentInvoice(localInvoices[0]);
         }
 
-        // 2. Multi-device pull from Cloud Firestore
+        // 2. Multi-device pull from Cloud Firestore (Cloud Source of Truth)
         const cloudInvoices = await syncService.pullAllInvoices(uid);
         if (isMounted) {
           let realCloud = (cloudInvoices || []).filter((inv) => !isMockInvoice(inv));
@@ -222,14 +234,12 @@ function MainScreen(): React.JSX.Element {
             }
             setInvoicesList(realCloud);
             setCurrentInvoice(realCloud[0]);
-          } else if (localInvoices.length > 0) {
-            let realLocal = localInvoices;
-            if (hasSequenceGaps(realLocal)) {
-              realLocal = await syncService.resequenceInvoices(uid, realLocal);
-            }
-            await syncService.syncAllLocalInvoices(uid);
-            setInvoicesList(realLocal);
-            setCurrentInvoice(realLocal[0]);
+          } else {
+            // Fresh account with 0 cloud invoices: ensure clean state
+            setInvoicesList([]);
+            setCurrentInvoice(null);
+            await storageService.saveInvoices([]);
+            await storageService.saveNextInvoiceNumber(1);
           }
         }
       } catch (err) {
@@ -604,7 +614,7 @@ function MainScreen(): React.JSX.Element {
     return <AuthScreen />;
   }
 
-  // Confirm Sign Out Handler
+  // Confirm Sign Out Handler (with local state and cache cleanup)
   const handleConfirmSignOut = () => {
     Alert.alert(
       'Sign Out of Store',
@@ -614,7 +624,12 @@ function MainScreen(): React.JSX.Element {
         {
           text: 'Sign Out',
           style: 'destructive',
-          onPress: () => signOut(),
+          onPress: async () => {
+            setInvoicesList([]);
+            setCurrentInvoice(null);
+            setActiveTab('home');
+            await signOut();
+          },
         },
       ]
     );
