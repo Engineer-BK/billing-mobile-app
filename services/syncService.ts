@@ -129,17 +129,13 @@ export const syncService = {
         return numB - numA;
       });
 
-      // Cache locally to AsyncStorage for instant 0ms offline access
-      await storageService.saveInvoices(invoices);
+      // Cache locally to AsyncStorage for instant 0ms offline access (only when invoices exist)
       if (invoices.length > 0) {
+        await storageService.saveInvoices(invoices);
         const maxInvoiceNo = Math.max(...invoices.map((inv) => parseInt(inv.invoiceNo, 10) || 0));
         if (maxInvoiceNo > 0) {
           await storageService.saveNextInvoiceNumber(maxInvoiceNo + 1);
-        } else {
-          await storageService.saveNextInvoiceNumber(1);
         }
-      } else {
-        await storageService.saveNextInvoiceNumber(1);
       }
 
       return invoices;

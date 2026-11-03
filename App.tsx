@@ -64,19 +64,6 @@ import { QuickActionGrid } from './components/HomeScreen/QuickActionGrid';
 import { RecentBillsCard } from './components/HomeScreen/RecentBillsCard';
 import { ReceiptPreview } from './components/ReceiptPreview/ReceiptPreview';
 
-// Helper to detect gaps in invoice serial numbering (e.g. [1, 3] -> gap detected)
-const hasSequenceGaps = (invoices: InvoiceData[]): boolean => {
-  if (invoices.length <= 1) return false;
-  const numbers = invoices
-    .map((i) => parseInt(i.invoiceNo, 10))
-    .filter((n) => !isNaN(n))
-    .sort((a, b) => a - b);
-  for (let i = 0; i < numbers.length; i++) {
-    if (numbers[i] !== i + 1) return true;
-  }
-  return false;
-};
-
 function MainScreen(): React.JSX.Element {
   const { colors, isDark } = useTheme();
   const { user, isLoading: authLoading, signOut } = useAuth();
@@ -213,8 +200,12 @@ function MainScreen(): React.JSX.Element {
             if (maxInvoiceNo > 0) {
               await storageService.saveNextInvoiceNumber(maxInvoiceNo + 1);
             }
+          } else if (rawLocal && rawLocal.length > 0) {
+            // Local invoices exist but cloud returned 0 (e.g. offline or pending backup)
+            // Preserve local invoices and queue background cloud sync
+            syncService.syncAllLocalInvoices(uid);
           } else {
-            // Fresh account with 0 cloud invoices: ensure clean state
+            // Truly fresh account with 0 cloud AND 0 local invoices: ensure clean state
             setInvoicesList([]);
             setCurrentInvoice(null);
             await storageService.saveInvoices([]);
@@ -305,19 +296,6 @@ function MainScreen(): React.JSX.Element {
       console.warn('Resequence error:', err);
     }
   };
-
-  // Sync user shop name with sample receipt if still using placeholder
-  useEffect(() => {
-    if (user?.shopName) {
-      setCurrentInvoice((prev) => {
-        if (!prev) return null;
-        if (prev.shopName === 'Delivery Slip' || prev.shopName === 'Billing Receipt' || !prev.shopName) {
-          return { ...prev, shopName: user.shopName };
-        }
-        return prev;
-      });
-    }
-  }, [user?.shopName]);
 
   // 1-Tap Print Handler (with Sub-Module 1.4 Guest & 2.4 License Gating)
   const handlePrint = async (targetInvoice?: InvoiceData | null): Promise<void> => {
@@ -534,10 +512,14 @@ function MainScreen(): React.JSX.Element {
     await storageService.saveInvoices(reseq);
     await storageService.saveNextInvoiceNumber(reseq.length + 1);
 
-    // 2. Background Firestore synchronization & cloud resequence
+    // 2. Background Firestore synchronization & cloud resequence (fault-tolerant)
     if (user?.uid) {
-      await syncService.deleteInvoice(user.uid, invoiceNo);
-      await syncService.resequenceInvoices(user.uid, remaining);
+      try {
+        await syncService.deleteInvoice(user.uid, invoiceNo);
+        await syncService.resequenceInvoices(user.uid, remaining);
+      } catch (err) {
+        console.warn('Background delete/resequence notice:', err);
+      }
     }
   };
 
