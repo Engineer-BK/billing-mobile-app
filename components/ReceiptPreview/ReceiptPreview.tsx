@@ -173,7 +173,7 @@ export function ReceiptPreview({
                 { flex: activeConfig.gridMetrics[2] },
               ]}
             >
-              Qty/Unit
+              Qty
             </Text>
             <Text
               allowFontScaling={false}
@@ -213,13 +213,13 @@ export function ReceiptPreview({
           const gross = q * p;
           const calcPct = discPct > 0 ? discPct : (gross > 0 ? Math.round((discAmt / gross) * 100) : 0);
           const calcAmt = discAmt > 0 ? discAmt : (gross * (discPct / 100));
-          const amtStr = calcAmt > 0 ? ` (-₹${calcAmt.toFixed(2).replace(/\.00$/, '')})` : '';
+          const amtStr = calcAmt > 0 ? `(-₹${calcAmt.toFixed(2).replace(/\.00$/, '')})` : '';
           const pctStr = calcPct > 0 ? `${calcPct}%` : '';
-          const previewDiscTag = `Dis: ${pctStr}${amtStr}`.trim();
+          const discDetails = [pctStr, amtStr].filter(Boolean).join(' ');
 
           if (is58mm) {
             return (
-              <View key={it.sNo} style={{ marginBottom: 4 }}>
+              <View key={it.sNo} style={{ marginBottom: 6 }}>
                 {/* Line 1: # Item (left) + Amount (right) */}
                 <View style={styles.tableRow}>
                   <Text
@@ -227,7 +227,7 @@ export function ReceiptPreview({
                     numberOfLines={1}
                     style={[styles.colCell, { flex: 2, fontWeight: '700' }]}
                   >
-                    {`${it.sNo}  ${it.name.substring(0, 21)}`}
+                    {`${it.sNo}  ${it.name.substring(0, activeConfig.nameCharLimit)}`}
                   </Text>
                   <Text
                     allowFontScaling={false}
@@ -236,7 +236,7 @@ export function ReceiptPreview({
                     {it.amt}
                   </Text>
                 </View>
-                {/* Line 2: Indented Qty x Price (+ Right-aligned Dis: % (-₹Amt) if available) */}
+                {/* Line 2: Indented Qty x Price */}
                 <View style={[styles.tableRow, { paddingLeft: 14 }]}>
                   <Text
                     allowFontScaling={false}
@@ -244,21 +244,24 @@ export function ReceiptPreview({
                   >
                     {`${qtyUnitStr}  x  ${it.price}`}
                   </Text>
-                  {hasDiscount && (
+                </View>
+                {/* Line 3: Dedicated Discount Note (if available) */}
+                {hasDiscount && (
+                  <View style={[styles.tableRow, { paddingLeft: 14, marginTop: 1 }]}>
                     <Text
                       allowFontScaling={false}
-                      style={[styles.colCell, styles.txtRight, { color: '#16A34A', fontSize: 10.5, fontWeight: '700' }]}
+                      style={[styles.colCell, { color: '#16A34A', fontSize: 10.5, fontWeight: '700' }]}
                     >
-                      {previewDiscTag}
+                      {`* Dis: ${discDetails}`}
                     </Text>
-                  )}
-                </View>
+                  </View>
+                )}
               </View>
             );
           }
 
           return (
-            <View key={it.sNo} style={{ marginBottom: hasDiscount ? 3 : 1 }}>
+            <View key={it.sNo} style={{ marginBottom: 5 }}>
               <View style={styles.tableRow}>
                 <Text
                   allowFontScaling={false}
@@ -319,7 +322,7 @@ export function ReceiptPreview({
                     allowFontScaling={false}
                     style={[styles.colCell, { color: '#16A34A', fontSize: 10.5, fontWeight: '600' }]}
                   >
-                    {`↳ Item Discount: ${calcPct > 0 ? `${calcPct}% off ` : ''}(-₹${calcAmt.toFixed(2).replace(/\.00$/, '')})`}
+                    {`* Dis: ${discDetails}`}
                   </Text>
                 </View>
               )}

@@ -16,7 +16,7 @@ export const PRINTER_PROFILES: Record<PrinterProfileId, PrinterProfile> = {
     badge: '2-Inch • 32 Col',
     paperWidth: '58mm Roll',
     lineWidth: 32,
-    nameCharLimit: 22,
+    nameCharLimit: 18,
     hasAutoCutter: false,
     // Modern 2-Line Column layout: #  Item (22) + Amount (10) = 32
     gridMetrics: [22, 10],
@@ -43,9 +43,9 @@ export const PRINTER_PROFILES: Record<PrinterProfileId, PrinterProfile> = {
     badge: '3-Inch • 48 Col • Auto-Cut',
     paperWidth: '80mm Roll',
     lineWidth: 48,
-    nameCharLimit: 21,
+    nameCharLimit: 19,
     hasAutoCutter: true,
-    // Column layout: # (3) + Item Description (21) + Qty/Unit (8) + Price (7) + Amount (9) = 48
+    // Column layout: # (3) + Item Description (21) + Qty (8) + Price (7) + Amount (9) = 48
     gridMetrics: [3, 21, 8, 7, 9],
     gridPositions: [
       BluetoothEscposPrinter.ALIGN.LEFT,
@@ -54,7 +54,7 @@ export const PRINTER_PROFILES: Record<PrinterProfileId, PrinterProfile> = {
       BluetoothEscposPrinter.ALIGN.RIGHT,
       BluetoothEscposPrinter.ALIGN.RIGHT,
     ],
-    headerColumns: ['#', 'Item Description', 'Qty/Unit', 'Price', 'Amount'],
+    headerColumns: ['#', 'Item Description', 'Qty', 'Price', 'Amount'],
     // Summary row: Label (30) + Value (18) = 48
     totalMetrics: [30, 18],
     totalPositions: [

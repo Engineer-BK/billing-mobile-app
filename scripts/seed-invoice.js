@@ -46,28 +46,19 @@ const SAMPLE_20_ITEMS = [
   { sNo: "20", name: "Baby Soap", qty: "10", unit: "PCS", price: "98", discountPercent: "10", discountAmount: "98.00", amt: "882.00" },
 ];
 
-// const SAMPLE_20_ITEMS2 = [
-//   { sNo: "1", name: "Basmati Rice", qty: "10", unit: "KG", price: "90", amt: "900.00" },
-//   { sNo: "2", name: "Sona Masoori Rice", qty: "10", unit: "KG", price: "40", amt: "400.00" },
-//   { sNo: "3", name: "Wheat Atta", qty: "20", unit: "KG", price: "40", amt: "800.00" },
-//   { sNo: "4", name: "Maida Flour", qty: "5", unit: "KG", price: "45", amt: "225.00" },
-//   { sNo: "5", name: "Masoor Dal", qty: "4", unit: "KG", price: "100", amt: "400.00" },
-//   { sNo: "6", name: "Toor Dal", qty: "5", unit: "KG", price: "140", amt: "700.00" },
-//   { sNo: "7", name: "Moong Dal", qty: "3", unit: "KG", price: "120", amt: "360.00" },
-//   { sNo: "8", name: "Mustard Oil", qty: "5", unit: "L", price: "160", amt: "800.00" },
-//   { sNo: "9", name: "Sunflower Oil", qty: "10", unit: "L", price: "160", amt: "1600.00" },
-//   { sNo: "10", name: "Desi Ghee", qty: "2", unit: "KG", price: "650", amt: "1300.00" },
-//   { sNo: "11", name: "Turmeric Powder", qty: "2", unit: "KG", price: "220", amt: "440.00" },
-//   { sNo: "12", name: "Red Chilli Powder", qty: "2", unit: "KG", price: "280", amt: "560.00" },
-//   { sNo: "13", name: "Coriander Powder", qty: "1", unit: "KG", price: "180", amt: "180.00" },
-//   { sNo: "14", name: "Cumin Seeds", qty: "1", unit: "KG", price: "350", amt: "350.00" },
-//   { sNo: "15", name: "Black Pepper", qty: "0.5", unit: "KG", price: "700", amt: "350.00" },
-//   { sNo: "16", name: "Green Cardamom", qty: "0.25", unit: "KG", price: "1800", amt: "450.00" },
-//   { sNo: "17", name: "Kabuli Chana", qty: "5", unit: "KG", price: "120", amt: "600.00" },
-//   { sNo: "18", name: "Rajma Beans", qty: "4", unit: "KG", price: "140", amt: "560.00" },
-//   { sNo: "19", name: "Marie Gold Biscuit", qty: "15", unit: "PKT", price: "35", amt: "525.00" },
-//   { sNo: "20", name: "Baby Soap", qty: "10", unit: "PCS", price: "98", amt: "980.00" },
-// ];
+const SAMPLE_10_ITEMS = [
+  { sNo: "1", name: "Premium Long Grain Organic Jasmine Rice", qty: "5", unit: "KG", price: "180", discountPercent: "15", discountAmount: "135.00", amt: "765.00" },
+  { sNo: "2", name: "Salt", qty: "2", unit: "KG", price: "25", discountPercent: "", discountAmount: "0.00", amt: "50.00" },
+  { sNo: "3", name: "Extra Virgin Cold Pressed Olive Oil Blend", qty: "2", unit: "L", price: "850", discountPercent: "10", discountAmount: "170.00", amt: "1530.00" },
+  { sNo: "4", name: "Tea", qty: "1", unit: "KG", price: "290", discountPercent: "", discountAmount: "0.00", amt: "290.00" },
+  { sNo: "5", name: "Whole Wheat Multi Grain Breakfast Cereal Flakes", qty: "3", unit: "KG", price: "320", discountPercent: "5", discountAmount: "48.00", amt: "912.00" },
+  { sNo: "6", name: "Oats", qty: "4", unit: "KG", price: "150", discountPercent: "", discountAmount: "0.00", amt: "600.00" },
+  { sNo: "7", name: "Pure Natural Organic Wildflower Honey Bottle", qty: "2", unit: "KG", price: "450", discountPercent: "20", discountAmount: "180.00", amt: "720.00" },
+  { sNo: "8", name: "Poha", qty: "5", unit: "KG", price: "60", discountPercent: "", discountAmount: "0.00", amt: "300.00" },
+  { sNo: "9", name: "Dark Roasted Arabica Coffee Beans Pack", qty: "1", unit: "KG", price: "950", discountPercent: "8", discountAmount: "76.00", amt: "874.00" },
+  { sNo: "10", name: "Sugar", qty: "10", unit: "KG", price: "45", discountPercent: "", discountAmount: "0.00", amt: "450.00" }
+];
+
 
 async function seed() {
   const args = process.argv.slice(2);
@@ -97,7 +88,8 @@ async function seed() {
     let totalDiscount = 0;
     let finalAmount = 0;
 
-    for (const item of SAMPLE_20_ITEMS) {
+    // change items obj name for seed
+    for (const item of SAMPLE_10_ITEMS) {
       const q = parseFloat(item.qty) || 0;
       const p = parseFloat(item.price) || 0;
       const lineGross = q * p;
@@ -130,7 +122,8 @@ async function seed() {
       totalDiscount: totalDiscount.toFixed(2),
       finalAmount: finalAmount.toFixed(2),
       grandTotal: finalAmount.toFixed(2),
-      items: SAMPLE_20_ITEMS,
+      //change items obj name for seed
+      items: SAMPLE_10_ITEMS,
       updatedAt: Date.now(),
     };
 
