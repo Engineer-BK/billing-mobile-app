@@ -208,6 +208,15 @@ export function ReceiptPreview({
           const discAmt = parseFloat(it.discountAmount || '0') || 0;
           const hasDiscount = discPct > 0 || discAmt > 0;
 
+          const q = parseFloat(it.qty) || 0;
+          const p = parseFloat(it.price) || 0;
+          const gross = q * p;
+          const calcPct = discPct > 0 ? discPct : (gross > 0 ? Math.round((discAmt / gross) * 100) : 0);
+          const calcAmt = discAmt > 0 ? discAmt : (gross * (discPct / 100));
+          const amtStr = calcAmt > 0 ? ` (-₹${calcAmt.toFixed(2).replace(/\.00$/, '')})` : '';
+          const pctStr = calcPct > 0 ? `${calcPct}%` : '';
+          const previewDiscTag = `Dis: ${pctStr}${amtStr}`.trim();
+
           if (is58mm) {
             return (
               <View key={it.sNo} style={{ marginBottom: 4 }}>
@@ -227,7 +236,7 @@ export function ReceiptPreview({
                     {it.amt}
                   </Text>
                 </View>
-                {/* Line 2: Indented Qty x Price (+ Discount if available) */}
+                {/* Line 2: Indented Qty x Price (+ Right-aligned Dis: % (-₹Amt) if available) */}
                 <View style={[styles.tableRow, { paddingLeft: 14 }]}>
                   <Text
                     allowFontScaling={false}
@@ -240,7 +249,7 @@ export function ReceiptPreview({
                       allowFontScaling={false}
                       style={[styles.colCell, styles.txtRight, { color: '#16A34A', fontSize: 10.5, fontWeight: '700' }]}
                     >
-                      {discPct > 0 ? `Disc: ${discPct}%` : `Disc: -₹${discAmt.toFixed(2).replace(/\.00$/, '')}`}
+                      {previewDiscTag}
                     </Text>
                   )}
                 </View>
@@ -310,7 +319,7 @@ export function ReceiptPreview({
                     allowFontScaling={false}
                     style={[styles.colCell, { color: '#16A34A', fontSize: 10.5, fontWeight: '600' }]}
                   >
-                    {`↳ Item Discount: ${discPct > 0 ? `${discPct}% off ` : ''}(-₹${discAmt.toFixed(2).replace(/\.00$/, '')})`}
+                    {`↳ Item Discount: ${calcPct > 0 ? `${calcPct}% off ` : ''}(-₹${calcAmt.toFixed(2).replace(/\.00$/, '')})`}
                   </Text>
                 </View>
               )}
