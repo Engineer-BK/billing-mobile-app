@@ -221,6 +221,13 @@ export async function dispatchPrintReceipt(
       await BluetoothEscposPrinter.printText(tableHeader, {});
       await BluetoothEscposPrinter.printText(dividerLine, {});
 
+      // Comfortable vertical line spacing for 58mm items (prevents congested text)
+      try {
+        await BluetoothEscposPrinter.printerLineSpace(40);
+      } catch {
+        // Safe fallback if printer does not support variable line spacing
+      }
+
       // --- 6. Items List Loop (2-Line format) ---
       for (const record of invoice.items) {
         const unitText = record.unit ? ` ${record.unit}` : '';
@@ -234,6 +241,13 @@ export async function dispatchPrintReceipt(
         // Line 2: Indented Qty x Price
         const priceInfo = `     ${qtyWithUnit}  x  ${record.price}\n`;
         await BluetoothEscposPrinter.printText(priceInfo, {});
+      }
+
+      // Reset to standard line spacing for totals
+      try {
+        await BluetoothEscposPrinter.printerLineSpace(0);
+      } catch {
+        // ignore
       }
       await BluetoothEscposPrinter.printText(dividerLine, {});
 

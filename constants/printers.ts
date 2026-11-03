@@ -33,7 +33,7 @@ export const PRINTER_PROFILES: Record<PrinterProfileId, PrinterProfile> = {
     ],
     // Customizable paper feed spacing: { topSpace, bottomSpace }
     feedLines: {
-      topSpace: 0,     // 0 lines at top: reduces top space to the absolute minimum
+      topSpace: 1,     // 1 line at top: ~3.5mm clean margin so "Delivery Slip" clears the manual tear bar
       bottomSpace: 5,  // 5 lines at bottom: feeds past physical manual tear teeth
     },
   },
