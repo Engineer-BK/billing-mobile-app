@@ -64,18 +64,6 @@ import { QuickActionGrid } from './components/HomeScreen/QuickActionGrid';
 import { RecentBillsCard } from './components/HomeScreen/RecentBillsCard';
 import { ReceiptPreview } from './components/ReceiptPreview/ReceiptPreview';
 
-// Helper to identify and discard legacy mock/sample invoices
-const isMockInvoice = (inv: InvoiceData): boolean => {
-  const isMockCustomer =
-    inv.customerName === 'Basir Ahmed Khan' ||
-    inv.customerName === 'Ayaan Malik' ||
-    inv.customerName === 'Zubair Ahmed';
-  const hasMockItems =
-    Array.isArray(inv.items) &&
-    inv.items.some((i) => i.name === 'CHANACHUR' || i.name === 'BHUJIA-700' || i.name === 'SUN R MIRC');
-  return isMockCustomer || hasMockItems;
-};
-
 // Helper to detect gaps in invoice serial numbering (e.g. [1, 3] -> gap detected)
 const hasSequenceGaps = (invoices: InvoiceData[]): boolean => {
   if (invoices.length <= 1) return false;
@@ -175,16 +163,8 @@ function MainScreen(): React.JSX.Element {
       // Real store accounts load from clean real storage key
       storageService.loadInvoices().then((saved) => {
         if (saved && saved.length > 0) {
-          const realInvoices = saved.filter((inv) => !isMockInvoice(inv));
-          if (realInvoices.length > 0) {
-            setInvoicesList(realInvoices);
-            setCurrentInvoice(realInvoices[0]);
-          } else {
-            // Clean legacy mock records
-            setInvoicesList([]);
-            setCurrentInvoice(null);
-            storageService.saveInvoices([]);
-          }
+          setInvoicesList(saved);
+          setCurrentInvoice(saved[0]);
         } else {
           setInvoicesList([]);
           setCurrentInvoice(null);
@@ -217,23 +197,22 @@ function MainScreen(): React.JSX.Element {
       try {
         // 1. Immediately load local storage for instant 0ms UI render
         const rawLocal = await storageService.loadInvoices();
-        const localInvoices = (rawLocal || []).filter((inv) => !isMockInvoice(inv));
-        if (isMounted && localInvoices.length > 0) {
-          setInvoicesList(localInvoices);
-          setCurrentInvoice(localInvoices[0]);
+        if (isMounted && rawLocal && rawLocal.length > 0) {
+          setInvoicesList(rawLocal);
+          setCurrentInvoice(rawLocal[0]);
         }
 
         // 2. Multi-device pull from Cloud Firestore (Cloud Source of Truth)
         const cloudInvoices = await syncService.pullAllInvoices(uid);
         if (isMounted) {
-          let realCloud = (cloudInvoices || []).filter((inv) => !isMockInvoice(inv));
-          if (realCloud.length > 0) {
-            // Auto-heal any gaps in sequence (e.g., #1 and #3 -> automatically re-numbers to #1 and #2)
-            if (hasSequenceGaps(realCloud)) {
-              realCloud = await syncService.resequenceInvoices(uid, realCloud);
+          if (cloudInvoices && cloudInvoices.length > 0) {
+            setInvoicesList(cloudInvoices);
+            setCurrentInvoice(cloudInvoices[0]);
+            await storageService.saveInvoices(cloudInvoices);
+            const maxInvoiceNo = Math.max(...cloudInvoices.map((inv) => parseInt(inv.invoiceNo, 10) || 0));
+            if (maxInvoiceNo > 0) {
+              await storageService.saveNextInvoiceNumber(maxInvoiceNo + 1);
             }
-            setInvoicesList(realCloud);
-            setCurrentInvoice(realCloud[0]);
           } else {
             // Fresh account with 0 cloud invoices: ensure clean state
             setInvoicesList([]);
@@ -251,13 +230,9 @@ function MainScreen(): React.JSX.Element {
 
     // 3. Real-time Live Firestore Stream (auto-refreshes whenever invoices change)
     const unsubscribe = syncService.subscribeToInvoices(currentUid, async (liveInvoices) => {
-      let realLive = (liveInvoices || []).filter((inv) => !isMockInvoice(inv));
-      if (hasSequenceGaps(realLive)) {
-        realLive = await syncService.resequenceInvoices(currentUid, realLive);
-      }
-      if (isMounted && realLive.length > 0) {
-        setInvoicesList(realLive);
-        setCurrentInvoice(realLive[0]);
+      if (isMounted && liveInvoices && liveInvoices.length > 0) {
+        setInvoicesList(liveInvoices);
+        setCurrentInvoice(liveInvoices[0]);
       }
     });
 
@@ -281,13 +256,20 @@ function MainScreen(): React.JSX.Element {
     setIsRefreshingInvoices(true);
     try {
       const refreshed = await syncService.pullAllInvoices(user.uid);
-      let real = (refreshed || []).filter((inv) => !isMockInvoice(inv));
-      if (hasSequenceGaps(real)) {
-        real = await syncService.resequenceInvoices(user.uid, real);
-      }
-      if (real.length > 0) {
-        setInvoicesList(real);
-        setCurrentInvoice(real[0]);
+      if (refreshed && refreshed.length > 0) {
+        setInvoicesList(refreshed);
+        setCurrentInvoice(refreshed[0]);
+        await storageService.saveInvoices(refreshed);
+        const maxInvoiceNo = Math.max(...refreshed.map((inv) => parseInt(inv.invoiceNo, 10) || 0));
+        if (maxInvoiceNo > 0) {
+          await storageService.saveNextInvoiceNumber(maxInvoiceNo + 1);
+        }
+      } else {
+        const local = await storageService.loadInvoices();
+        if (local && local.length > 0) {
+          setInvoicesList(local);
+          setCurrentInvoice(local[0]);
+        }
       }
     } catch (err) {
       console.warn('Pull-to-refresh invoices error:', err);
@@ -535,61 +517,51 @@ function MainScreen(): React.JSX.Element {
       } else {
         setCurrentInvoice(null);
       }
-      Alert.alert(
-        'Invoice Deleted & Serial Maintained',
-        `Invoice #${invoiceNo} removed. Remaining bills have been automatically re-numbered (1, 2, 3...) to keep your sequence unbroken.`
-      );
       return;
     }
 
-    // 1. Delete the targeted bill from Cloud Firestore
-    if (user?.uid) {
-      await syncService.deleteInvoice(user.uid, invoiceNo);
-    }
-
+    // 1. Immediately update UI state (0ms latency, zero popup interruption)
     const remaining = invoicesList.filter((inv) => inv.invoiceNo !== invoiceNo);
+    const sortedAsc = [...remaining].sort((a, b) => (parseInt(a.invoiceNo, 10) || 0) - (parseInt(b.invoiceNo, 10) || 0));
+    const reseq = sortedAsc.map((inv, idx) => ({ ...inv, invoiceNo: String(idx + 1) })).sort((a, b) => (parseInt(b.invoiceNo, 10) || 0) - (parseInt(a.invoiceNo, 10) || 0));
 
-    // 2. Automatically re-number remaining invoices so serial sequence is never disturbed
-    const resequenced = await syncService.resequenceInvoices(user?.uid || '', remaining);
-
-    setInvoicesList(resequenced);
-    if (resequenced.length > 0) {
-      setCurrentInvoice(resequenced[0]);
+    setInvoicesList(reseq);
+    if (reseq.length > 0) {
+      setCurrentInvoice(reseq[0]);
     } else {
       setCurrentInvoice(null);
     }
+    await storageService.saveInvoices(reseq);
+    await storageService.saveNextInvoiceNumber(reseq.length + 1);
 
-    // 3. Keep next sequential counter in sync
-    await storageService.saveNextInvoiceNumber(resequenced.length + 1);
-
-    Alert.alert(
-      'Invoice Deleted & Serial Maintained',
-      `Invoice #${invoiceNo} was removed. Remaining bills have been automatically re-numbered (1, 2, 3...) to keep your serial sequence unbroken.`
-    );
+    // 2. Background Firestore synchronization & cloud resequence
+    if (user?.uid) {
+      await syncService.deleteInvoice(user.uid, invoiceNo);
+      await syncService.resequenceInvoices(user.uid, remaining);
+    }
   };
 
   // Handle Update Invoice Status (Paid <-> Unpaid)
   const handleUpdateInvoiceStatus = (invoiceNo: string, newStatus: 'PAID' | 'UNPAID') => {
-    setInvoicesList((prev) => {
-      const updated = prev.map((inv) =>
-        inv.invoiceNo === invoiceNo ? { ...inv, status: newStatus } : inv
-      );
-      if (user?.isGuest) {
-        storageService.saveGuestInvoices(updated);
-      } else {
-        storageService.saveInvoices(updated);
-      }
-      return updated;
-    });
+    const updatedList = invoicesList.map((inv) =>
+      inv.invoiceNo === invoiceNo ? { ...inv, status: newStatus } : inv
+    );
+    setInvoicesList(updatedList);
     if (currentInvoice?.invoiceNo === invoiceNo) {
       setCurrentInvoice((prev) => (prev ? { ...prev, status: newStatus } : null));
     }
 
+    if (user?.isGuest) {
+      storageService.saveGuestInvoices(updatedList);
+    } else {
+      storageService.saveInvoices(updatedList);
+    }
+
     // Background status update in Cloud Firestore (Real stores only)
     if (user?.uid && !user.isGuest) {
-      const target = invoicesList.find((inv) => inv.invoiceNo === invoiceNo);
+      const target = updatedList.find((inv) => inv.invoiceNo === invoiceNo);
       if (target) {
-        syncService.pushInvoice(user.uid, { ...target, status: newStatus });
+        syncService.pushInvoice(user.uid, target);
       }
     }
   };

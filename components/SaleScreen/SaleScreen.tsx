@@ -45,6 +45,11 @@ interface SaleScreenProps {
   onSaveInvoice: (invoice: InvoiceData, shouldPrint?: boolean, andNew?: boolean) => void;
 }
 
+// Helper to title-case each word (e.g. "ali ahmed" -> "Ali Ahmed")
+const capitalizeWords = (str: string): string => {
+  return str.replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
 export function SaleScreen({
   initialInvoiceNo = 1,
   shopName,
@@ -79,6 +84,24 @@ export function SaleScreen({
 
   // Cart / Items
   const [items, setItems] = useState<InvoiceItem[]>([]);
+
+  // Restore unsaved sale draft on mount
+  useEffect(() => {
+    storageService.loadSaleDraft().then((draft) => {
+      if (draft) {
+        if (draft.customerName) setCustomerName(draft.customerName);
+        if (draft.phoneNumber) setPhoneNumber(draft.phoneNumber);
+        if (Array.isArray(draft.items) && draft.items.length > 0) setItems(draft.items);
+      }
+    });
+  }, []);
+
+  // Auto-persist unsaved sale draft to AsyncStorage across tab switches or app exits
+  useEffect(() => {
+    if (customerName || phoneNumber || items.length > 0) {
+      storageService.saveSaleDraft({ customerName, phoneNumber, items });
+    }
+  }, [customerName, phoneNumber, items]);
 
   // Modals state
   const [showInvoiceModal, setShowInvoiceModal] = useState<boolean>(false);
@@ -153,12 +176,12 @@ export function SaleScreen({
         name: 'General Item',
         qty: '1',
         unit: 'PCS',
-        price: finalAmount && finalAmount !== '0' ? finalAmount : '100',
-        amt: finalAmount && finalAmount !== '0' ? finalAmount : '100',
+        price: finalAmount && finalAmount !== '0' ? finalAmount : '0',
+        amt: finalAmount && finalAmount !== '0' ? finalAmount : '0',
       },
     ];
 
-    const currentFinal = finalAmount && finalAmount !== '0' ? finalAmount : '100';
+    const currentFinal = finalAmount && finalAmount !== '0' ? finalAmount : '0';
 
     return {
       shopName: 'Delivery Slip',
@@ -184,6 +207,7 @@ export function SaleScreen({
     setPhoneNumber('');
     setItems([]);
     setSaleDate(new Date());
+    storageService.clearSaleDraft();
   };
 
   // Handle Save
@@ -226,6 +250,7 @@ export function SaleScreen({
               setCustomerName('');
               setPhoneNumber('');
               setItems([]);
+              storageService.clearSaleDraft();
             },
           },
         ]
@@ -276,7 +301,8 @@ export function SaleScreen({
             <TextInput
               style={[styles.inputText, { color: colors.textPrimary }]}
               value={customerName}
-              onChangeText={setCustomerName}
+              onChangeText={(text) => setCustomerName(capitalizeWords(text))}
+              autoCapitalize="words"
               placeholder="e.g. Basir Khan (or Walk-in)"
               placeholderTextColor={colors.textMuted}
             />

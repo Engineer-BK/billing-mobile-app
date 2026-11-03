@@ -66,6 +66,7 @@ declare module 'react-native-bluetooth-escpos-printer' {
 
     export function printerInit(): Promise<void>;
     export function printerLeftSpace(space: number): Promise<void>;
+    export function printerLineSpace(space: number): Promise<void>;
     export function printerAlign(align: number): Promise<void>;
     export function printText(text: string, options?: PrintTextOptions): Promise<void>;
     export function printColumn(

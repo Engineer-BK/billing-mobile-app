@@ -116,6 +116,13 @@ export async function dispatchPrintReceipt(
       );
       await BluetoothEscposPrinter.printText(dividerLine, {});
 
+      // Comfortable vertical line spacing for 80mm items (prevents congested text)
+      try {
+        await BluetoothEscposPrinter.printerLineSpace(44);
+      } catch {
+        // Safe fallback if printer does not support variable line spacing
+      }
+
       // --- 6. Items List Loop (Includes Unit e.g. "2 KG") ---
       for (const record of invoice.items) {
         const unitText = record.unit ? ` ${record.unit}` : '';
@@ -133,6 +140,13 @@ export async function dispatchPrintReceipt(
           ],
           {}
         );
+      }
+
+      // Reset to standard line spacing for totals
+      try {
+        await BluetoothEscposPrinter.printerLineSpace(0);
+      } catch {
+        // ignore
       }
       await BluetoothEscposPrinter.printText(dividerLine, {});
 
@@ -173,6 +187,10 @@ export async function dispatchPrintReceipt(
         {}
       );
       await BluetoothEscposPrinter.printText(dividerLine, {});
+
+      // Centered Polite Closing (80mm)
+      await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
+      await BluetoothEscposPrinter.printText('Thank You! Visit Again\n', {});
     } else {
       // 58mm layout (32 Columns) - Modern 2-Line Retail Layout (Zero Cut-offs / Zero Orphans)
       const shortYear = String(year).slice(-2);

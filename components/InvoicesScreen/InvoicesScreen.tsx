@@ -23,6 +23,7 @@ import {
   Platform,
   Alert,
   RefreshControl,
+  ScrollView,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
@@ -82,12 +83,61 @@ export function InvoicesScreen({
     return false;
   }, [invoices]);
 
-  // Filter invoices based on search query
+  // Cute Filter Chip Types
+  type InvoiceFilterType = 'ALL' | 'PAID' | 'UNPAID' | 'TODAY' | 'HIGH_VALUE';
+  const [activeFilter, setActiveFilter] = useState<InvoiceFilterType>('ALL');
+
+  // Today helper: format DD/MM/YYYY or DD/MM/YY
+  const todayPatterns = useMemo(() => {
+    const now = new Date();
+    const dd = String(now.getDate()).padStart(2, '0');
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const yyyy = now.getFullYear();
+    const yy = String(yyyy).slice(-2);
+    return [`${dd}/${mm}/${yyyy}`, `${dd}/${mm}/${yy}`];
+  }, []);
+
+  // Filter chips configuration with live counts
+  const filterOptions = useMemo(() => {
+    const all = invoices.length;
+    const paid = invoices.filter((i) => (i.status || 'PAID') === 'PAID').length;
+    const unpaid = invoices.filter((i) => (i.status || 'PAID') === 'UNPAID').length;
+    const today = invoices.filter((i) => {
+      const d = i.date || '';
+      return todayPatterns.some((pat) => d.includes(pat));
+    }).length;
+    const highVal = invoices.filter((i) => (parseFloat(i.grandTotal) || 0) >= 1000).length;
+
+    return [
+      { id: 'ALL' as InvoiceFilterType, label: 'All Bills', icon: 'receipt', count: all },
+      { id: 'PAID' as InvoiceFilterType, label: 'Paid', icon: 'check-circle-outline', color: '#10B981', count: paid },
+      { id: 'UNPAID' as InvoiceFilterType, label: 'Unpaid', icon: 'clock-alert-outline', color: '#F59E0B', count: unpaid },
+      { id: 'TODAY' as InvoiceFilterType, label: 'Today', icon: 'calendar-today', color: '#3B82F6', count: today },
+      { id: 'HIGH_VALUE' as InvoiceFilterType, label: '₹1K+ High', icon: 'cash-multiple', color: '#8B5CF6', count: highVal },
+    ];
+  }, [invoices, todayPatterns]);
+
+  // Filter invoices based on active tab chip AND search query
   const filteredInvoices = useMemo(() => {
-    if (!searchQuery.trim()) return invoices;
+    let result = invoices;
+
+    if (activeFilter === 'PAID') {
+      result = result.filter((inv) => (inv.status || 'PAID') === 'PAID');
+    } else if (activeFilter === 'UNPAID') {
+      result = result.filter((inv) => (inv.status || 'PAID') === 'UNPAID');
+    } else if (activeFilter === 'TODAY') {
+      result = result.filter((inv) => {
+        const d = inv.date || '';
+        return todayPatterns.some((pat) => d.includes(pat));
+      });
+    } else if (activeFilter === 'HIGH_VALUE') {
+      result = result.filter((inv) => (parseFloat(inv.grandTotal) || 0) >= 1000);
+    }
+
+    if (!searchQuery.trim()) return result;
     const q = searchQuery.toLowerCase().trim();
 
-    return invoices.filter((inv) => {
+    return result.filter((inv) => {
       const cust = (inv.customerName || '').toLowerCase();
       const invNo = (inv.invoiceNo || '').toLowerCase();
       const dt = (inv.date || '').toLowerCase();
@@ -100,7 +150,7 @@ export function InvoicesScreen({
         amt.includes(q)
       );
     });
-  }, [invoices, searchQuery]);
+  }, [invoices, activeFilter, searchQuery, todayPatterns]);
 
   // Aggregate metrics
   const totalRevenue = useMemo(() => {
@@ -223,6 +273,78 @@ export function InvoicesScreen({
             />
           </TouchableOpacity>
         ) : null}
+      </View>
+
+      {/* 2B. Cute Horizontal Filter Chips */}
+      <View style={styles.filterScrollWrapper}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterScrollContent}
+        >
+          {filterOptions.map((filter) => {
+            const isSelected = activeFilter === filter.id;
+            return (
+              <TouchableOpacity
+                key={filter.id}
+                style={[
+                  styles.filterChip,
+                  {
+                    backgroundColor: isSelected
+                      ? colors.primary
+                      : isDark
+                      ? colors.surface
+                      : '#FFFFFF',
+                    borderColor: isSelected
+                      ? colors.primary
+                      : colors.borderLight,
+                  },
+                ]}
+                onPress={() => setActiveFilter(filter.id)}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons
+                  name={filter.icon as any}
+                  size={14}
+                  color={isSelected ? '#FFFFFF' : filter.color || colors.textSecondary}
+                  style={{ marginRight: 5 }}
+                />
+                <Text
+                  style={[
+                    styles.filterChipLabel,
+                    {
+                      color: isSelected ? '#FFFFFF' : colors.textPrimary,
+                      fontWeight: isSelected ? '700' : '500',
+                    },
+                  ]}
+                >
+                  {filter.label}
+                </Text>
+                <View
+                  style={[
+                    styles.filterCountBadge,
+                    {
+                      backgroundColor: isSelected
+                        ? 'rgba(255, 255, 255, 0.25)'
+                        : isDark
+                        ? 'rgba(255, 255, 255, 0.1)'
+                        : '#F1F5F9',
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.filterCountTxt,
+                      { color: isSelected ? '#FFFFFF' : colors.textSecondary },
+                    ]}
+                  >
+                    {filter.count}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
 
       {/* 3. Invoices List */}
@@ -658,6 +780,34 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginTop: 2,
     lineHeight: 15,
+  },
+  filterScrollWrapper: {
+    marginBottom: 12,
+  },
+  filterScrollContent: {
+    paddingHorizontal: 2,
+    gap: 8,
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  filterChipLabel: {
+    fontSize: 12,
+  },
+  filterCountBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 10,
+    marginLeft: 6,
+  },
+  filterCountTxt: {
+    fontSize: 10,
+    fontWeight: '700',
   },
 });
 

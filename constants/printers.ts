@@ -43,10 +43,10 @@ export const PRINTER_PROFILES: Record<PrinterProfileId, PrinterProfile> = {
     badge: '3-Inch • 48 Col • Auto-Cut',
     paperWidth: '80mm Roll',
     lineWidth: 48,
-    nameCharLimit: 19,
+    nameCharLimit: 21,
     hasAutoCutter: true,
-    // Column layout: # (3) + Item Description (19) + Qty/Unit (9) + Price (8) + Amount (9) = 48
-    gridMetrics: [3, 19, 9, 8, 9],
+    // Column layout: # (3) + Item Description (21) + Qty/Unit (8) + Price (7) + Amount (9) = 48
+    gridMetrics: [3, 21, 8, 7, 9],
     gridPositions: [
       BluetoothEscposPrinter.ALIGN.LEFT,
       BluetoothEscposPrinter.ALIGN.LEFT,

@@ -13,7 +13,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { InvoiceData } from '../types/billing';
+import { InvoiceData, InvoiceItem } from '../types/billing';
 import { PrinterProfileId } from '../types/printer';
 import { UserProfile } from '../types/auth';
 import { LicenseVerificationResult } from '../types/license';
@@ -28,7 +28,14 @@ const STORAGE_KEYS = {
   THEME_MODE: '@flashbill:theme_mode_v1',
   USER_SESSION: '@flashbill:user_session_v1',
   STORE_LICENSE: '@flashbill:store_license_v1',
+  SALE_DRAFT: '@flashbill:sale_draft_v1',
 } as const;
+
+export interface SaleDraft {
+  customerName: string;
+  phoneNumber: string;
+  items: InvoiceItem[];
+}
 
 export interface SavedPrinterInfo {
   address: string;
@@ -398,6 +405,49 @@ export const storageService = {
       return true;
     } catch (err) {
       console.warn('storageService.purgeUserData error:', err);
+      return false;
+    }
+  },
+  // ==========================================
+  // 8. SALE DRAFT PERSISTENCE
+  // ==========================================
+
+  /**
+   * Load active unsaved sale draft from local cache.
+   */
+  async loadSaleDraft(): Promise<SaleDraft | null> {
+    try {
+      const json = await AsyncStorage.getItem(STORAGE_KEYS.SALE_DRAFT);
+      if (!json) return null;
+      return JSON.parse(json) as SaleDraft;
+    } catch (err) {
+      console.warn('storageService.loadSaleDraft error:', err);
+      return null;
+    }
+  },
+
+  /**
+   * Save active unsaved sale draft.
+   */
+  async saveSaleDraft(draft: SaleDraft): Promise<boolean> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.SALE_DRAFT, JSON.stringify(draft));
+      return true;
+    } catch (err) {
+      console.warn('storageService.saveSaleDraft error:', err);
+      return false;
+    }
+  },
+
+  /**
+   * Clear active sale draft (on save or clear form).
+   */
+  async clearSaleDraft(): Promise<boolean> {
+    try {
+      await AsyncStorage.removeItem(STORAGE_KEYS.SALE_DRAFT);
+      return true;
+    } catch (err) {
+      console.warn('storageService.clearSaleDraft error:', err);
       return false;
     }
   },

@@ -428,7 +428,7 @@ const styles = StyleSheet.create({
   tableRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 1.5,
+    marginVertical: 2.5,
   },
   colHeader: {
     fontSize: 10.5,

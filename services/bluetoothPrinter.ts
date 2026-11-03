@@ -124,6 +124,12 @@ export const BluetoothEscposPrinter = {
     }
   },
 
+  printerLineSpace: async (space: number): Promise<void> => {
+    if (isNativeHardwareAvailable && nativeEscpos?.printerLineSpace) {
+      return nativeEscpos.printerLineSpace(space);
+    }
+  },
+
   printerAlign: async (align: number): Promise<void> => {
     if (isNativeHardwareAvailable && nativeEscpos?.printerAlign) {
       return nativeEscpos.printerAlign(align);
