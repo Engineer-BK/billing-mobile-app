@@ -12,7 +12,7 @@ import { PrinterProfileId, PrinterProfile } from '../types/printer';
 export const PRINTER_PROFILES: Record<PrinterProfileId, PrinterProfile> = {
   SC588: {
     id: 'SC588',
-    displayName: 'SC588 (58mm)',
+    displayName: '58mm Thermal (2-Inch)',
     badge: '2-Inch • 32 Col',
     paperWidth: '58mm Roll',
     lineWidth: 32,
@@ -39,7 +39,7 @@ export const PRINTER_PROFILES: Record<PrinterProfileId, PrinterProfile> = {
   },
   EZO80: {
     id: 'EZO80',
-    displayName: 'EZO 80UB (80mm)',
+    displayName: '80mm Thermal (3-Inch)',
     badge: '3-Inch • 48 Col • Auto-Cut',
     paperWidth: '80mm Roll',
     lineWidth: 48,

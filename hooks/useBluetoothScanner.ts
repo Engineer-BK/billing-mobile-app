@@ -29,6 +29,7 @@ export function useBluetoothScanner({ onProfileAutoDetected }: UseBluetoothScann
   const [deviceList, setDeviceList] = useState<BluetoothDevice[]>([]);
   const [showDeviceList, setShowDeviceList] = useState<boolean>(false);
   const [lastError, setLastError] = useState<string | null>(null);
+  const [isAutoDetected, setIsAutoDetected] = useState<boolean>(false);
 
   // Restore saved printer from persistent storage on mount
   useEffect(() => {
@@ -83,20 +84,40 @@ export function useBluetoothScanner({ onProfileAutoDetected }: UseBluetoothScann
   };
 
   /**
-   * Inspects Bluetooth broadcast name to determine if the device is 80mm or 58mm.
+   * Intelligently inspects Bluetooth broadcast name across all major POS printer manufacturers
+   * to determine whether the device is 80mm (3-Inch) or 58mm (2-Inch).
    */
-  const autoDetectProfileByName = (name: string): PrinterProfileId => {
+  const autoDetectProfileByName = (
+    name: string
+  ): { profile: PrinterProfileId; isAutoDetected: boolean; matchedPattern?: string } => {
     const devUpper = (name || '').toUpperCase();
-    if (
-      devUpper.includes('80UB') ||
-      devUpper.includes('EZO') ||
-      devUpper.includes('POS-80') ||
-      devUpper.includes('POS80') ||
-      devUpper.includes('80MM')
-    ) {
-      return 'EZO80';
+
+    // Comprehensive 80mm (3-Inch) hardware patterns
+    const patterns80 = [
+      '80MM', 'POS-80', 'POS80', 'POS 80', 'RP-80', 'RP80', 'XP-80', 'XP-N160', 'XP-Q800',
+      'XP-365', '3INCH', '3 INCH', '3-INCH', '80UB', 'EZO', 'MPT-III', 'MPT3', 'MPT-3',
+      'THERMAL-80', 'T80', 'P80', 'ZJ-80', 'HOIN-80', 'SUNMI', 'QS-80', 'EP-80', 'MTP-3', 'BT-80'
+    ];
+    for (const pat of patterns80) {
+      if (devUpper.includes(pat)) {
+        return { profile: 'EZO80', isAutoDetected: true, matchedPattern: pat };
+      }
     }
-    return 'SC588';
+
+    // Comprehensive 58mm (2-Inch) hardware patterns
+    const patterns58 = [
+      '58MM', 'POS-58', 'POS58', 'POS 58', 'RP-58', 'RP58', 'XP-58', '2INCH', '2 INCH',
+      '2-INCH', 'SC588', 'SC-588', 'MPT-II', 'MPT2', 'MPT-2', 'THERMAL-58', 'T58', 'P58',
+      'ZJ-58', 'HOIN-58', 'QS-58', 'EP-58', 'MTP-2', 'BT-58', 'BLUEBAMBOO'
+    ];
+    for (const pat of patterns58) {
+      if (devUpper.includes(pat)) {
+        return { profile: 'SC588', isAutoDetected: true, matchedPattern: pat };
+      }
+    }
+
+    // Default fallback to 58mm (most portable Bluetooth POS printers are 58mm)
+    return { profile: 'SC588', isAutoDetected: false };
   };
 
   /**
@@ -184,18 +205,23 @@ export function useBluetoothScanner({ onProfileAutoDetected }: UseBluetoothScann
       setShowDeviceList(false);
 
       // Auto-detect profile and notify parent
-      const detected = autoDetectProfileByName(name);
-      onProfileAutoDetected?.(detected);
+      const { profile, isAutoDetected: detectedBool } = autoDetectProfileByName(name);
+      setIsAutoDetected(detectedBool);
+      onProfileAutoDetected?.(profile);
 
       // Persist connected printer to AsyncStorage
       await storageService.saveSavedPrinter({
         address,
         name: name || address,
-        profileId: detected,
+        profileId: profile,
         lastConnectedAt: new Date().toISOString(),
       });
 
-      Alert.alert('Link Verified', `${name || 'Printer'} connected and bound successfully.`);
+      const sizeLabel = profile === 'EZO80' ? '80mm Roll (3-Inch)' : '58mm Roll (2-Inch)';
+      Alert.alert(
+        'Printer Connected',
+        `Device: ${name || 'Printer'}\nDetected Size: ${sizeLabel}${detectedBool ? ' (Auto-Detected ⚡)' : ''}\n\nReady for thermal printing.`
+      );
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       setLastError(msg);
@@ -233,6 +259,7 @@ export function useBluetoothScanner({ onProfileAutoDetected }: UseBluetoothScann
     showDeviceList,
     setShowDeviceList,
     lastError,
+    isAutoDetected,
     clearLastError: () => setLastError(null),
     discoverAndBindPrinter,
     connectToDevice,

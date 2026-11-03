@@ -121,6 +121,7 @@ function MainScreen(): React.JSX.Element {
     isScanning,
     deviceList,
     lastError,
+    isAutoDetected,
     clearLastError,
     discoverAndBindPrinter,
     connectToDevice,
@@ -715,6 +716,7 @@ function MainScreen(): React.JSX.Element {
           activeConfig={activeConfig}
           sampleInvoice={currentInvoice || SAMPLE_INVOICE}
           lastError={lastError}
+          isAutoDetected={isAutoDetected}
           onClearError={clearLastError}
           onSelectProfile={handleSelectProfile}
           onScan={discoverAndBindPrinter}

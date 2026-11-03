@@ -140,6 +140,16 @@ export async function dispatchPrintReceipt(
           ],
           {}
         );
+
+        // Print item discount annotation if available
+        const discPct = parseFloat(record.discountPercent || '0') || 0;
+        const discAmt = parseFloat(record.discountAmount || '0') || 0;
+        if (discPct > 0 || discAmt > 0) {
+          const pctStr = discPct > 0 ? `${discPct}% off ` : '';
+          const amtStr = discAmt > 0 ? `(-Rs.${discAmt.toFixed(2).replace(/\.00$/, '')})` : '';
+          const discountLine = `     * Item Discount: ${pctStr}${amtStr}\n`;
+          await BluetoothEscposPrinter.printText(discountLine, {});
+        }
       }
 
       // Reset to standard line spacing for totals
@@ -238,9 +248,20 @@ export async function dispatchPrintReceipt(
         const line1Item = formatTwoColumns(itemHeading, record.amt, 32);
         await BluetoothEscposPrinter.printText(line1Item, {});
 
-        // Line 2: Indented Qty x Price
-        const priceInfo = `     ${qtyWithUnit}  x  ${record.price}\n`;
-        await BluetoothEscposPrinter.printText(priceInfo, {});
+        // Line 2: Indented Qty x Price (+ Discount badge if available)
+        const discPct = parseFloat(record.discountPercent || '0') || 0;
+        const discAmt = parseFloat(record.discountAmount || '0') || 0;
+        const rateInfo = `     ${qtyWithUnit}  x  ${record.price}`;
+
+        if (discPct > 0 || discAmt > 0) {
+          const discTag = discPct > 0
+            ? `Disc: ${discPct}%`
+            : `Disc: -${discAmt.toFixed(2).replace(/\.00$/, '')}`;
+          const line2Item = formatTwoColumns(rateInfo, discTag, 32);
+          await BluetoothEscposPrinter.printText(line2Item, {});
+        } else {
+          await BluetoothEscposPrinter.printText(`${rateInfo}\n`, {});
+        }
       }
 
       // Reset to standard line spacing for totals

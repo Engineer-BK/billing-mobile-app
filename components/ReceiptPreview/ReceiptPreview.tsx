@@ -200,10 +200,13 @@ export function ReceiptPreview({
 
         <DashedDivider />
 
-        {/* Dynamic Items Rows (Includes Unit e.g. "2 KG") */}
+        {/* Dynamic Items Rows (Includes Unit e.g. "2 KG" and Item Discounts) */}
         {invoice.items.map((it) => {
           const unitStr = it.unit ? ` ${it.unit}` : '';
           const qtyUnitStr = `${it.qty}${unitStr}`.trim();
+          const discPct = parseFloat(it.discountPercent || '0') || 0;
+          const discAmt = parseFloat(it.discountAmount || '0') || 0;
+          const hasDiscount = discPct > 0 || discAmt > 0;
 
           if (is58mm) {
             return (
@@ -224,69 +227,93 @@ export function ReceiptPreview({
                     {it.amt}
                   </Text>
                 </View>
-                {/* Line 2: Indented Qty x Price */}
-                <Text
-                  allowFontScaling={false}
-                  style={[styles.colCell, { color: '#475569', fontSize: 11, paddingLeft: 14 }]}
-                >
-                  {`${qtyUnitStr}  x  ${it.price}`}
-                </Text>
+                {/* Line 2: Indented Qty x Price (+ Discount if available) */}
+                <View style={[styles.tableRow, { paddingLeft: 14 }]}>
+                  <Text
+                    allowFontScaling={false}
+                    style={[styles.colCell, { color: '#475569', fontSize: 11, flex: 1 }]}
+                  >
+                    {`${qtyUnitStr}  x  ${it.price}`}
+                  </Text>
+                  {hasDiscount && (
+                    <Text
+                      allowFontScaling={false}
+                      style={[styles.colCell, styles.txtRight, { color: '#16A34A', fontSize: 10.5, fontWeight: '700' }]}
+                    >
+                      {discPct > 0 ? `Disc: ${discPct}%` : `Disc: -₹${discAmt.toFixed(2).replace(/\.00$/, '')}`}
+                    </Text>
+                  )}
+                </View>
               </View>
             );
           }
 
           return (
-            <View key={it.sNo} style={styles.tableRow}>
-              <Text
-                allowFontScaling={false}
-                style={[
-                  styles.colCell,
-                  { flex: activeConfig.gridMetrics[0] },
-                ]}
-              >
-                {it.sNo}
-              </Text>
-              <Text
-                allowFontScaling={false}
-                numberOfLines={1}
-                style={[
-                  styles.colCell,
-                  { flex: activeConfig.gridMetrics[1] },
-                ]}
-              >
-                {it.name.substring(0, activeConfig.nameCharLimit)}
-              </Text>
-              <Text
-                allowFontScaling={false}
-                numberOfLines={1}
-                style={[
-                  styles.colCell,
-                  styles.txtRight,
-                  { flex: activeConfig.gridMetrics[2] },
-                ]}
-              >
-                {qtyUnitStr}
-              </Text>
-              <Text
-                allowFontScaling={false}
-                style={[
-                  styles.colCell,
-                  styles.txtRight,
-                  { flex: activeConfig.gridMetrics[3] },
-                ]}
-              >
-                {it.price}
-              </Text>
-              <Text
-                allowFontScaling={false}
-                style={[
-                  styles.colCell,
-                  styles.txtRight,
-                  { flex: activeConfig.gridMetrics[4] },
-                ]}
-              >
-                {it.amt}
-              </Text>
+            <View key={it.sNo} style={{ marginBottom: hasDiscount ? 3 : 1 }}>
+              <View style={styles.tableRow}>
+                <Text
+                  allowFontScaling={false}
+                  style={[
+                    styles.colCell,
+                    { flex: activeConfig.gridMetrics[0] },
+                  ]}
+                >
+                  {it.sNo}
+                </Text>
+                <Text
+                  allowFontScaling={false}
+                  numberOfLines={1}
+                  style={[
+                    styles.colCell,
+                    { flex: activeConfig.gridMetrics[1] },
+                  ]}
+                >
+                  {it.name.substring(0, activeConfig.nameCharLimit)}
+                </Text>
+                <Text
+                  allowFontScaling={false}
+                  numberOfLines={1}
+                  style={[
+                    styles.colCell,
+                    styles.txtRight,
+                    { flex: activeConfig.gridMetrics[2] },
+                  ]}
+                >
+                  {qtyUnitStr}
+                </Text>
+                <Text
+                  allowFontScaling={false}
+                  style={[
+                    styles.colCell,
+                    styles.txtRight,
+                    { flex: activeConfig.gridMetrics[3] },
+                  ]}
+                >
+                  {it.price}
+                </Text>
+                <Text
+                  allowFontScaling={false}
+                  style={[
+                    styles.colCell,
+                    styles.txtRight,
+                    { flex: activeConfig.gridMetrics[4] },
+                  ]}
+                >
+                  {it.amt}
+                </Text>
+              </View>
+
+              {/* 80mm Annotated Item Discount Sub-row */}
+              {hasDiscount && (
+                <View style={{ paddingLeft: 18, marginTop: 1 }}>
+                  <Text
+                    allowFontScaling={false}
+                    style={[styles.colCell, { color: '#16A34A', fontSize: 10.5, fontWeight: '600' }]}
+                  >
+                    {`↳ Item Discount: ${discPct > 0 ? `${discPct}% off ` : ''}(-₹${discAmt.toFixed(2).replace(/\.00$/, '')})`}
+                  </Text>
+                </View>
+              )}
             </View>
           );
         })}

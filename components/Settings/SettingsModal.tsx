@@ -208,7 +208,7 @@ export function SettingsModal({
                               },
                             ]}
                           >
-                            80mm (Counter)
+                            80mm (3-Inch)
                           </Text>
                         </TouchableOpacity>
 
@@ -235,7 +235,7 @@ export function SettingsModal({
                               },
                             ]}
                           >
-                            58mm (Pocket)
+                            58mm (2-Inch)
                           </Text>
                         </TouchableOpacity>
                       </View>

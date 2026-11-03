@@ -41,6 +41,7 @@ interface PrintersScreenProps {
   activeConfig: PrinterProfile;
   sampleInvoice: InvoiceData;
   lastError?: string | null;
+  isAutoDetected?: boolean;
   onClearError?: () => void;
   onSelectProfile: (profile: PrinterProfileId) => void;
   onScan: () => void;
@@ -60,6 +61,7 @@ export function PrintersScreen({
   activeConfig,
   sampleInvoice,
   lastError,
+  isAutoDetected,
   onClearError,
   onSelectProfile,
   onScan,
@@ -251,7 +253,7 @@ export function PrintersScreen({
           </View>
         </View>
 
-        {/* Profile Specifications Badges */}
+        {/* Profile Specifications Badges & Auto-Detect Indicator */}
         <View style={styles.specsBadgeRow}>
           <View
             style={[
@@ -294,11 +296,46 @@ export function PrintersScreen({
               ]}
             >
               <Text style={[styles.specBadgeTxt, { color: colors.textSecondary }]}>
-                Manual Tear
+                Manual Tear Bar
+              </Text>
+            </View>
+          )}
+
+          {isConnected && isAutoDetected && (
+            <View
+              style={[
+                styles.specBadge,
+                { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#DCFCE7', borderColor: colors.success },
+              ]}
+            >
+              <Text style={[styles.specBadgeTxt, { color: colors.success, fontWeight: '700' }]}>
+                ⚡ Auto-Detected Size
               </Text>
             </View>
           )}
         </View>
+
+        {/* Quick Size Switcher Button (shown when connected) */}
+        {isConnected && (
+          <View style={[styles.quickSwitchRow, { borderTopColor: colors.borderLight }]}>
+            <Text style={[styles.quickSwitchLabel, { color: colors.textSecondary }]}>
+              Current Size: <Text style={{ color: colors.primary, fontWeight: '700' }}>{activeConfig.displayName}</Text>
+            </Text>
+            <TouchableOpacity
+              style={[
+                styles.quickSwitchBtn,
+                { backgroundColor: colors.primaryLight, borderColor: colors.primary },
+              ]}
+              onPress={() => onSelectProfile(selectedProfile === 'SC588' ? 'EZO80' : 'SC588')}
+              activeOpacity={0.7}
+            >
+              <MaterialCommunityIcons name="swap-horizontal" size={16} color={colors.primary} />
+              <Text style={[styles.quickSwitchBtnTxt, { color: colors.primary }]}>
+                {selectedProfile === 'SC588' ? 'Switch to 80mm' : 'Switch to 58mm'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Quick Diagnostic Actions (Test Print, Paper Feed, Disconnect) */}
         <View style={[styles.heroActionsRow, { borderTopColor: colors.borderLight }]}>
@@ -405,7 +442,7 @@ export function PrintersScreen({
         </Text>
 
         <View style={styles.profilesRow}>
-          {/* Option A: SC588 (58mm) */}
+          {/* Option A: 58mm Roll (2-Inch) */}
           <TouchableOpacity
             style={[
               styles.profileCard,
@@ -435,7 +472,7 @@ export function PrintersScreen({
                   },
                 ]}
               >
-                SC588 (58mm)
+                58mm Roll (2-Inch)
               </Text>
               {selectedProfile === 'SC588' && (
                 <MaterialCommunityIcons
@@ -456,14 +493,14 @@ export function PrintersScreen({
                 },
               ]}
             >
-              32 Columns • 2-Inch Roll
+              32 Columns • Compact
             </Text>
             <Text style={[styles.profileSub, { color: colors.textSecondary }]}>
-              Standard compact POS receipt
+              Universal for all 58mm / 2-Inch printers
             </Text>
           </TouchableOpacity>
 
-          {/* Option B: EZO 80UB (80mm) */}
+          {/* Option B: 80mm Roll (3-Inch) */}
           <TouchableOpacity
             style={[
               styles.profileCard,
@@ -493,7 +530,7 @@ export function PrintersScreen({
                   },
                 ]}
               >
-                EZO 80UB (80mm)
+                80mm Roll (3-Inch)
               </Text>
               {selectedProfile === 'EZO80' && (
                 <MaterialCommunityIcons
@@ -514,10 +551,10 @@ export function PrintersScreen({
                 },
               ]}
             >
-              48 Columns • 3-Inch Roll
+              48 Columns • Wide Layout
             </Text>
             <Text style={[styles.profileSub, { color: colors.textSecondary }]}>
-              High-density bill + Auto-Cutter
+              Universal for all 80mm / 3-Inch printers
             </Text>
           </TouchableOpacity>
         </View>
@@ -836,7 +873,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
-    marginBottom: 14,
+    marginBottom: 10,
+  },
+  quickSwitchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 10,
+    marginBottom: 12,
+    borderTopWidth: 1,
+  },
+  quickSwitchLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  quickSwitchBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  quickSwitchBtnTxt: {
+    fontSize: 11,
+    fontWeight: '800',
   },
   specBadge: {
     paddingHorizontal: 8,

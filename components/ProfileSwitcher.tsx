@@ -65,7 +65,7 @@ export function ProfileSwitcher({
               },
             ]}
           >
-            SC588 (58mm)
+            58mm (2-Inch)
           </Text>
           <Text
             style={[
@@ -110,7 +110,7 @@ export function ProfileSwitcher({
               },
             ]}
           >
-            EZO 80UB (80mm)
+            80mm (3-Inch)
           </Text>
           <Text
             style={[

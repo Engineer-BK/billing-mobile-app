@@ -25,7 +25,7 @@ export function HeaderBar(): React.JSX.Element {
           </Text>
         </View>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          SC588 (58mm) • EZO 80UB (80mm Auto-Cut)
+          58mm (2-Inch) • 80mm (3-Inch Auto-Cut)
         </Text>
       </View>
 
