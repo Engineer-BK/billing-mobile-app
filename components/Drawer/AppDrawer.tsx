@@ -43,6 +43,7 @@ interface AppDrawerProps {
   onSelectTab: (tab: NavTabId) => void;
   onOpenAccountModal: () => void;
   onOpenSettingsModal: () => void;
+  onOpenAboutModal?: () => void;
   onOpenPrintersModal?: () => void;
   onSignOut: () => void;
   onOpenActivationModal?: () => void;
@@ -55,6 +56,7 @@ export function AppDrawer({
   onSelectTab,
   onOpenAccountModal,
   onOpenSettingsModal,
+  onOpenAboutModal,
   onOpenPrintersModal,
   onSignOut,
   onOpenActivationModal,
@@ -436,22 +438,6 @@ export function AppDrawer({
               </Text>
             </TouchableOpacity>
 
-            {/* POS Settings */}
-            <TouchableOpacity
-              style={styles.navItem}
-              onPress={() => handleAction(onOpenSettingsModal)}
-              activeOpacity={0.7}
-            >
-              <MaterialCommunityIcons
-                name="cog-outline"
-                size={22}
-                color={colors.textPrimary}
-              />
-              <Text style={[styles.navLabel, { color: colors.textPrimary }]}>
-                POS Preferences
-              </Text>
-            </TouchableOpacity>
-
             {/* Store License & Activation (Module 2) */}
             <TouchableOpacity
               style={[
@@ -494,6 +480,45 @@ export function AppDrawer({
                 size={18}
                 color={isActivated ? colors.textMuted : '#D97706'}
               />
+            </TouchableOpacity>
+
+            {/* POS Settings */}
+            <TouchableOpacity
+              style={styles.navItem}
+              onPress={() => handleAction(onOpenSettingsModal)}
+              activeOpacity={0.7}
+            >
+              <MaterialCommunityIcons
+                name="cog-outline"
+                size={22}
+                color={colors.textPrimary}
+              />
+              <Text style={[styles.navLabel, { color: colors.textPrimary }]}>
+                Settings
+              </Text>
+            </TouchableOpacity>
+
+            {/* About FlashBill (Directly below Settings) */}
+            <TouchableOpacity
+              style={styles.navItem}
+              onPress={() => {
+                if (onOpenAboutModal) {
+                  handleAction(onOpenAboutModal);
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              <MaterialCommunityIcons
+                name="information-outline"
+                size={22}
+                color={colors.primary}
+              />
+              <Text style={[styles.navLabel, { color: colors.textPrimary }]}>
+                About FlashBill
+              </Text>
+              <View style={[styles.pillBadge, { backgroundColor: colors.primaryLight }]}>
+                <Text style={[styles.pillBadgeTxt, { color: colors.primary }]}>v1.0</Text>
+              </View>
             </TouchableOpacity>
 
             {/* Appearance Section */}
@@ -599,9 +624,18 @@ export function AppDrawer({
               </Text>
             </TouchableOpacity>
 
-            <Text style={[styles.versionTxt, { color: colors.textMuted }]}>
-              FlashBill POS • Enterprise Offline v1.0
-            </Text>
+            <TouchableOpacity
+              onPress={() => {
+                if (onOpenAboutModal) {
+                  handleAction(onOpenAboutModal);
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.versionTxt, { color: colors.textMuted }]}>
+                FlashBill POS • Enterprise Offline v1.0
+              </Text>
+            </TouchableOpacity>
           </View>
         </Animated.View>
       </View>

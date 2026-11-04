@@ -53,6 +53,7 @@ import { ActivationModal } from './components/License/ActivationModal';
 import { AccountModal } from './components/Account/AccountModal';
 import { AppDrawer } from './components/Drawer/AppDrawer';
 import { SettingsModal } from './components/Settings/SettingsModal';
+import { AboutModal } from './components/About/AboutModal';
 import { SaleScreen } from './components/SaleScreen/SaleScreen';
 import { InvoicesScreen } from './components/InvoicesScreen/InvoicesScreen';
 import { ItemsScreen } from './components/ItemsScreen/ItemsScreen';
@@ -645,9 +646,10 @@ function MainScreen(): React.JSX.Element {
   // State for Account & Cloud Management Modal
   const [showAccountModal, setShowAccountModal] = useState<boolean>(false);
 
-  // State for Side Navigation Drawer & Settings Modal (Concept 1)
+  // State for Side Navigation Drawer, Settings & About Modals (Concept 1)
   const [showDrawer, setShowDrawer] = useState<boolean>(false);
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
+  const [showAboutModal, setShowAboutModal] = useState<boolean>(false);
 
   // Welcome Screen Gate (holds until splash duration, fonts, and auth state are ready)
   if (showSplash || !fontsLoaded || authLoading) {
@@ -707,7 +709,6 @@ function MainScreen(): React.JSX.Element {
             isConnected={!!targetAddress}
             onPressPrinterPill={() => setShowPrintersModal(true)}
             onPressMenu={() => setShowDrawer(true)}
-            onPressSettings={() => setShowSettingsModal(true)}
             onPressAccount={() => setShowAccountModal(true)}
             onPressSignOut={handleConfirmSignOut}
             isGuest={!!user?.isGuest}
@@ -839,6 +840,7 @@ function MainScreen(): React.JSX.Element {
         onSelectTab={(tab) => setActiveTab(tab)}
         onOpenAccountModal={() => setShowAccountModal(true)}
         onOpenSettingsModal={() => setShowSettingsModal(true)}
+        onOpenAboutModal={() => setShowAboutModal(true)}
         onOpenPrintersModal={() => setShowPrintersModal(true)}
         onSignOut={handleConfirmSignOut}
         onOpenActivationModal={openActivationModal}
@@ -855,6 +857,12 @@ function MainScreen(): React.JSX.Element {
         }}
         onOpenStoreProfile={() => setShowAccountModal(true)}
         onOpenPrintersTab={() => setShowPrintersModal(true)}
+      />
+
+      {/* About FlashBill Modal */}
+      <AboutModal
+        visible={showAboutModal}
+        onClose={() => setShowAboutModal(false)}
       />
 
       {/* Bluetooth Thermal Printers Setup Modal */}
