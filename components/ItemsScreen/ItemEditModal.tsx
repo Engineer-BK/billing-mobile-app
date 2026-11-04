@@ -61,7 +61,9 @@ export function ItemEditModal({
   const { colors, isDark } = useTheme();
 
   const [name, setName] = useState<string>('');
-  const [price, setPrice] = useState<string>('');
+  const [price, setPrice] = useState<string>(''); // Sale Price
+  const [purchasePrice, setPurchasePrice] = useState<string>(''); // Purchase Price
+  const [stockQuantity, setStockQuantity] = useState<string>(''); // In Stock
   const [unit, setUnit] = useState<string>('KG');
   const [discount, setDiscount] = useState<string>('');
   const [category, setCategory] = useState<string>('General');
@@ -79,12 +81,16 @@ export function ItemEditModal({
     if (item) {
       setName(item.name || '');
       setPrice(item.price || '');
+      setPurchasePrice(item.purchasePrice || '');
+      setStockQuantity(item.stockQuantity !== undefined ? String(item.stockQuantity) : '');
       setUnit(item.unit || 'KG');
       setDiscount(item.defaultDiscount || '');
       setCategory(item.category || 'General');
     } else {
       setName('');
       setPrice('');
+      setPurchasePrice('');
+      setStockQuantity('');
       setUnit('KG');
       setDiscount('');
       setCategory('General');
@@ -117,21 +123,35 @@ export function ItemEditModal({
     };
   }, [item, price, isDark]);
 
-  // Live Effective Pricing Calculation
+  // Live Effective Pricing & Profit Margin Calculation
   const pricingPreview = useMemo(() => {
     const rawPrice = parseFloat(price) || 0;
+    const costPrice = parseFloat(purchasePrice) || 0;
     const discPct = Math.min(100, Math.max(0, parseFloat(discount) || 0));
     const discAmount = (rawPrice * discPct) / 100;
-    const finalRate = rawPrice - discAmount;
+    const finalRate = Math.max(0, rawPrice - discAmount);
+
+    const profitPerUnit = costPrice > 0 ? rawPrice - costPrice : 0;
+    const marginPct = costPrice > 0 ? (profitPerUnit / costPrice) * 100 : 0;
+
+    const netProfitAfterDisc = costPrice > 0 ? finalRate - costPrice : 0;
+    const netMarginPct = costPrice > 0 ? (netProfitAfterDisc / costPrice) * 100 : 0;
 
     return {
       rawPrice: rawPrice > 0 ? rawPrice.toFixed(2) : '0.00',
+      costPrice: costPrice > 0 ? costPrice.toFixed(2) : '0.00',
       discPct,
       discAmount: discAmount.toFixed(2),
       finalRate: finalRate > 0 ? finalRate.toFixed(2) : '0.00',
       hasDiscount: discPct > 0,
+      hasCost: costPrice > 0,
+      profitPerUnit: profitPerUnit.toFixed(2),
+      marginPct: marginPct.toFixed(1),
+      netProfitAfterDisc: netProfitAfterDisc.toFixed(2),
+      netMarginPct: netMarginPct.toFixed(1),
+      isProfitable: costPrice > 0 ? (discPct > 0 ? netProfitAfterDisc >= 0 : profitPerUnit >= 0) : true,
     };
-  }, [price, discount]);
+  }, [price, purchasePrice, discount]);
 
   const filteredUnits = useMemo(() => {
     if (!unitSearch.trim()) return RETAIL_UNITS;
@@ -165,6 +185,8 @@ export function ItemEditModal({
     }
 
     const priceStr = cleanPrice.toFixed(2).replace(/\.00$/, '');
+    const cleanPurchase = purchasePrice.trim() ? (parseFloat(purchasePrice.trim()) || 0).toFixed(2).replace(/\.00$/, '') : undefined;
+    const cleanStock = stockQuantity.trim() !== '' ? (parseFloat(stockQuantity.trim()) || 0) : undefined;
     const now = Date.now();
 
     let updatedItem: PresetItem;
@@ -176,6 +198,8 @@ export function ItemEditModal({
         ...item,
         name: trimmedName,
         price: priceStr,
+        purchasePrice: cleanPurchase,
+        stockQuantity: cleanStock,
         previousPrice: priceChanged ? item.price : item.previousPrice,
         priceChangedAt: priceChanged ? now : item.priceChangedAt,
         unit: unit.trim().toUpperCase() || 'PCS',
@@ -189,6 +213,8 @@ export function ItemEditModal({
         id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
         name: trimmedName,
         price: priceStr,
+        purchasePrice: cleanPurchase,
+        stockQuantity: cleanStock,
         unit: unit.trim().toUpperCase() || 'PCS',
         defaultDiscount: discount.trim() ? Math.min(100, Math.max(0, parseFloat(discount) || 0)).toString() : undefined,
         category: category.trim() || 'General',
@@ -304,12 +330,12 @@ export function ItemEditModal({
                 </View>
               </View>
 
-              {/* 2. Selling Rate & Unit Row */}
+              {/* 2. Dual Prices: Sale Price & Purchase Price */}
               <View style={styles.inputsRow}>
-                {/* Selling Rate (₹) */}
-                <View style={[styles.inputWrapper, { flex: 1.3 }]}>
+                {/* Sale Price (₹) */}
+                <View style={[styles.inputWrapper, { flex: 1 }]}>
                   <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
-                    SELLING RATE (₹) <Text style={{ color: colors.primary }}>*</Text>
+                    SALE PRICE (₹) <Text style={{ color: colors.primary }}>*</Text>
                   </Text>
                   <View
                     style={[
@@ -326,6 +352,66 @@ export function ItemEditModal({
                       value={price}
                       onChangeText={setPrice}
                       placeholder="0.00"
+                      placeholderTextColor={colors.textMuted}
+                      keyboardType="numeric"
+                    />
+                  </View>
+                </View>
+
+                {/* Purchase Price (₹) */}
+                <View style={[styles.inputWrapper, { flex: 1 }]}>
+                  <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
+                    PURCHASE PRICE (₹)
+                  </Text>
+                  <View
+                    style={[
+                      styles.textInputBox,
+                      {
+                        borderColor: purchasePrice ? colors.secondary : colors.borderLight,
+                        backgroundColor: colors.surface,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.currencyPrefix, { color: colors.secondary || '#D97706' }]}>₹</Text>
+                    <TextInput
+                      style={[styles.textInput, { color: colors.textPrimary, fontWeight: '700' }]}
+                      value={purchasePrice}
+                      onChangeText={setPurchasePrice}
+                      placeholder="0.00 (Cost)"
+                      placeholderTextColor={colors.textMuted}
+                      keyboardType="numeric"
+                    />
+                  </View>
+                </View>
+              </View>
+
+              {/* 3. In Stock Quantity & Unit Row */}
+              <View style={styles.inputsRow}>
+                {/* In Stock Quantity */}
+                <View style={[styles.inputWrapper, { flex: 1 }]}>
+                  <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
+                    IN STOCK (QTY)
+                  </Text>
+                  <View
+                    style={[
+                      styles.textInputBox,
+                      {
+                        borderColor: stockQuantity ? '#10B981' : colors.borderLight,
+                        backgroundColor: colors.surface,
+                      },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="package-variant-closed"
+                      size={18}
+                      color={stockQuantity ? '#10B981' : colors.textMuted}
+                      style={{ marginRight: 6 }}
+                    />
+                    <TextInput
+                      style={[styles.textInput, { color: colors.textPrimary, fontWeight: '700' }]}
+                      value={stockQuantity}
+                      onChangeText={setStockQuantity}
+                      placeholder="0"
                       placeholderTextColor={colors.textMuted}
                       keyboardType="numeric"
                     />
@@ -357,7 +443,7 @@ export function ItemEditModal({
                 </View>
               </View>
 
-              {/* 3. Price Trend Delta Live Preview Banner */}
+              {/* 4. Price Trend Delta Live Preview Banner */}
               {priceTrend && (
                 <View
                   style={[
@@ -381,7 +467,7 @@ export function ItemEditModal({
                 </View>
               )}
 
-              {/* 4. Default Discount (%) & Category Row */}
+              {/* 5. Default Discount (%) & Category Row */}
               <View style={styles.inputsRow}>
                 {/* Default Discount (%) */}
                 <View style={[styles.inputWrapper, { flex: 1 }]}>
@@ -441,7 +527,7 @@ export function ItemEditModal({
                 </View>
               </View>
 
-              {/* 5. Live Pricing Preview Card */}
+              {/* 6. Live Pricing & Profit Margin Preview Card */}
               {parseFloat(price) > 0 && (
                 <View
                   style={[
@@ -454,7 +540,7 @@ export function ItemEditModal({
                 >
                   <View style={styles.previewCardHeader}>
                     <Text style={[styles.previewCardTitle, { color: colors.textSecondary }]}>
-                      EFFECTIVE CATALOG PREVIEW
+                      EFFECTIVE CATALOG & MARGIN PREVIEW
                     </Text>
                     <View
                       style={[
@@ -471,32 +557,50 @@ export function ItemEditModal({
                   <View style={styles.previewMetricsRow}>
                     <View>
                       <Text style={[styles.previewLbl, { color: colors.textMuted }]}>
-                        Standard Rate
+                        Sale Price
                       </Text>
                       <Text style={[styles.previewVal, { color: colors.textPrimary }]}>
                         ₹{pricingPreview.rawPrice}
                       </Text>
                     </View>
 
-                    {pricingPreview.hasDiscount ? (
+                    {pricingPreview.hasCost ? (
                       <View>
-                        <Text style={[styles.previewLbl, { color: '#8B5CF6' }]}>
-                          Disc ({pricingPreview.discPct}%)
+                        <Text style={[styles.previewLbl, { color: colors.textMuted }]}>
+                          Cost (Purchase)
                         </Text>
-                        <Text style={[styles.previewVal, { color: '#8B5CF6' }]}>
-                          -₹{pricingPreview.discAmount}
+                        <Text style={[styles.previewVal, { color: colors.textSecondary }]}>
+                          ₹{pricingPreview.costPrice}
                         </Text>
                       </View>
                     ) : null}
 
-                    <View style={{ alignItems: 'flex-end' }}>
-                      <Text style={[styles.previewLbl, { color: colors.success }]}>
-                        Net Customer Price
-                      </Text>
-                      <Text style={[styles.previewFinalVal, { color: colors.success }]}>
-                        ₹{pricingPreview.finalRate}
-                      </Text>
-                    </View>
+                    {pricingPreview.hasCost ? (
+                      <View>
+                        <Text style={[styles.previewLbl, { color: pricingPreview.isProfitable ? '#10B981' : '#EF4444' }]}>
+                          Profit Margin
+                        </Text>
+                        <Text
+                          style={[
+                            styles.previewVal,
+                            { color: pricingPreview.isProfitable ? '#10B981' : '#EF4444', fontWeight: '800' },
+                          ]}
+                        >
+                          {parseFloat(pricingPreview.profitPerUnit) >= 0 ? '+' : ''}₹{pricingPreview.profitPerUnit} ({pricingPreview.marginPct}%)
+                        </Text>
+                      </View>
+                    ) : null}
+
+                    {pricingPreview.hasDiscount ? (
+                      <View style={{ alignItems: 'flex-end' }}>
+                        <Text style={[styles.previewLbl, { color: '#8B5CF6' }]}>
+                          Net Sale ({pricingPreview.discPct}%)
+                        </Text>
+                        <Text style={[styles.previewFinalVal, { color: colors.success }]}>
+                          ₹{pricingPreview.finalRate}
+                        </Text>
+                      </View>
+                    ) : null}
                   </View>
                 </View>
               )}

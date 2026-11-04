@@ -290,36 +290,61 @@ export function AddItemModal({
                           <MaterialCommunityIcons name="close" size={14} color={colors.textMuted} />
                         </TouchableOpacity>
                       </View>
-                      {suggestions.map((sug) => (
-                        <TouchableOpacity
-                          key={sug.id}
-                          style={[
-                            styles.suggestionItem,
-                            { borderTopColor: colors.borderLight },
-                          ]}
-                          onPress={() => handleSelectSuggestion(sug)}
-                          activeOpacity={0.7}
-                        >
-                          <View style={{ flex: 1 }}>
-                            <Text style={[styles.suggestionItemName, { color: colors.textPrimary }]}>
-                              {sug.name}
-                            </Text>
-                            <Text style={[styles.suggestionItemCat, { color: colors.textSecondary }]}>
-                              {sug.category || 'General'}
-                            </Text>
-                          </View>
-                          <View style={styles.suggestionRightCol}>
-                            <Text style={[styles.suggestionItemPrice, { color: colors.primary }]}>
-                              ₹{sug.price} <Text style={{ fontSize: 11, color: colors.textMuted }}>/{sug.unit}</Text>
-                            </Text>
-                            {sug.defaultDiscount && parseFloat(sug.defaultDiscount) > 0 ? (
-                              <Text style={[styles.suggestionItemDisc, { color: '#8B5CF6' }]}>
-                                {sug.defaultDiscount}% Disc
+                      {suggestions.map((sug) => {
+                        const stock = sug.stockQuantity;
+                        const hasStock = stock !== undefined;
+                        const isOutOfStock = typeof stock === 'number' && stock <= 0;
+                        const isLowStock = typeof stock === 'number' && stock > 0 && stock <= 10;
+
+                        return (
+                          <TouchableOpacity
+                            key={sug.id}
+                            style={[
+                              styles.suggestionItem,
+                              { borderTopColor: colors.borderLight },
+                            ]}
+                            onPress={() => handleSelectSuggestion(sug)}
+                            activeOpacity={0.7}
+                          >
+                            <View style={{ flex: 1, marginRight: 8 }}>
+                              <Text style={[styles.suggestionItemName, { color: colors.textPrimary }]}>
+                                {sug.name}
                               </Text>
-                            ) : null}
-                          </View>
-                        </TouchableOpacity>
-                      ))}
+                              <View style={styles.suggestionMetaRow}>
+                                <Text style={[styles.suggestionItemCat, { color: colors.textSecondary }]}>
+                                  {sug.category || 'General'}
+                                </Text>
+                                {hasStock && (
+                                  <Text
+                                    style={[
+                                      styles.suggestionStockTxt,
+                                      {
+                                        color: isOutOfStock
+                                          ? colors.error
+                                          : isLowStock
+                                          ? '#D97706'
+                                          : colors.success,
+                                      },
+                                    ]}
+                                  >
+                                    • {isOutOfStock ? 'Out of stock' : `Stock: ${stock} ${sug.unit}`}
+                                  </Text>
+                                )}
+                              </View>
+                            </View>
+                            <View style={styles.suggestionRightCol}>
+                              <Text style={[styles.suggestionItemPrice, { color: colors.primary }]}>
+                                ₹{sug.price} <Text style={{ fontSize: 11, color: colors.textMuted }}>/{sug.unit}</Text>
+                              </Text>
+                              {sug.defaultDiscount && parseFloat(sug.defaultDiscount) > 0 ? (
+                                <Text style={[styles.suggestionItemDisc, { color: '#8B5CF6' }]}>
+                                  {sug.defaultDiscount}% Disc
+                                </Text>
+                              ) : null}
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })}
                     </View>
                   )}
                 </View>
@@ -981,7 +1006,17 @@ const styles = StyleSheet.create({
   suggestionItemCat: {
     fontSize: 11,
     fontWeight: '500',
+  },
+  suggestionMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 4,
     marginTop: 1,
+  },
+  suggestionStockTxt: {
+    fontSize: 11,
+    fontWeight: '700',
   },
   suggestionRightCol: {
     alignItems: 'flex-end',

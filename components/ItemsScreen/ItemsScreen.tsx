@@ -91,9 +91,11 @@ export function ItemsScreen({
     }).length;
 
     const withDisc = items.filter((it) => (parseFloat(it.defaultDiscount || '0') || 0) > 0).length;
+    const lowStock = items.filter((it) => it.stockQuantity !== undefined && it.stockQuantity <= 10).length;
 
     const baseFilters = [
       { id: 'ALL', label: 'All Items', icon: 'package-variant', count: all },
+      { id: 'LOW_STOCK', label: 'Low Stock', icon: 'alert-circle-outline', color: '#F59E0B', count: lowStock },
       { id: 'PRICE_DOWN', label: 'Price Drops', icon: 'trending-down', color: '#10B981', count: priceDrops },
       { id: 'PRICE_UP', label: 'Price Up', icon: 'trending-up', color: '#EF4444', count: priceUp },
       { id: 'DISCOUNT', label: 'With Disc', icon: 'tag-outline', color: '#8B5CF6', count: withDisc },
@@ -114,7 +116,9 @@ export function ItemsScreen({
   const filteredItems = useMemo(() => {
     return items.filter((it) => {
       // 1. Filter Chip Matching
-      if (activeFilter === 'PRICE_DOWN') {
+      if (activeFilter === 'LOW_STOCK') {
+        if (it.stockQuantity === undefined || it.stockQuantity > 10) return false;
+      } else if (activeFilter === 'PRICE_DOWN') {
         if (!it.previousPrice) return false;
         if ((parseFloat(it.price) || 0) >= (parseFloat(it.previousPrice) || 0)) return false;
       } else if (activeFilter === 'PRICE_UP') {
@@ -134,8 +138,15 @@ export function ItemsScreen({
       const cat = (it.category || '').toLowerCase();
       const unit = (it.unit || '').toLowerCase();
       const price = (it.price || '').toLowerCase();
+      const purchasePrice = (it.purchasePrice || '').toLowerCase();
 
-      return name.includes(q) || cat.includes(q) || unit.includes(q) || price.includes(q);
+      return (
+        name.includes(q) ||
+        cat.includes(q) ||
+        unit.includes(q) ||
+        price.includes(q) ||
+        purchasePrice.includes(q)
+      );
     });
   }, [items, activeFilter, searchQuery]);
 
@@ -346,19 +357,34 @@ export function ItemsScreen({
           const isUp = diff > 0;
           const pct = Math.abs((diff / oldP) * 100).toFixed(1);
 
+          // Profit margin calculations
+          const costP = parseFloat(item.purchasePrice || '0') || 0;
+          const hasMargin = currP > 0 && costP > 0;
+          const marginDiff = (currP - costP).toFixed(2).replace(/\.00$/, '');
+          const isMarginPos = currP >= costP;
+          const marginPct = costP > 0 ? Math.abs(((currP - costP) / costP) * 100).toFixed(0) : '0';
+
+          // Stock state
+          const stock = item.stockQuantity;
+          const hasStock = typeof stock === 'number';
+          const isOutOfStock = typeof stock === 'number' && stock <= 0;
+          const isLowStock = typeof stock === 'number' && stock > 0 && stock <= 10;
+
           return (
             <TouchableOpacity
               style={[
                 styles.itemCard,
                 {
                   backgroundColor: colors.surface,
-                  borderColor: colors.border,
+                  borderColor: isOutOfStock
+                    ? (isDark ? 'rgba(239, 68, 68, 0.4)' : '#FCA5A5')
+                    : colors.border,
                 },
               ]}
               onPress={() => handleOpenEdit(item)}
               activeOpacity={0.7}
             >
-              {/* Row 1: Category Badge, Unit, Status/Trend Badge */}
+              {/* Row 1: Category Badge, Unit, Stock Badge, Discount Badge, Status/Trend Badge */}
               <View style={styles.cardTopRow}>
                 <View style={styles.badgesRow}>
                   {/* Category Pill */}
@@ -390,6 +416,43 @@ export function ItemsScreen({
                       {item.unit}
                     </Text>
                   </View>
+
+                  {/* In-Stock Badge (Editable) */}
+                  {hasStock && (
+                    <View
+                      style={[
+                        styles.stockBadge,
+                        {
+                          backgroundColor: isOutOfStock
+                            ? (isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEE2E2')
+                            : isLowStock
+                            ? (isDark ? 'rgba(245, 158, 11, 0.15)' : '#FEF3C7')
+                            : (isDark ? 'rgba(16, 185, 129, 0.15)' : '#DCFCE7'),
+                          borderColor: isOutOfStock
+                            ? '#EF4444'
+                            : isLowStock
+                            ? '#F59E0B'
+                            : '#10B981',
+                        },
+                      ]}
+                    >
+                      <MaterialCommunityIcons
+                        name={isOutOfStock ? 'alert-circle-outline' : 'package-variant-closed'}
+                        size={12}
+                        color={isOutOfStock ? '#EF4444' : isLowStock ? '#D97706' : '#10B981'}
+                      />
+                      <Text
+                        style={[
+                          styles.stockBadgeTxt,
+                          {
+                            color: isOutOfStock ? '#EF4444' : isLowStock ? '#D97706' : '#10B981',
+                          },
+                        ]}
+                      >
+                        {isOutOfStock ? 'Out of Stock' : isLowStock ? `Low: ${stock}` : `Stock: ${stock}`}
+                      </Text>
+                    </View>
+                  )}
 
                   {/* Default Discount Pill (if configured) */}
                   {item.defaultDiscount && parseFloat(item.defaultDiscount) > 0 ? (
@@ -436,18 +499,25 @@ export function ItemsScreen({
                     style={[
                       styles.activePill,
                       {
-                        backgroundColor: colors.successLight,
+                        backgroundColor: isOutOfStock
+                          ? (isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEE2E2')
+                          : colors.successLight,
                       },
                     ]}
                   >
-                    <Text style={[styles.activePillTxt, { color: colors.success }]}>
-                      ACTIVE
+                    <Text
+                      style={[
+                        styles.activePillTxt,
+                        { color: isOutOfStock ? '#EF4444' : colors.success },
+                      ]}
+                    >
+                      {isOutOfStock ? 'NO STOCK' : 'ACTIVE'}
                     </Text>
                   </View>
                 )}
               </View>
 
-              {/* Row 2: Product Name & Previous Price Detail */}
+              {/* Row 2: Product Name & Subtitle Details */}
               <View style={styles.cardMidRow}>
                 <Text
                   style={[styles.itemNameTxt, { color: colors.textPrimary }]}
@@ -456,32 +526,86 @@ export function ItemsScreen({
                   {item.name}
                 </Text>
 
-                {hasPriceTrend ? (
-                  <Text style={[styles.itemSubDetail, { color: colors.textMuted }]}>
-                    Was ₹{oldP.toFixed(2).replace(/\.00$/, '')} • Price updated
-                  </Text>
-                ) : (
-                  <Text style={[styles.itemSubDetail, { color: colors.textSecondary }]}>
-                    Standard store catalog rate
-                  </Text>
-                )}
+                <View style={styles.midSubRow}>
+                  {hasPriceTrend ? (
+                    <Text style={[styles.itemSubDetail, { color: colors.textMuted }]}>
+                      Was ₹{oldP.toFixed(2).replace(/\.00$/, '')} • Price updated
+                    </Text>
+                  ) : (
+                    <Text style={[styles.itemSubDetail, { color: colors.textSecondary }]}>
+                      Standard store catalog rate
+                    </Text>
+                  )}
+
+                  {/* Live Profit Margin Chip if both prices are present */}
+                  {hasMargin && (
+                    <View
+                      style={[
+                        styles.marginChip,
+                        {
+                          backgroundColor: isMarginPos
+                            ? (isDark ? 'rgba(16, 185, 129, 0.12)' : '#DCFCE7')
+                            : (isDark ? 'rgba(239, 68, 68, 0.12)' : '#FEE2E2'),
+                        },
+                      ]}
+                    >
+                      <MaterialCommunityIcons
+                        name={isMarginPos ? 'trending-up' : 'trending-down'}
+                        size={12}
+                        color={isMarginPos ? '#10B981' : '#EF4444'}
+                      />
+                      <Text
+                        style={[
+                          styles.marginChipTxt,
+                          { color: isMarginPos ? '#10B981' : '#EF4444' },
+                        ]}
+                      >
+                        {isMarginPos ? `Margin: +₹${marginDiff} (${marginPct}%)` : `Loss: -₹${Math.abs(Number(marginDiff))} (${marginPct}%)`}
+                      </Text>
+                    </View>
+                  )}
+                </View>
               </View>
 
-              {/* Row 3: Symmetrical Bottom Row (Selling Rate on Left, Actions on Right) */}
+              {/* Row 3: Dual Pricing Row (Sale Price + Purchase Price on Left, Actions on Right) */}
               <View style={[styles.cardBottomRow, { borderTopColor: colors.borderLight }]}>
-                {/* Left: Selling Rate */}
-                <View>
-                  <Text style={[styles.rateLbl, { color: colors.textSecondary }]}>
-                    Selling Rate
-                  </Text>
-                  <View style={styles.rateValueRow}>
-                    <Text style={[styles.rateCurrency, { color: colors.primary }]}>₹</Text>
-                    <Text style={[styles.rateAmount, { color: colors.primary }]}>
-                      {item.price}
+                {/* Dual Price Columns */}
+                <View style={styles.dualPriceContainer}>
+                  {/* 1. Sale Price (Prominent) */}
+                  <View style={styles.priceColumn}>
+                    <Text style={[styles.rateLbl, { color: colors.primary }]}>
+                      Sale Price
                     </Text>
-                    <Text style={[styles.perUnitTxt, { color: colors.textMuted }]}>
-                      /{item.unit}
+                    <View style={styles.rateValueRow}>
+                      <Text style={[styles.rateCurrency, { color: colors.primary }]}>₹</Text>
+                      <Text style={[styles.rateAmount, { color: colors.primary }]}>
+                        {item.price}
+                      </Text>
+                      <Text style={[styles.perUnitTxt, { color: colors.textMuted }]}>
+                        /{item.unit}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Vertical Separator */}
+                  <View style={[styles.priceSeparator, { backgroundColor: colors.borderLight }]} />
+
+                  {/* 2. Purchase Price (Cost) */}
+                  <View style={styles.priceColumn}>
+                    <Text style={[styles.rateLbl, { color: colors.textSecondary }]}>
+                      Purchase (Cost)
                     </Text>
+                    <View style={styles.rateValueRow}>
+                      <Text style={[styles.costCurrency, { color: colors.textSecondary }]}>₹</Text>
+                      <Text style={[styles.costAmount, { color: colors.textPrimary }]}>
+                        {item.purchasePrice || '—'}
+                      </Text>
+                      {item.purchasePrice ? (
+                        <Text style={[styles.perUnitTxt, { color: colors.textMuted }]}>
+                          /{item.unit}
+                        </Text>
+                      ) : null}
+                    </View>
                   </View>
                 </View>
 
@@ -678,6 +802,19 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
   },
+  stockBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    gap: 4,
+  },
+  stockBadgeTxt: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
   discountBadge: {
     paddingHorizontal: 7,
     paddingVertical: 3,
@@ -721,6 +858,26 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginTop: 3,
   },
+  midSubRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 3,
+  },
+  marginChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    gap: 3,
+  },
+  marginChipTxt: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
   cardBottomRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -728,11 +885,25 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     borderTopWidth: 1,
   },
+  dualPriceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+    marginRight: 6,
+  },
+  priceColumn: {
+    justifyContent: 'center',
+  },
+  priceSeparator: {
+    width: 1,
+    height: 26,
+  },
   rateLbl: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 10,
+    fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
   rateValueRow: {
     flexDirection: 'row',
@@ -740,13 +911,23 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   rateCurrency: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     marginRight: 2,
   },
   rateAmount: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '900',
+    letterSpacing: -0.2,
+  },
+  costCurrency: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginRight: 1,
+  },
+  costAmount: {
+    fontSize: 16,
+    fontWeight: '800',
     letterSpacing: -0.2,
   },
   perUnitTxt: {
