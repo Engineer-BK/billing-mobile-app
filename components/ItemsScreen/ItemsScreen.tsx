@@ -384,40 +384,44 @@ export function ItemsScreen({
               onPress={() => handleOpenEdit(item)}
               activeOpacity={0.7}
             >
-              {/* Row 1: Category Badge, Unit, Stock Badge, Discount Badge, Status/Trend Badge */}
-              <View style={styles.cardTopRow}>
-                <View style={styles.badgesRow}>
-                  {/* Category Pill */}
-                  <View
-                    style={[
-                      styles.categoryBadge,
-                      {
-                        backgroundColor: colors.primaryLight,
-                        borderColor: colors.primary,
-                      },
-                    ]}
-                  >
-                    <Text style={[styles.categoryBadgeTxt, { color: colors.primary }]}>
-                      {item.category || 'General'}
-                    </Text>
-                  </View>
+              {/* Top Section: Product Name on Left, Trend & Stock Badges on Right */}
+              <View style={styles.cardHeaderRow}>
+                <View style={styles.nameContainer}>
+                  <Text style={[styles.itemNameTxt, { color: colors.textPrimary }]}>
+                    {item.name}
+                  </Text>
+                  <Text style={[styles.itemSubDetail, { color: colors.textSecondary }]}>
+                    {`Unit: ${item.unit}`}
+                  </Text>
+                </View>
 
-                  {/* Unit Pill */}
-                  <View
-                    style={[
-                      styles.unitBadge,
-                      {
-                        backgroundColor: colors.surfaceLight,
-                        borderColor: colors.borderLight,
-                      },
-                    ]}
-                  >
-                    <Text style={[styles.unitBadgeTxt, { color: colors.textSecondary }]}>
-                      {item.unit}
-                    </Text>
-                  </View>
+                {/* Right Status Badges: Price Drop/Gain & In-Stock */}
+                <View style={styles.headerBadgesRight}>
+                  {/* Price Trend Badge (Drop or Gain) */}
+                  {hasPriceTrend && (
+                    <View
+                      style={[
+                        styles.trendBadge,
+                        {
+                          backgroundColor: isUp
+                            ? (isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEE2E2')
+                            : (isDark ? 'rgba(16, 185, 129, 0.15)' : '#DCFCE7'),
+                          borderColor: isUp ? '#EF4444' : '#10B981',
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.trendBadgeTxt,
+                          { color: isUp ? '#EF4444' : '#10B981' },
+                        ]}
+                      >
+                        {isUp ? `▲ +${pct}%` : `▼ -${pct}%`}
+                      </Text>
+                    </View>
+                  )}
 
-                  {/* In-Stock Badge (Editable) */}
+                  {/* In-Stock Quantity Badge */}
                   {hasStock && (
                     <View
                       style={[
@@ -438,7 +442,7 @@ export function ItemsScreen({
                     >
                       <MaterialCommunityIcons
                         name={isOutOfStock ? 'alert-circle-outline' : 'package-variant-closed'}
-                        size={12}
+                        size={11}
                         color={isOutOfStock ? '#EF4444' : isLowStock ? '#D97706' : '#10B981'}
                       />
                       <Text
@@ -453,121 +457,10 @@ export function ItemsScreen({
                       </Text>
                     </View>
                   )}
-
-                  {/* Default Discount Pill (if configured) */}
-                  {item.defaultDiscount && parseFloat(item.defaultDiscount) > 0 ? (
-                    <View
-                      style={[
-                        styles.discountBadge,
-                        {
-                          backgroundColor: isDark ? 'rgba(139, 92, 246, 0.15)' : '#F3E8FF',
-                          borderColor: '#8B5CF6',
-                        },
-                      ]}
-                    >
-                      <Text style={[styles.discountBadgeTxt, { color: '#8B5CF6' }]}>
-                        🏷️ {item.defaultDiscount}% Disc
-                      </Text>
-                    </View>
-                  ) : null}
-                </View>
-
-                {/* Right Status / Trend Tag */}
-                {hasPriceTrend ? (
-                  <View
-                    style={[
-                      styles.trendBadge,
-                      {
-                        backgroundColor: isUp
-                          ? (isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEE2E2')
-                          : (isDark ? 'rgba(16, 185, 129, 0.15)' : '#DCFCE7'),
-                        borderColor: isUp ? '#EF4444' : '#10B981',
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.trendBadgeTxt,
-                        { color: isUp ? '#EF4444' : '#10B981' },
-                      ]}
-                    >
-                      {isUp ? `▲ (+${pct}%)` : `▼ (-${pct}%)`}
-                    </Text>
-                  </View>
-                ) : (
-                  <View
-                    style={[
-                      styles.activePill,
-                      {
-                        backgroundColor: isOutOfStock
-                          ? (isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEE2E2')
-                          : colors.successLight,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.activePillTxt,
-                        { color: isOutOfStock ? '#EF4444' : colors.success },
-                      ]}
-                    >
-                      {isOutOfStock ? 'NO STOCK' : 'ACTIVE'}
-                    </Text>
-                  </View>
-                )}
-              </View>
-
-              {/* Row 2: Product Name & Subtitle Details */}
-              <View style={styles.cardMidRow}>
-                <Text
-                  style={[styles.itemNameTxt, { color: colors.textPrimary }]}
-                  numberOfLines={1}
-                >
-                  {item.name}
-                </Text>
-
-                <View style={styles.midSubRow}>
-                  {hasPriceTrend ? (
-                    <Text style={[styles.itemSubDetail, { color: colors.textMuted }]}>
-                      Was ₹{oldP.toFixed(2).replace(/\.00$/, '')} • Price updated
-                    </Text>
-                  ) : (
-                    <Text style={[styles.itemSubDetail, { color: colors.textSecondary }]}>
-                      Standard store catalog rate
-                    </Text>
-                  )}
-
-                  {/* Live Profit Margin Chip if both prices are present */}
-                  {hasMargin && (
-                    <View
-                      style={[
-                        styles.marginChip,
-                        {
-                          backgroundColor: isMarginPos
-                            ? (isDark ? 'rgba(16, 185, 129, 0.12)' : '#DCFCE7')
-                            : (isDark ? 'rgba(239, 68, 68, 0.12)' : '#FEE2E2'),
-                        },
-                      ]}
-                    >
-                      <MaterialCommunityIcons
-                        name={isMarginPos ? 'trending-up' : 'trending-down'}
-                        size={12}
-                        color={isMarginPos ? '#10B981' : '#EF4444'}
-                      />
-                      <Text
-                        style={[
-                          styles.marginChipTxt,
-                          { color: isMarginPos ? '#10B981' : '#EF4444' },
-                        ]}
-                      >
-                        {isMarginPos ? `Margin: +₹${marginDiff} (${marginPct}%)` : `Loss: -₹${Math.abs(Number(marginDiff))} (${marginPct}%)`}
-                      </Text>
-                    </View>
-                  )}
                 </View>
               </View>
 
-              {/* Row 3: Dual Pricing Row (Sale Price + Purchase Price on Left, Actions on Right) */}
+              {/* Bottom Row: Dual Pricing Row (Sale Price + Purchase Price on Left, Delete on Right) */}
               <View style={[styles.cardBottomRow, { borderTopColor: colors.borderLight }]}>
                 {/* Dual Price Columns */}
                 <View style={styles.dualPriceContainer}>
@@ -609,51 +502,25 @@ export function ItemsScreen({
                   </View>
                 </View>
 
-                {/* Right: Symmetrical Action Buttons (Edit + Delete) */}
-                <View style={styles.actionsGroup}>
-                  {/* Edit Button */}
-                  <TouchableOpacity
-                    style={[
-                      styles.editActionBtn,
-                      {
-                        backgroundColor: colors.primaryLight,
-                        borderColor: colors.primary,
-                      },
-                    ]}
-                    onPress={() => handleOpenEdit(item)}
-                    activeOpacity={0.7}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <MaterialCommunityIcons
-                      name="pencil-outline"
-                      size={17}
-                      color={colors.primary}
-                    />
-                    <Text style={[styles.editActionTxt, { color: colors.primary }]}>
-                      Edit
-                    </Text>
-                  </TouchableOpacity>
-
-                  {/* Delete Button */}
-                  <TouchableOpacity
-                    style={[
-                      styles.deleteBtn,
-                      {
-                        backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEE2E2',
-                        borderColor: isDark ? '#EF4444' : '#FECACA',
-                      },
-                    ]}
-                    onPress={() => handleDeleteConfirm(item)}
-                    activeOpacity={0.7}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <MaterialCommunityIcons
-                      name="trash-can-outline"
-                      size={18}
-                      color={colors.error}
-                    />
-                  </TouchableOpacity>
-                </View>
+                {/* Right: Quick Delete Button (Edit button removed as card is tap-to-edit) */}
+                <TouchableOpacity
+                  style={[
+                    styles.deleteBtn,
+                    {
+                      backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEE2E2',
+                      borderColor: isDark ? '#EF4444' : '#FECACA',
+                    },
+                  ]}
+                  onPress={() => handleDeleteConfirm(item)}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <MaterialCommunityIcons
+                    name="trash-can-outline"
+                    size={16}
+                    color={colors.error}
+                  />
+                </TouchableOpacity>
               </View>
             </TouchableOpacity>
           );
@@ -761,201 +628,134 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   itemCard: {
-    borderRadius: 16,
+    borderRadius: 12,
     borderWidth: 1,
-    padding: 16,
-    shadowOffset: { width: 0, height: 2 },
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    minHeight: 112,
+    justifyContent: 'space-between',
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
-    shadowRadius: 6,
+    shadowRadius: 3,
     elevation: 2,
   },
-  cardTopRow: {
+  cardHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
+    alignItems: 'flex-start',
+    minHeight: 46,
+    gap: 8,
   },
-  badgesRow: {
+  nameContainer: {
+    flex: 1,
+    paddingRight: 4,
+    minHeight: 46,
+    justifyContent: 'flex-start',
+  },
+  headerBadgesRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
     flexWrap: 'wrap',
-    flex: 1,
+    justifyContent: 'flex-end',
+    maxWidth: '44%',
   },
-  categoryBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    borderWidth: 1,
-  },
-  categoryBadgeTxt: {
-    fontSize: 11,
+  itemNameTxt: {
+    fontSize: 13,
     fontWeight: '700',
+    letterSpacing: -0.2,
+    lineHeight: 17,
   },
-  unitBadge: {
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 6,
-    borderWidth: 1,
-  },
-  unitBadgeTxt: {
-    fontSize: 11,
-    fontWeight: '700',
+  itemSubDetail: {
+    fontSize: 10.5,
+    fontWeight: '500',
+    marginTop: 2,
   },
   stockBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 6,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 4,
     borderWidth: 1,
-    gap: 4,
+    gap: 3,
   },
   stockBadgeTxt: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  discountBadge: {
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 6,
-    borderWidth: 1,
-  },
-  discountBadgeTxt: {
-    fontSize: 11,
+    fontSize: 9.5,
     fontWeight: '700',
   },
   trendBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 4,
     borderWidth: 1,
   },
   trendBadgeTxt: {
-    fontSize: 11,
+    fontSize: 9.5,
     fontWeight: '800',
-  },
-  activePill: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  activePillTxt: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.4,
-  },
-  cardMidRow: {
-    marginBottom: 12,
-  },
-  itemNameTxt: {
-    fontSize: 17,
-    fontWeight: '800',
-    letterSpacing: -0.2,
-  },
-  itemSubDetail: {
-    fontSize: 12,
-    fontWeight: '500',
-    marginTop: 3,
-  },
-  midSubRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 3,
-  },
-  marginChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 6,
-    gap: 3,
-  },
-  marginChipTxt: {
-    fontSize: 10,
-    fontWeight: '700',
   },
   cardBottomRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 12,
+    paddingTop: 8,
     borderTopWidth: 1,
+    marginTop: 6,
   },
   dualPriceContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
     flex: 1,
     marginRight: 6,
   },
   priceColumn: {
     justifyContent: 'center',
+    flexShrink: 1,
   },
   priceSeparator: {
     width: 1,
-    height: 26,
+    height: 22,
   },
   rateLbl: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 0.4,
+    letterSpacing: 0.3,
   },
   rateValueRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    marginTop: 2,
+    marginTop: 1,
   },
   rateCurrency: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '700',
-    marginRight: 2,
+    marginRight: 1,
   },
   rateAmount: {
-    fontSize: 18,
-    fontWeight: '900',
+    fontSize: 15,
+    fontWeight: '800',
     letterSpacing: -0.2,
   },
   costCurrency: {
-    fontSize: 12,
+    fontSize: 10.5,
     fontWeight: '600',
     marginRight: 1,
   },
   costAmount: {
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: 13,
+    fontWeight: '700',
     letterSpacing: -0.2,
   },
   perUnitTxt: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '600',
-    marginLeft: 3,
-  },
-  actionsGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  editActionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 8,
-    borderWidth: 1,
-    gap: 4,
-  },
-  editActionTxt: {
-    fontSize: 12,
-    fontWeight: '700',
+    marginLeft: 2,
   },
   deleteBtn: {
-    padding: 7,
-    borderRadius: 8,
+    padding: 6,
+    borderRadius: 7,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',

@@ -540,7 +540,7 @@ export function ItemEditModal({
                 >
                   <View style={styles.previewCardHeader}>
                     <Text style={[styles.previewCardTitle, { color: colors.textSecondary }]}>
-                      EFFECTIVE CATALOG & MARGIN PREVIEW
+                      EFFECTIVE CATALOG & MARGIN
                     </Text>
                     <View
                       style={[
@@ -554,8 +554,8 @@ export function ItemEditModal({
                     </View>
                   </View>
 
-                  <View style={styles.previewMetricsRow}>
-                    <View>
+                  <View style={styles.previewGrid}>
+                    <View style={styles.previewGridCol}>
                       <Text style={[styles.previewLbl, { color: colors.textMuted }]}>
                         Sale Price
                       </Text>
@@ -565,7 +565,7 @@ export function ItemEditModal({
                     </View>
 
                     {pricingPreview.hasCost ? (
-                      <View>
+                      <View style={styles.previewGridCol}>
                         <Text style={[styles.previewLbl, { color: colors.textMuted }]}>
                           Cost (Purchase)
                         </Text>
@@ -576,9 +576,9 @@ export function ItemEditModal({
                     ) : null}
 
                     {pricingPreview.hasCost ? (
-                      <View>
+                      <View style={styles.previewGridCol}>
                         <Text style={[styles.previewLbl, { color: pricingPreview.isProfitable ? '#10B981' : '#EF4444' }]}>
-                          Profit Margin
+                          Unit Profit Margin
                         </Text>
                         <Text
                           style={[
@@ -592,11 +592,11 @@ export function ItemEditModal({
                     ) : null}
 
                     {pricingPreview.hasDiscount ? (
-                      <View style={{ alignItems: 'flex-end' }}>
+                      <View style={styles.previewGridCol}>
                         <Text style={[styles.previewLbl, { color: '#8B5CF6' }]}>
-                          Net Sale ({pricingPreview.discPct}%)
+                          Net Sale ({pricingPreview.discPct}% Disc)
                         </Text>
-                        <Text style={[styles.previewFinalVal, { color: colors.success }]}>
+                        <Text style={[styles.previewVal, { color: colors.success, fontWeight: '800' }]}>
                           ₹{pricingPreview.finalRate}
                         </Text>
                       </View>
@@ -956,50 +956,52 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   previewCard: {
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
-    padding: 12,
+    padding: 10,
     marginTop: 4,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   previewCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   previewCardTitle: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.8,
+    fontSize: 9.5,
+    fontWeight: '700',
+    letterSpacing: 0.4,
   },
   unitPillBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 4,
   },
   unitPillTxt: {
-    fontSize: 10,
-    fontWeight: '800',
+    fontSize: 9.5,
+    fontWeight: '700',
   },
-  previewMetricsRow: {
+  previewGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 2,
+  },
+  previewGridCol: {
+    width: '48%',
+    marginBottom: 4,
   },
   previewLbl: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
   previewVal: {
-    fontSize: 14,
-    fontWeight: '700',
-    marginTop: 2,
-  },
-  previewFinalVal: {
-    fontSize: 16,
-    fontWeight: '900',
-    marginTop: 2,
+    fontSize: 12.5,
+    fontWeight: '800',
+    marginTop: 1,
   },
   modalActionsRow: {
     flexDirection: 'row',
