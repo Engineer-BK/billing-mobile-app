@@ -3,10 +3,11 @@
  * 
  * Added Items List for POS Sale Screen.
  * Features:
- * - Prominent "+ Add Items (Optional)" button when empty
+ * - Prominent, inviting "+ Add Items (Optional)" button when empty
  * - Automatic Item Numbering (#1, #2, #3...) with renumbering on delete
  * - Formatted item details with measurement units & discount badges
  * - Delete action with automatic re-indexing
+ * - Fast-access "+ Add" pill in header + Large, tactile "+ Add Another Item" bottom card
  */
 
 import React from 'react';
@@ -26,7 +27,7 @@ export function SaleItemsList({
   onOpenAddItemModal,
   onRemoveItem,
 }: SaleItemsListProps): React.JSX.Element {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
 
   if (items.length === 0) {
     return (
@@ -34,35 +35,49 @@ export function SaleItemsList({
         style={[
           styles.addItemsBtn,
           {
-            borderColor: colors.borderLight,
-            backgroundColor: colors.surface,
+            borderColor: colors.primary,
+            backgroundColor: isDark ? 'rgba(37, 99, 235, 0.08)' : '#F0F7FF',
           },
         ]}
         onPress={onOpenAddItemModal}
         activeOpacity={0.7}
       >
-        <MaterialCommunityIcons
-          name="plus-circle"
-          size={20}
-          color={colors.primary}
-        />
-        <Text style={[styles.addItemsTxt, { color: colors.primary }]}>
-          Add Items (Optional)
-        </Text>
+        <View style={[styles.emptyPlusCircle, { backgroundColor: colors.primaryLight }]}>
+          <MaterialCommunityIcons
+            name="cart-plus"
+            size={22}
+            color={colors.primary}
+          />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.addItemsTitle, { color: colors.primary }]}>
+            + Add Items to Bill
+          </Text>
+          <Text style={[styles.addItemsSubtitle, { color: colors.textSecondary }]}>
+            Tap to search catalog presets or type custom item
+          </Text>
+        </View>
+        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.primary} />
       </TouchableOpacity>
     );
   }
 
   return (
     <View style={styles.itemsListContainer}>
-      {/* Header Row */}
+      {/* Header Row with Fast-Access Add Pill */}
       <View style={styles.itemsListHeader}>
         <Text style={[styles.itemsSectionTitle, { color: colors.textPrimary }]}>
           Added Items ({items.length})
         </Text>
         <TouchableOpacity
           onPress={onOpenAddItemModal}
-          style={styles.addMoreBtn}
+          style={[
+            styles.addMoreHeaderBtn,
+            {
+              backgroundColor: colors.primaryLight,
+              borderColor: colors.primary,
+            },
+          ]}
           activeOpacity={0.7}
         >
           <MaterialCommunityIcons
@@ -70,8 +85,8 @@ export function SaleItemsList({
             size={16}
             color={colors.primary}
           />
-          <Text style={[styles.addMoreTxt, { color: colors.primary }]}>
-            Add More
+          <Text style={[styles.addMoreHeaderTxt, { color: colors.primary }]}>
+            Add Item
           </Text>
         </TouchableOpacity>
       </View>
@@ -147,6 +162,32 @@ export function SaleItemsList({
           </View>
         );
       })}
+
+      {/* Tactile Full-Width Add More Card at the bottom of the items list */}
+      <TouchableOpacity
+        style={[
+          styles.addMoreBottomCard,
+          {
+            borderColor: colors.primary,
+            backgroundColor: isDark ? 'rgba(37, 99, 235, 0.1)' : '#EFF6FF',
+          },
+        ]}
+        onPress={onOpenAddItemModal}
+        activeOpacity={0.7}
+      >
+        <View style={[styles.plusIconCircle, { backgroundColor: colors.primary }]}>
+          <MaterialCommunityIcons name="plus" size={18} color="#FFFFFF" />
+        </View>
+        <View style={styles.addMoreBottomTextCol}>
+          <Text style={[styles.addMoreBottomTitle, { color: colors.primary }]}>
+            + Add Another Item
+          </Text>
+          <Text style={[styles.addMoreBottomSubtitle, { color: colors.textSecondary }]}>
+            Tap to add item #{items.length + 1} with instant auto-suggestions
+          </Text>
+        </View>
+        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.primary} />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -155,16 +196,30 @@ const styles = StyleSheet.create({
   addItemsBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    borderWidth: 1,
-    borderRadius: 10,
     paddingVertical: 14,
-    marginBottom: 20,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    marginBottom: 16,
+    gap: 12,
   },
-  addItemsTxt: {
+  emptyPlusCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addItemsTitle: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  addItemsSubtitle: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 2,
   },
   itemsListContainer: {
     marginBottom: 16,
@@ -178,21 +233,26 @@ const styles = StyleSheet.create({
   itemsSectionTitle: {
     fontSize: 13,
     fontWeight: '800',
+    letterSpacing: 0.3,
   },
-  addMoreBtn: {
+  addMoreHeaderBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
   },
-  addMoreTxt: {
+  addMoreHeaderTxt: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   itemCard: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
     marginBottom: 8,
     gap: 10,
@@ -246,5 +306,35 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
   },
+  addMoreBottomCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    marginTop: 4,
+    gap: 12,
+  },
+  plusIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addMoreBottomTextCol: {
+    flex: 1,
+  },
+  addMoreBottomTitle: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  addMoreBottomSubtitle: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 1,
+  },
 });
-

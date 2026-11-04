@@ -10,9 +10,11 @@
  */
 
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
+import { useAuth } from '../../context/AuthContext';
+import { useLicense } from '../../context/LicenseContext';
 
 interface SaleSummarySectionProps {
   itemsCount: number;
@@ -32,6 +34,8 @@ export function SaleSummarySection({
   hasDiscount,
 }: SaleSummarySectionProps): React.JSX.Element {
   const { colors, isDark } = useTheme();
+  const { user } = useAuth();
+  const { isActivated, openActivationModal } = useLicense();
 
   return (
     <View style={styles.container}>
@@ -102,26 +106,30 @@ export function SaleSummarySection({
         </View>
       </View>
 
-      {/* 3. Bottom Plan Notice Banner */}
-      <View
-        style={[
-          styles.planBanner,
-          {
-            backgroundColor: isDark
-              ? 'rgba(239, 68, 68, 0.12)'
-              : '#FEE2E2',
-          },
-        ]}
-      >
-        <Text style={[styles.planBannerTxt, { color: colors.error }]}>
-          Your current plan may not support some features.
-        </Text>
-        <MaterialCommunityIcons
-          name="chevron-right"
-          size={18}
-          color={colors.error}
-        />
-      </View>
+      {/* 3. Bottom Plan Notice Banner (Only shown if NOT logged in or NOT activated) */}
+      {(!isActivated || user?.isGuest) ? (
+        <TouchableOpacity
+          style={[
+            styles.planBanner,
+            {
+              backgroundColor: isDark
+                ? 'rgba(239, 68, 68, 0.12)'
+                : '#FEE2E2',
+            },
+          ]}
+          onPress={openActivationModal}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.planBannerTxt, { color: colors.error }]}>
+            {user?.isGuest ? 'Demo sandbox mode • Thermal printing locked.' : 'Free tier • Tap to activate Pro license.'}
+          </Text>
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={18}
+            color={colors.error}
+          />
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 }

@@ -14,6 +14,7 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Text,
+  ActivityIndicator,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
@@ -55,7 +56,7 @@ export function PrintersModal(props: PrintersModalProps): React.JSX.Element {
       onRequestClose={props.onClose}
     >
       <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
-        {/* Top Navigation Bar */}
+        {/* Top Navigation Bar with Integrated Scan Action */}
         <View
           style={[
             styles.topBar,
@@ -65,15 +66,17 @@ export function PrintersModal(props: PrintersModalProps): React.JSX.Element {
             },
           ]}
         >
+          {/* Close Modal Button */}
           <TouchableOpacity
-            style={styles.closeBtn}
+            style={[styles.closeBtn, { backgroundColor: colors.surfaceLight }]}
             onPress={props.onClose}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             activeOpacity={0.7}
           >
-            <MaterialCommunityIcons name="close" size={24} color={colors.textPrimary} />
+            <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
           </TouchableOpacity>
 
+          {/* Centered Header Title */}
           <View style={styles.titleCol}>
             <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
               Hardware & Printers
@@ -83,10 +86,31 @@ export function PrintersModal(props: PrintersModalProps): React.JSX.Element {
             </Text>
           </View>
 
-          <View style={{ width: 36 }} />
+          {/* Right Action: Quick Scan BT Button */}
+          <TouchableOpacity
+            style={[
+              styles.topScanBtn,
+              {
+                backgroundColor: colors.primaryLight,
+                borderColor: colors.primary,
+              },
+            ]}
+            onPress={props.onScan}
+            disabled={props.isScanning}
+            activeOpacity={0.7}
+          >
+            {props.isScanning ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <>
+                <MaterialCommunityIcons name="bluetooth-audio" size={16} color={colors.primary} />
+                <Text style={[styles.topScanTxt, { color: colors.primary }]}>Scan</Text>
+              </>
+            )}
+          </TouchableOpacity>
         </View>
 
-        {/* Embedded Complete Printers Screen */}
+        {/* Embedded Complete Printers Screen (hide duplicate header card) */}
         <View style={styles.content}>
           <PrintersScreen
             targetAddress={props.targetAddress}
@@ -106,6 +130,7 @@ export function PrintersModal(props: PrintersModalProps): React.JSX.Element {
             onDisconnect={props.onDisconnect}
             onTestPrint={props.onTestPrint}
             onPaperFeed={props.onPaperFeed}
+            hideHeaderCard={true}
           />
         </View>
       </SafeAreaView>
@@ -138,14 +163,27 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 16,
     fontWeight: '800',
+    letterSpacing: -0.2,
   },
   headerSub: {
     fontSize: 11,
     fontWeight: '500',
     marginTop: 1,
   },
+  topScanBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 18,
+    borderWidth: 1,
+  },
+  topScanTxt: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
   content: {
     flex: 1,
   },
 });
-

@@ -1,17 +1,15 @@
 /**
  * components/PrintersScreen/PrintersScreen.tsx
  * 
- * Dedicated Thermal POS Printer & Hardware Management Screen for FlashBill.
- * Mirrors the structure of InvoicesScreen to give the user a complete, focused
- * hardware control experience.
+ * Hardware & Thermal Bluetooth POS Printer Manager for FlashBill.
  * 
  * Features:
- * - 1. Top Header & Summary Strip: Real-time active status, profile info, and Bluetooth scan CTA
- * - 2. Current Connected Printer Hero Card: MAC address, connection pill, auto-cutter status,
- *      and 1-tap Test Print & Feed Paper actions
- * - 3. Hardware Roll Switcher: Interactive selection between 58mm (32 Col) and 80mm (48 Col)
- * - 4. Nearby Bluetooth Discovered Devices List: 1-tap Connect to any detected thermal POS printer
- * - 5. Live Thermal Monospace Simulation: Toggleable view of authentic thermal monospace receipt
+ * - Active Printer Status Hero Card with full-width printer name & live status
+ * - Hardware Roll Switcher (58mm ↔ 80mm) with spacious cards & zero icon collision
+ * - Bluetooth Device Discovery List with 1-tap connect and clear pairing guide
+ * - Quick Diagnostic Actions: 1-Tap Test Print, Paper Feed, Disconnect
+ * - Live Monospace Receipt Layout Verification collapsible preview
+ * - Dark & Light mode dynamic theme binding
  */
 
 import React, { useState } from 'react';
@@ -26,7 +24,7 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
-import { PrinterProfile, PrinterProfileId } from '../../types/printer';
+import { PrinterProfileId, PrinterProfile } from '../../types/printer';
 import { BluetoothDevice } from '../../services/bluetoothPrinter';
 import { InvoiceData } from '../../types/billing';
 import { ReceiptPreview } from '../ReceiptPreview/ReceiptPreview';
@@ -42,6 +40,7 @@ interface PrintersScreenProps {
   sampleInvoice: InvoiceData;
   lastError?: string | null;
   isAutoDetected?: boolean;
+  hideHeaderCard?: boolean;
   onClearError?: () => void;
   onSelectProfile: (profile: PrinterProfileId) => void;
   onScan: () => void;
@@ -61,7 +60,8 @@ export function PrintersScreen({
   activeConfig,
   sampleInvoice,
   lastError,
-  isAutoDetected,
+  isAutoDetected = false,
+  hideHeaderCard = false,
   onClearError,
   onSelectProfile,
   onScan,
@@ -71,10 +71,11 @@ export function PrintersScreen({
   onPaperFeed,
 }: PrintersScreenProps): React.JSX.Element {
   const { colors, isDark } = useTheme();
-  const isConnected = !!targetAddress;
 
-  // Toggle state to preview monospace thermal layout
+  // Collapsible Receipt Simulator toggle
   const [showLivePreview, setShowLivePreview] = useState<boolean>(false);
+
+  const isConnected = !!targetAddress;
 
   return (
     <ScrollView
@@ -82,45 +83,47 @@ export function PrintersScreen({
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
     >
-      {/* 1. Top Header & Summary Strip (Structured like InvoicesScreen) */}
-      <View
-        style={[
-          styles.headerCard,
-          {
-            backgroundColor: colors.surface,
-            borderColor: colors.border,
-          },
-        ]}
-      >
-        <View style={styles.headerLeft}>
-          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
-            Thermal Printers
-          </Text>
-          <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
-            {isConnected ? `Linked to ${printerName}` : 'No Printer Linked'} • {activeConfig.lineWidth} Col ({activeConfig.paperWidth})
-          </Text>
-        </View>
-
-        <TouchableOpacity
+      {/* 1. Optional Top Header & Summary Strip (Hidden when rendered inside PrintersModal) */}
+      {!hideHeaderCard && (
+        <View
           style={[
-            styles.scanHeaderBtn,
-            { backgroundColor: colors.primary },
-            isScanning && { opacity: 0.8 },
+            styles.headerCard,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            },
           ]}
-          onPress={onScan}
-          disabled={isScanning}
-          activeOpacity={0.8}
         >
-          {isScanning ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <MaterialCommunityIcons name="bluetooth-audio" size={18} color="#FFFFFF" />
-          )}
-          <Text style={styles.scanHeaderTxt}>
-            {isScanning ? 'Scanning...' : 'Scan BT'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+          <View style={styles.headerLeft}>
+            <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
+              Thermal Printers
+            </Text>
+            <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
+              {isConnected ? `Linked to ${printerName}` : 'No Printer Linked'} • {activeConfig.lineWidth} Col ({activeConfig.paperWidth})
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.scanHeaderBtn,
+              { backgroundColor: colors.primary },
+              isScanning && { opacity: 0.8 },
+            ]}
+            onPress={onScan}
+            disabled={isScanning}
+            activeOpacity={0.8}
+          >
+            {isScanning ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <MaterialCommunityIcons name="bluetooth-audio" size={18} color="#FFFFFF" />
+            )}
+            <Text style={styles.scanHeaderTxt}>
+              {isScanning ? 'Scanning...' : 'Scan BT'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Hardware Diagnostic Error Banner (Visible when any printer connection error occurs) */}
       {lastError ? (
@@ -158,22 +161,22 @@ export function PrintersScreen({
             ]}
           >
             <Text style={[styles.troubleshootHeading, { color: colors.error }]}>
-              Fix for 58mm / 80mm Bluetooth Printers:
+              Quick Troubleshooting Guide:
             </Text>
             <Text style={[styles.troubleshootItem, { color: colors.textSecondary }]}>
-              • Check phone Settings &gt; Bluetooth: Ensure printer is listed under Paired Devices (PIN: 0000 or 1234).
+              • Ensure printer is turned ON and blue Bluetooth LED is blinking.
             </Text>
             <Text style={[styles.troubleshootItem, { color: colors.textSecondary }]}>
-              • Turn printer power OFF for 3 seconds, then turn back ON.
+              • Pair device in phone Bluetooth settings first (PIN: 0000 or 1234).
             </Text>
             <Text style={[styles.troubleshootItem, { color: colors.textSecondary }]}>
-              • Tap 'Scan BT' and select your printer from the Discovered list below.
+              • Turn printer OFF for 3 seconds, turn ON, and tap Scan below.
             </Text>
           </View>
         </View>
       ) : null}
 
-      {/* 2. Current Connected Printer Hero Card */}
+      {/* 2. Active Connected Printer Hero Card */}
       <View
         style={[
           styles.heroCard,
@@ -184,13 +187,14 @@ export function PrintersScreen({
         ]}
       >
         <View style={styles.heroTopRow}>
+          {/* Left Icon Circle */}
           <View
             style={[
               styles.printerIconCircle,
               {
                 backgroundColor: isConnected
                   ? colors.successLight
-                  : colors.primaryLight,
+                  : (isDark ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF'),
               },
             ]}
           >
@@ -201,21 +205,18 @@ export function PrintersScreen({
             />
           </View>
 
+          {/* Middle Meta Details */}
           <View style={styles.heroMetaCol}>
-            <View style={styles.heroNameRow}>
-              <Text
-                style={[styles.printerNameTxt, { color: colors.textPrimary }]}
-                numberOfLines={1}
-              >
-                {isConnected ? printerName : 'No Printer Connected'}
-              </Text>
+            {/* Status Pill on its own row: Never collides with printer name */}
+            <View style={styles.statusBadgeRow}>
               <View
                 style={[
                   styles.statusBadge,
                   {
                     backgroundColor: isConnected
                       ? colors.successLight
-                      : colors.surfaceLight,
+                      : (isDark ? 'rgba(245, 158, 11, 0.15)' : '#FEF3C7'),
+                    borderColor: isConnected ? colors.success : '#F59E0B',
                   },
                 ]}
               >
@@ -223,9 +224,7 @@ export function PrintersScreen({
                   style={[
                     styles.statusDot,
                     {
-                      backgroundColor: isConnected
-                        ? colors.success
-                        : colors.textMuted,
+                      backgroundColor: isConnected ? colors.success : '#D97706',
                     },
                   ]}
                 />
@@ -233,27 +232,52 @@ export function PrintersScreen({
                   style={[
                     styles.statusBadgeTxt,
                     {
-                      color: isConnected ? colors.success : colors.textMuted,
+                      color: isConnected ? colors.success : '#D97706',
                     },
                   ]}
                 >
-                  {isConnected ? 'CONNECTED' : 'DISCONNECTED'}
+                  {isConnected ? 'CONNECTED' : 'NOT CONNECTED'}
                 </Text>
               </View>
+
+              {isConnected && isAutoDetected && (
+                <View
+                  style={[
+                    styles.autoDetectBadge,
+                    {
+                      backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#DCFCE7',
+                      borderColor: colors.success,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.autoDetectTxt, { color: colors.success }]}>
+                    ⚡ Auto-Detected
+                  </Text>
+                </View>
+              )}
             </View>
+
+            {/* Printer Name (Full width, NEVER truncates into "No Printer Con...") */}
+            <Text
+              style={[styles.printerNameTxt, { color: colors.textPrimary }]}
+              numberOfLines={1}
+            >
+              {isConnected ? printerName : 'No Printer Connected'}
+            </Text>
 
             <Text
               style={[
                 styles.macAddressTxt,
                 { color: isConnected ? colors.accent : colors.textMuted },
               ]}
+              numberOfLines={1}
             >
               {targetAddress ? `MAC: ${targetAddress}` : 'Ready to pair nearby Bluetooth printer'}
             </Text>
           </View>
         </View>
 
-        {/* Profile Specifications Badges & Auto-Detect Indicator */}
+        {/* Profile Specifications Badges */}
         <View style={styles.specsBadgeRow}>
           <View
             style={[
@@ -263,6 +287,17 @@ export function PrintersScreen({
           >
             <Text style={[styles.specBadgeTxt, { color: colors.primary, fontWeight: '700' }]}>
               {activeConfig.badge}
+            </Text>
+          </View>
+
+          <View
+            style={[
+              styles.specBadge,
+              { backgroundColor: colors.surfaceLight, borderColor: colors.borderLight },
+            ]}
+          >
+            <Text style={[styles.specBadgeTxt, { color: colors.textSecondary }]}>
+              {activeConfig.lineWidth} Columns ({activeConfig.paperWidth})
             </Text>
           </View>
 
@@ -289,22 +324,9 @@ export function PrintersScreen({
               </Text>
             </View>
           )}
-
-          {isConnected && isAutoDetected && (
-            <View
-              style={[
-                styles.specBadge,
-                { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#DCFCE7', borderColor: colors.success },
-              ]}
-            >
-              <Text style={[styles.specBadgeTxt, { color: colors.success, fontWeight: '700' }]}>
-                ⚡ Auto-Detected
-              </Text>
-            </View>
-          )}
         </View>
 
-        {/* Quick Size Switcher Button (compact & responsive, never overflows) */}
+        {/* Quick Size Switcher Button (When Connected) */}
         {isConnected && (
           <View
             style={[
@@ -334,70 +356,59 @@ export function PrintersScreen({
           </View>
         )}
 
-        {/* Quick Diagnostic Actions (Test Print, Paper Feed, Disconnect) */}
-        <View style={[styles.heroActionsRow, { borderTopColor: colors.borderLight }]}>
-          {/* Test Print Action */}
-          <TouchableOpacity
-            style={[
-              styles.actionBtn,
-              {
-                backgroundColor: isConnected ? colors.primaryLight : colors.surfaceLight,
-                borderColor: isConnected ? colors.primary : colors.borderLight,
-              },
-            ]}
-            onPress={onTestPrint}
-            disabled={!isConnected || isPrinting}
-            activeOpacity={0.7}
-          >
-            {isPrinting ? (
-              <ActivityIndicator size="small" color={colors.primary} />
-            ) : (
+        {/* Bottom Actions Row */}
+        {isConnected ? (
+          <View style={[styles.heroActionsRow, { borderTopColor: colors.borderLight }]}>
+            {/* Test Print Action */}
+            <TouchableOpacity
+              style={[
+                styles.actionBtn,
+                {
+                  backgroundColor: colors.primaryLight,
+                  borderColor: colors.primary,
+                },
+              ]}
+              onPress={onTestPrint}
+              disabled={isPrinting}
+              activeOpacity={0.7}
+            >
+              {isPrinting ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <MaterialCommunityIcons
+                  name="printer-pos"
+                  size={18}
+                  color={colors.primary}
+                />
+              )}
+              <Text style={[styles.actionBtnTxt, { color: colors.primary }]}>
+                {isPrinting ? 'Printing...' : 'Test Print'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Paper Feed Action */}
+            <TouchableOpacity
+              style={[
+                styles.actionBtn,
+                {
+                  backgroundColor: colors.surfaceLight,
+                  borderColor: colors.borderLight,
+                },
+              ]}
+              onPress={onPaperFeed}
+              activeOpacity={0.7}
+            >
               <MaterialCommunityIcons
-                name="printer-pos"
+                name="arrow-down-bold-box-outline"
                 size={18}
-                color={isConnected ? colors.primary : colors.textMuted}
+                color={colors.textPrimary}
               />
-            )}
-            <Text
-              style={[
-                styles.actionBtnTxt,
-                { color: isConnected ? colors.primary : colors.textMuted },
-              ]}
-            >
-              {isPrinting ? 'Printing...' : 'Test Print'}
-            </Text>
-          </TouchableOpacity>
+              <Text style={[styles.actionBtnTxt, { color: colors.textPrimary }]}>
+                Feed
+              </Text>
+            </TouchableOpacity>
 
-          {/* Paper Feed Action */}
-          <TouchableOpacity
-            style={[
-              styles.actionBtn,
-              {
-                backgroundColor: isConnected ? colors.surfaceLight : colors.surfaceLight,
-                borderColor: colors.borderLight,
-              },
-            ]}
-            onPress={onPaperFeed}
-            disabled={!isConnected}
-            activeOpacity={0.7}
-          >
-            <MaterialCommunityIcons
-              name="arrow-down-bold-box-outline"
-              size={18}
-              color={isConnected ? colors.textPrimary : colors.textMuted}
-            />
-            <Text
-              style={[
-                styles.actionBtnTxt,
-                { color: isConnected ? colors.textPrimary : colors.textMuted },
-              ]}
-            >
-              Feed
-            </Text>
-          </TouchableOpacity>
-
-          {/* Disconnect Action */}
-          {isConnected && (
+            {/* Disconnect Action */}
             <TouchableOpacity
               style={[
                 styles.actionBtn,
@@ -420,11 +431,27 @@ export function PrintersScreen({
                 Disconnect
               </Text>
             </TouchableOpacity>
-          )}
-        </View>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={[styles.primaryLinkBtn, { backgroundColor: colors.primary }]}
+            onPress={onScan}
+            disabled={isScanning}
+            activeOpacity={0.8}
+          >
+            {isScanning ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <MaterialCommunityIcons name="bluetooth-connect" size={18} color="#FFFFFF" />
+            )}
+            <Text style={styles.primaryLinkBtnTxt}>
+              {isScanning ? 'Searching Nearby Printers...' : 'Pair & Connect Thermal Printer'}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
-      {/* 3. Hardware Roll Width Switcher (58mm ↔ 80mm) */}
+      {/* 3. Hardware Roll Width Selector (58mm ↔ 80mm) */}
       <View
         style={[
           styles.sectionBox,
@@ -434,9 +461,12 @@ export function PrintersScreen({
           },
         ]}
       >
-        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-          SELECT HARDWARE ROLL WIDTH
-        </Text>
+        <View style={styles.sectionHeaderRow}>
+          <MaterialCommunityIcons name="tune" size={18} color={colors.primary} />
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+            SELECT HARDWARE ROLL WIDTH
+          </Text>
+        </View>
 
         <View style={styles.profilesRow}>
           {/* Option A: 58mm Roll (2-Inch) */}
@@ -446,55 +476,62 @@ export function PrintersScreen({
               {
                 backgroundColor:
                   selectedProfile === 'SC588'
-                    ? colors.primaryLight
+                    ? (isDark ? 'rgba(37, 99, 235, 0.12)' : '#EFF6FF')
                     : colors.surfaceLight,
                 borderColor:
                   selectedProfile === 'SC588'
                     ? colors.primary
                     : colors.borderLight,
+                borderWidth: selectedProfile === 'SC588' ? 2 : 1,
               },
             ]}
             onPress={() => onSelectProfile('SC588')}
             activeOpacity={0.8}
           >
-            <View style={styles.profileCardHeader}>
-              <Text
+            <View style={styles.profileCardTop}>
+              <View
                 style={[
-                  styles.profileTitle,
+                  styles.profileIconCircle,
                   {
-                    color:
-                      selectedProfile === 'SC588'
-                        ? colors.textPrimary
-                        : colors.textSecondary,
+                    backgroundColor:
+                      selectedProfile === 'SC588' ? colors.primary : colors.borderLight,
                   },
                 ]}
               >
-                58mm Roll (2-Inch)
-              </Text>
-              {selectedProfile === 'SC588' && (
+                <MaterialCommunityIcons
+                  name="receipt"
+                  size={16}
+                  color={selectedProfile === 'SC588' ? '#FFFFFF' : colors.textSecondary}
+                />
+              </View>
+
+              {selectedProfile === 'SC588' ? (
                 <MaterialCommunityIcons
                   name="check-circle"
-                  size={18}
+                  size={20}
                   color={colors.primary}
                 />
+              ) : (
+                <View style={[styles.radioCircle, { borderColor: colors.borderLight }]} />
               )}
             </View>
+
+            <Text style={[styles.profileMainTitle, { color: colors.textPrimary }]}>
+              58mm Roll
+            </Text>
             <Text
               style={[
-                styles.profileDesc,
-                {
-                  color:
-                    selectedProfile === 'SC588'
-                      ? colors.primary
-                      : colors.textMuted,
-                },
+                styles.profileSpecSub,
+                { color: selectedProfile === 'SC588' ? colors.primary : colors.textMuted },
               ]}
             >
-              32 Columns • Compact
+              2-Inch • 32 Columns
             </Text>
-            <Text style={[styles.profileSub, { color: colors.textSecondary }]}>
-              Universal for all 58mm / 2-Inch printers
-            </Text>
+            <View style={[styles.profileTag, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
+              <Text style={[styles.profileTagTxt, { color: colors.textSecondary }]}>
+                Compact POS
+              </Text>
+            </View>
           </TouchableOpacity>
 
           {/* Option B: 80mm Roll (3-Inch) */}
@@ -504,55 +541,62 @@ export function PrintersScreen({
               {
                 backgroundColor:
                   selectedProfile === 'EZO80'
-                    ? colors.primaryLight
+                    ? (isDark ? 'rgba(37, 99, 235, 0.12)' : '#EFF6FF')
                     : colors.surfaceLight,
                 borderColor:
                   selectedProfile === 'EZO80'
                     ? colors.primary
                     : colors.borderLight,
+                borderWidth: selectedProfile === 'EZO80' ? 2 : 1,
               },
             ]}
             onPress={() => onSelectProfile('EZO80')}
             activeOpacity={0.8}
           >
-            <View style={styles.profileCardHeader}>
-              <Text
+            <View style={styles.profileCardTop}>
+              <View
                 style={[
-                  styles.profileTitle,
+                  styles.profileIconCircle,
                   {
-                    color:
-                      selectedProfile === 'EZO80'
-                        ? colors.textPrimary
-                        : colors.textSecondary,
+                    backgroundColor:
+                      selectedProfile === 'EZO80' ? colors.primary : colors.borderLight,
                   },
                 ]}
               >
-                80mm Roll (3-Inch)
-              </Text>
-              {selectedProfile === 'EZO80' && (
+                <MaterialCommunityIcons
+                  name="printer"
+                  size={16}
+                  color={selectedProfile === 'EZO80' ? '#FFFFFF' : colors.textSecondary}
+                />
+              </View>
+
+              {selectedProfile === 'EZO80' ? (
                 <MaterialCommunityIcons
                   name="check-circle"
-                  size={18}
+                  size={20}
                   color={colors.primary}
                 />
+              ) : (
+                <View style={[styles.radioCircle, { borderColor: colors.borderLight }]} />
               )}
             </View>
+
+            <Text style={[styles.profileMainTitle, { color: colors.textPrimary }]}>
+              80mm Roll
+            </Text>
             <Text
               style={[
-                styles.profileDesc,
-                {
-                  color:
-                    selectedProfile === 'EZO80'
-                      ? colors.primary
-                      : colors.textMuted,
-                },
+                styles.profileSpecSub,
+                { color: selectedProfile === 'EZO80' ? colors.primary : colors.textMuted },
               ]}
             >
-              48 Columns • Wide Layout
+              3-Inch • 48 Columns
             </Text>
-            <Text style={[styles.profileSub, { color: colors.textSecondary }]}>
-              Universal for all 80mm / 3-Inch printers
-            </Text>
+            <View style={[styles.profileTag, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
+              <Text style={[styles.profileTagTxt, { color: colors.textSecondary }]}>
+                Standard POS
+              </Text>
+            </View>
           </TouchableOpacity>
         </View>
       </View>
@@ -568,21 +612,28 @@ export function PrintersScreen({
         ]}
       >
         <View style={styles.deviceSectionHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            DISCOVERED BLUETOOTH PRINTERS ({deviceList.length})
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <MaterialCommunityIcons name="bluetooth" size={18} color={colors.primary} />
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 0 }]}>
+              DISCOVERED PRINTERS ({deviceList.length})
+            </Text>
+          </View>
 
           <TouchableOpacity
             onPress={onScan}
             disabled={isScanning}
-            style={styles.refreshBtn}
+            style={[styles.refreshBtn, { backgroundColor: colors.surfaceLight }]}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <MaterialCommunityIcons
-              name="refresh"
-              size={18}
-              color={colors.primary}
-            />
+            {isScanning ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <MaterialCommunityIcons
+                name="refresh"
+                size={16}
+                color={colors.primary}
+              />
+            )}
             <Text style={[styles.refreshTxt, { color: colors.primary }]}>
               {isScanning ? 'Scanning...' : 'Refresh'}
             </Text>
@@ -613,8 +664,8 @@ export function PrintersScreen({
                         ? colors.success
                         : colors.borderLight,
                       backgroundColor: isThisConnected
-                        ? colors.surfaceLight
-                        : 'transparent',
+                        ? (isDark ? 'rgba(16, 185, 129, 0.1)' : '#F0FDF4')
+                        : colors.surfaceLight,
                     },
                   ]}
                 >
@@ -625,7 +676,7 @@ export function PrintersScreen({
                         {
                           backgroundColor: isThisConnected
                             ? colors.successLight
-                            : colors.surfaceLight,
+                            : colors.surface,
                         },
                       ]}
                     >
@@ -674,7 +725,7 @@ export function PrintersScreen({
                           color={colors.success}
                         />
                         <Text style={[styles.connectBtnTxt, { color: colors.success }]}>
-                          Active
+                          Linked
                         </Text>
                       </View>
                     ) : (
@@ -689,24 +740,34 @@ export function PrintersScreen({
           </View>
         ) : (
           <View style={styles.emptyDevicesBox}>
-            <MaterialCommunityIcons
-              name="bluetooth-off"
-              size={42}
-              color={colors.textMuted}
-            />
+            <View style={[styles.emptyIconCircle, { backgroundColor: colors.surfaceLight }]}>
+              <MaterialCommunityIcons
+                name="bluetooth-connect"
+                size={36}
+                color={colors.primary}
+              />
+            </View>
             <Text style={[styles.emptyDevicesTitle, { color: colors.textPrimary }]}>
               No Bluetooth Printers Found
             </Text>
             <Text style={[styles.emptyDevicesSubtitle, { color: colors.textSecondary }]}>
-              Make sure your thermal printer is turned ON, Bluetooth is enabled on your phone, and the printer is paired in phone settings.
+              Ensure printer power is ON & paired in phone Bluetooth settings.
             </Text>
+
             <TouchableOpacity
               style={[styles.emptyScanBtn, { backgroundColor: colors.primary }]}
               onPress={onScan}
+              disabled={isScanning}
               activeOpacity={0.8}
             >
-              <MaterialCommunityIcons name="bluetooth-audio" size={18} color="#FFFFFF" />
-              <Text style={styles.emptyScanBtnTxt}>Scan Nearby Devices</Text>
+              {isScanning ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <MaterialCommunityIcons name="bluetooth-audio" size={18} color="#FFFFFF" />
+              )}
+              <Text style={styles.emptyScanBtnTxt}>
+                {isScanning ? 'Searching Nearby...' : 'Scan for Bluetooth Printers'}
+              </Text>
             </TouchableOpacity>
           </View>
         )}
@@ -771,7 +832,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 8,
-    paddingBottom: 24,
+    paddingBottom: 28,
   },
   headerCard: {
     flexDirection: 'row',
@@ -784,16 +845,15 @@ const styles = StyleSheet.create({
   },
   headerLeft: {
     flex: 1,
-    paddingRight: 8,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '800',
-    letterSpacing: 0.2,
+    letterSpacing: -0.2,
   },
   headerSubtitle: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '500',
     marginTop: 2,
   },
   scanHeaderBtn: {
@@ -810,38 +870,34 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   heroCard: {
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
     padding: 16,
-    marginBottom: 14,
+    marginBottom: 12,
   },
   heroTopRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 12,
     marginBottom: 12,
   },
   printerIconCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 2,
   },
   heroMetaCol: {
     flex: 1,
   },
-  heroNameRow: {
+  statusBadgeRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
     gap: 6,
-  },
-  printerNameTxt: {
-    fontSize: 16,
-    fontWeight: '800',
-    flexShrink: 1,
+    marginBottom: 4,
+    flexWrap: 'wrap',
   },
   statusBadge: {
     flexDirection: 'row',
@@ -849,7 +905,8 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 8,
+    borderRadius: 6,
+    borderWidth: 1,
   },
   statusDot: {
     width: 6,
@@ -861,6 +918,22 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.4,
   },
+  autoDetectBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  autoDetectTxt: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  printerNameTxt: {
+    fontSize: 17,
+    fontWeight: '800',
+    letterSpacing: -0.2,
+    marginBottom: 3,
+  },
   macAddressTxt: {
     fontSize: 11,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
@@ -870,7 +943,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
-    marginBottom: 10,
+    marginBottom: 12,
+  },
+  specBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  specBadgeTxt: {
+    fontSize: 11,
+    fontWeight: '700',
   },
   quickSwitchRow: {
     flexDirection: 'row',
@@ -878,7 +961,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 10,
-    marginTop: 6,
     marginBottom: 12,
     borderRadius: 8,
     borderWidth: 1,
@@ -910,16 +992,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
   },
-  specBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    borderWidth: 1,
-  },
-  specBadgeTxt: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
   heroActionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -941,17 +1013,36 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
   },
+  primaryLinkBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 10,
+    marginTop: 4,
+  },
+  primaryLinkBtnTxt: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
   sectionBox: {
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
     padding: 14,
-    marginBottom: 14,
+    marginBottom: 12,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.6,
-    marginBottom: 10,
   },
   profilesRow: {
     flexDirection: 'row',
@@ -960,41 +1051,64 @@ const styles = StyleSheet.create({
   profileCard: {
     flex: 1,
     padding: 12,
-    borderRadius: 10,
-    borderWidth: 1.5,
+    borderRadius: 12,
   },
-  profileCardHeader: {
+  profileCardTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 8,
   },
-  profileTitle: {
-    fontSize: 13,
-    fontWeight: '800',
+  profileIconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  profileDesc: {
-    fontSize: 11,
+  radioCircle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1.5,
+  },
+  profileMainTitle: {
+    fontSize: 14,
     fontWeight: '800',
     marginBottom: 2,
   },
-  profileSub: {
-    fontSize: 10,
-    fontWeight: '500',
+  profileSpecSub: {
+    fontSize: 11,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  profileTag: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    alignSelf: 'flex-start',
+  },
+  profileTagTxt: {
+    fontSize: 9.5,
+    fontWeight: '700',
   },
   deviceSectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   refreshBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
   },
   refreshTxt: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
   },
   scanningBanner: {
@@ -1063,27 +1177,34 @@ const styles = StyleSheet.create({
   },
   emptyDevicesBox: {
     alignItems: 'center',
-    paddingVertical: 24,
-    paddingHorizontal: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 12,
+  },
+  emptyIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
   },
   emptyDevicesTitle: {
     fontSize: 15,
     fontWeight: '800',
-    marginTop: 10,
+    marginBottom: 4,
   },
   emptyDevicesSubtitle: {
     fontSize: 12,
     fontWeight: '500',
     textAlign: 'center',
-    lineHeight: 17,
-    marginTop: 4,
-    marginBottom: 16,
+    lineHeight: 16,
+    marginBottom: 14,
   },
   emptyScanBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 10,
   },
@@ -1104,29 +1225,28 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   previewToggleTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
   },
   previewToggleSubtitle: {
     fontSize: 11,
     fontWeight: '500',
-    marginTop: 2,
+    marginTop: 1,
   },
   livePreviewContainer: {
-    alignItems: 'center',
-    paddingTop: 16,
+    paddingTop: 12,
   },
   diagnosticErrorCard: {
-    borderWidth: 1.5,
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 14,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
   },
   diagnosticHeaderRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    alignItems: 'center',
+    marginBottom: 6,
   },
   diagnosticTitleLeft: {
     flexDirection: 'row',
@@ -1136,28 +1256,24 @@ const styles = StyleSheet.create({
   diagnosticTitle: {
     fontSize: 13,
     fontWeight: '800',
-    letterSpacing: 0.3,
   },
   diagnosticErrorText: {
     fontSize: 12,
     fontWeight: '600',
-    lineHeight: 18,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   troubleshootBox: {
-    borderRadius: 10,
     borderWidth: 1,
-    padding: 10,
-    gap: 4,
+    borderRadius: 8,
+    padding: 8,
   },
   troubleshootHeading: {
     fontSize: 11,
     fontWeight: '800',
-    marginBottom: 2,
+    marginBottom: 4,
   },
   troubleshootItem: {
     fontSize: 11,
-    fontWeight: '500',
     lineHeight: 16,
   },
 });

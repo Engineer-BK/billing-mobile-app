@@ -5,20 +5,20 @@
  * Symmetrical in design, styling, and layout to InvoicesScreen.
  * 
  * Features:
- * - Header with total products count, average price, and "+ Add Item" CTA
+ * - Header with total products count, average price, and "Add Product" CTA
  * - Real-time search across product name, category, and unit
  * - Horizontal filter chips with live counts:
  *   - All Products
  *   - Price Drops (▼ Savings)
  *   - Price Rises (▲ Increases)
  *   - With Discount (🏷️)
- *   - Category chips (Rice, Dal, Oil, Spices, etc.)
+ *   - Dynamic Category chips (Rice, Dal, Oil, Spices, etc.)
  * - Symmetrical Item Cards featuring:
  *   - Category badge & Unit pill
- *   - Product Name & Default Discount badge
- *   - Previous Price delta indicator: "Was ₹XX.XX [ ▲/▼ XX% ]"
- *   - Current Selling Rate (₹)
- *   - 1-Tap Edit & Delete actions
+ *   - Product Name & Previous price subtitle: "Was ₹XX.XX • Price updated"
+ *   - Previous Price delta indicator: "▲ +10.0%" or "▼ -12.5%"
+ *   - Prominent Selling Rate: "₹ XX.XX /UNIT"
+ *   - Symmetrical Edit & Delete action buttons
  * - Pull-to-refresh & full dark/light theme support
  */
 
@@ -198,7 +198,7 @@ export function ItemsScreen({
           activeOpacity={0.8}
         >
           <MaterialCommunityIcons name="plus" size={18} color="#FFFFFF" />
-          <Text style={styles.addItemHeaderTxt}>+ Add Item</Text>
+          <Text style={styles.addItemHeaderTxt}>Add Product</Text>
         </TouchableOpacity>
       </View>
 
@@ -249,8 +249,6 @@ export function ItemsScreen({
                       : '#FFFFFF',
                     borderColor: isSelected
                       ? colors.primary
-                      : isDark
-                      ? colors.border
                       : colors.borderLight,
                   },
                 ]}
@@ -360,7 +358,7 @@ export function ItemsScreen({
               onPress={() => handleOpenEdit(item)}
               activeOpacity={0.7}
             >
-              {/* Row 1: Category Badge, Unit, Actions */}
+              {/* Row 1: Category Badge, Unit, Status/Trend Badge */}
               <View style={styles.cardTopRow}>
                 <View style={styles.badgesRow}>
                   {/* Category Pill */}
@@ -393,7 +391,7 @@ export function ItemsScreen({
                     </Text>
                   </View>
 
-                  {/* Preset Discount Pill (if configured) */}
+                  {/* Default Discount Pill (if configured) */}
                   {item.defaultDiscount && parseFloat(item.defaultDiscount) > 0 ? (
                     <View
                       style={[
@@ -411,80 +409,126 @@ export function ItemsScreen({
                   ) : null}
                 </View>
 
-                {/* Edit & Delete Action Icons */}
-                <View style={styles.cardActionsRow}>
-                  <TouchableOpacity
-                    style={styles.iconBtn}
-                    onPress={() => handleOpenEdit(item)}
-                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                {/* Right Status / Trend Tag */}
+                {hasPriceTrend ? (
+                  <View
+                    style={[
+                      styles.trendBadge,
+                      {
+                        backgroundColor: isUp
+                          ? (isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEE2E2')
+                          : (isDark ? 'rgba(16, 185, 129, 0.15)' : '#DCFCE7'),
+                        borderColor: isUp ? '#EF4444' : '#10B981',
+                      },
+                    ]}
                   >
-                    <MaterialCommunityIcons name="pencil-outline" size={18} color={colors.primary} />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.iconBtn}
-                    onPress={() => handleDeleteConfirm(item)}
-                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    <Text
+                      style={[
+                        styles.trendBadgeTxt,
+                        { color: isUp ? '#EF4444' : '#10B981' },
+                      ]}
+                    >
+                      {isUp ? `▲ (+${pct}%)` : `▼ (-${pct}%)`}
+                    </Text>
+                  </View>
+                ) : (
+                  <View
+                    style={[
+                      styles.activePill,
+                      {
+                        backgroundColor: colors.successLight,
+                      },
+                    ]}
                   >
-                    <MaterialCommunityIcons name="trash-can-outline" size={18} color={colors.error} />
-                  </TouchableOpacity>
-                </View>
+                    <Text style={[styles.activePillTxt, { color: colors.success }]}>
+                      ACTIVE
+                    </Text>
+                  </View>
+                )}
               </View>
 
-              {/* Row 2: Product Name */}
-              <Text
-                style={[styles.itemNameTxt, { color: colors.textPrimary }]}
-                numberOfLines={1}
-              >
-                {item.name}
-              </Text>
+              {/* Row 2: Product Name & Previous Price Detail */}
+              <View style={styles.cardMidRow}>
+                <Text
+                  style={[styles.itemNameTxt, { color: colors.textPrimary }]}
+                  numberOfLines={1}
+                >
+                  {item.name}
+                </Text>
 
-              {/* Row 3: Price & Trend Footer */}
+                {hasPriceTrend ? (
+                  <Text style={[styles.itemSubDetail, { color: colors.textMuted }]}>
+                    Was ₹{oldP.toFixed(2).replace(/\.00$/, '')} • Price updated
+                  </Text>
+                ) : (
+                  <Text style={[styles.itemSubDetail, { color: colors.textSecondary }]}>
+                    Standard store catalog rate
+                  </Text>
+                )}
+              </View>
+
+              {/* Row 3: Symmetrical Bottom Row (Selling Rate on Left, Actions on Right) */}
               <View style={[styles.cardBottomRow, { borderTopColor: colors.borderLight }]}>
-                {/* Left: Previous Price Trend or Subtitle */}
-                <View style={styles.priceTrendLeft}>
-                  {hasPriceTrend ? (
-                    <View style={styles.trendInlineRow}>
-                      <Text style={[styles.wasPriceTxt, { color: colors.textMuted }]}>
-                        Was ₹{oldP.toFixed(2).replace(/\.00$/, '')}
-                      </Text>
-                      <View
-                        style={[
-                          styles.trendBadge,
-                          {
-                            backgroundColor: isUp
-                              ? (isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEE2E2')
-                              : (isDark ? 'rgba(16, 185, 129, 0.15)' : '#DCFCE7'),
-                            borderColor: isUp ? '#EF4444' : '#10B981',
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.trendBadgeTxt,
-                            { color: isUp ? '#EF4444' : '#10B981' },
-                          ]}
-                        >
-                          {isUp ? `▲ (+${pct}%)` : `▼ (-${pct}%)`}
-                        </Text>
-                      </View>
-                    </View>
-                  ) : (
-                    <Text style={[styles.standardRateSubtitle, { color: colors.textMuted }]}>
-                      Standard Catalog Rate
+                {/* Left: Selling Rate */}
+                <View>
+                  <Text style={[styles.rateLbl, { color: colors.textSecondary }]}>
+                    Selling Rate
+                  </Text>
+                  <View style={styles.rateValueRow}>
+                    <Text style={[styles.rateCurrency, { color: colors.primary }]}>₹</Text>
+                    <Text style={[styles.rateAmount, { color: colors.primary }]}>
+                      {item.price}
                     </Text>
-                  )}
+                    <Text style={[styles.perUnitTxt, { color: colors.textMuted }]}>
+                      /{item.unit}
+                    </Text>
+                  </View>
                 </View>
 
-                {/* Right: Current Rate */}
-                <View style={styles.priceColRight}>
-                  <Text style={[styles.currencyPrefix, { color: colors.primary }]}>₹</Text>
-                  <Text style={[styles.priceTxt, { color: colors.primary }]}>
-                    {item.price}
-                  </Text>
-                  <Text style={[styles.perUnitTxt, { color: colors.textMuted }]}>
-                    /{item.unit}
-                  </Text>
+                {/* Right: Symmetrical Action Buttons (Edit + Delete) */}
+                <View style={styles.actionsGroup}>
+                  {/* Edit Button */}
+                  <TouchableOpacity
+                    style={[
+                      styles.editActionBtn,
+                      {
+                        backgroundColor: colors.primaryLight,
+                        borderColor: colors.primary,
+                      },
+                    ]}
+                    onPress={() => handleOpenEdit(item)}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <MaterialCommunityIcons
+                      name="pencil-outline"
+                      size={17}
+                      color={colors.primary}
+                    />
+                    <Text style={[styles.editActionTxt, { color: colors.primary }]}>
+                      Edit
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Delete Button */}
+                  <TouchableOpacity
+                    style={[
+                      styles.deleteBtn,
+                      {
+                        backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEE2E2',
+                        borderColor: isDark ? '#EF4444' : '#FECACA',
+                      },
+                    ]}
+                    onPress={() => handleDeleteConfirm(item)}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <MaterialCommunityIcons
+                      name="trash-can-outline"
+                      size={18}
+                      color={colors.error}
+                    />
+                  </TouchableOpacity>
                 </View>
               </View>
             </TouchableOpacity>
@@ -537,7 +581,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: 10,
-    gap: 4,
+    gap: 6,
   },
   addItemHeaderTxt: {
     color: '#FFFFFF',
@@ -589,19 +633,23 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   listContent: {
-    paddingBottom: 24,
-    gap: 10,
+    paddingBottom: 28,
+    gap: 12,
   },
   itemCard: {
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
-    padding: 14,
+    padding: 16,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
   cardTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   badgesRow: {
     flexDirection: 'row',
@@ -640,70 +688,96 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
   },
-  cardActionsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  iconBtn: {
-    padding: 4,
-  },
-  itemNameTxt: {
-    fontSize: 16,
-    fontWeight: '800',
-    marginBottom: 10,
-  },
-  cardBottomRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  priceTrendLeft: {
-    flex: 1,
-  },
-  trendInlineRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  wasPriceTxt: {
-    fontSize: 12,
-    fontWeight: '600',
-    textDecorationLine: 'line-through',
-  },
   trendBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
     borderWidth: 1,
   },
   trendBadgeTxt: {
     fontSize: 11,
     fontWeight: '800',
   },
-  standardRateSubtitle: {
-    fontSize: 11,
-    fontWeight: '500',
+  activePill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
   },
-  priceColRight: {
+  activePillTxt: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+  },
+  cardMidRow: {
+    marginBottom: 12,
+  },
+  itemNameTxt: {
+    fontSize: 17,
+    fontWeight: '800',
+    letterSpacing: -0.2,
+  },
+  itemSubDetail: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 3,
+  },
+  cardBottomRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 12,
+    borderTopWidth: 1,
+  },
+  rateLbl: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  rateValueRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
+    marginTop: 2,
   },
-  currencyPrefix: {
+  rateCurrency: {
     fontSize: 14,
     fontWeight: '700',
-    marginRight: 1,
+    marginRight: 2,
   },
-  priceTxt: {
-    fontSize: 18,
+  rateAmount: {
+    fontSize: 20,
     fontWeight: '900',
+    letterSpacing: -0.2,
   },
   perUnitTxt: {
     fontSize: 12,
     fontWeight: '600',
-    marginLeft: 2,
+    marginLeft: 3,
+  },
+  actionsGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  editActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 4,
+  },
+  editActionTxt: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  deleteBtn: {
+    padding: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyContainer: {
     alignItems: 'center',
@@ -712,26 +786,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   emptyTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    marginTop: 12,
-    marginBottom: 6,
+    fontSize: 18,
+    fontWeight: '800',
+    marginTop: 16,
   },
   emptySubtitle: {
     fontSize: 13,
     textAlign: 'center',
+    marginTop: 8,
     lineHeight: 19,
-    marginBottom: 18,
   },
   emptyCreateBtn: {
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 10,
+    marginTop: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
   },
   emptyCreateTxt: {
     color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '800',
   },
 });
-

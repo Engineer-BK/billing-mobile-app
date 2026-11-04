@@ -3,9 +3,9 @@
  * 
  * Bottom fixed action bar for POS Sale Screen.
  * Features:
- * - "Save & New" action: Saves bill and prepares next sequential invoice
- * - "Save" primary action: Commits sale to records
- * - "⋮" More options button (1-tap direct thermal print & clear)
+ * - "Save & New" action: Structured secondary outlined button with icon and soft blue tint
+ * - "Save Bill" primary action: Solid high-contrast button with checkmark icon
+ * - "⋮" More options button: 48px square surface button for thermal print & reset
  */
 
 import React from 'react';
@@ -22,7 +22,7 @@ export function SaleBottomBar({
   onSave,
   onMoreOptions,
 }: SaleBottomBarProps): React.JSX.Element {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
 
   return (
     <View
@@ -34,18 +34,29 @@ export function SaleBottomBar({
         },
       ]}
     >
-      {/* Save & New Button */}
+      {/* 1. Symmetrical "Save & New" Action Button */}
       <TouchableOpacity
-        style={styles.saveNewBtn}
+        style={[
+          styles.saveNewBtn,
+          {
+            backgroundColor: isDark ? 'rgba(37, 99, 235, 0.12)' : '#EFF6FF',
+            borderColor: colors.primary,
+          },
+        ]}
         onPress={() => onSave(true)}
         activeOpacity={0.7}
       >
-        <Text style={[styles.saveNewTxt, { color: colors.textPrimary }]}>
+        <MaterialCommunityIcons
+          name="plus-circle-outline"
+          size={18}
+          color={colors.primary}
+        />
+        <Text style={[styles.saveNewTxt, { color: colors.primary }]}>
           Save & New
         </Text>
       </TouchableOpacity>
 
-      {/* Primary Save Button */}
+      {/* 2. Primary Solid "Save Bill" Button */}
       <TouchableOpacity
         style={[
           styles.savePrimaryBtn,
@@ -57,20 +68,31 @@ export function SaleBottomBar({
         onPress={() => onSave(false)}
         activeOpacity={0.8}
       >
-        <Text style={styles.savePrimaryTxt}>Save</Text>
+        <MaterialCommunityIcons
+          name="content-save-check-outline"
+          size={18}
+          color="#FFFFFF"
+        />
+        <Text style={styles.savePrimaryTxt}>Save Bill</Text>
       </TouchableOpacity>
 
-      {/* ⋮ More Options Trigger */}
+      {/* 3. More Options (⋮) Button */}
       <TouchableOpacity
-        style={styles.moreOptionsBtn}
+        style={[
+          styles.moreOptionsBtn,
+          {
+            backgroundColor: colors.surfaceLight,
+            borderColor: colors.borderLight,
+          },
+        ]}
         onPress={onMoreOptions}
         activeOpacity={0.7}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
         <MaterialCommunityIcons
           name="dots-vertical"
-          size={24}
-          color={colors.primary}
+          size={22}
+          color={colors.textPrimary}
         />
       </TouchableOpacity>
     </View>
@@ -82,39 +104,51 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingTop: 10,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 12,
     borderTopWidth: 1,
-    gap: 12,
+    gap: 10,
   },
   saveNewBtn: {
-    flex: 1,
-    paddingVertical: 12,
+    flex: 1.1,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    gap: 6,
   },
   saveNewTxt: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.2,
   },
   savePrimaryBtn: {
-    flex: 1.2,
-    paddingVertical: 12,
-    borderRadius: 8,
+    flex: 1.3,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    height: 48,
+    borderRadius: 12,
+    gap: 6,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
     elevation: 3,
   },
   savePrimaryTxt: {
     color: '#FFFFFF',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '800',
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
   moreOptionsBtn: {
-    padding: 6,
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
-

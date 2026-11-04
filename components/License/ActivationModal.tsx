@@ -4,6 +4,7 @@
  * High-Converting Store Activation & Voucher Redemption Modal (Module 2.4).
  * 
  * Features:
+ * - 100% Complete, non-scrollable Verified State dialog with zero clipping
  * - 16-character alphanumeric voucher code input with automatic formatting
  * - 1-Tap "Activate Store" with Firestore transaction verification
  * - "Contact Admin on WhatsApp" for direct B2B UPI payment & instant key delivery
@@ -16,7 +17,6 @@ import {
   StyleSheet,
   Text,
   View,
-  Modal,
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
@@ -25,6 +25,7 @@ import {
   ActivityIndicator,
   Linking,
   Alert,
+  Modal,
   ScrollView,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -136,95 +137,75 @@ export function ActivationModal({
                   },
                 ]}
               >
-                <ScrollView
-                  showsVerticalScrollIndicator={false}
-                  contentContainerStyle={styles.scrollContent}
-                >
-                  {/* Top Badge & Close */}
-                  <View style={styles.headerRow}>
-                    <View
-                      style={[
-                        styles.planBadge,
-                        {
-                          backgroundColor: isActivated
-                            ? '#DCFCE7'
-                            : isDark
-                            ? 'rgba(245, 158, 11, 0.2)'
-                            : '#FEF3C7',
-                        },
-                      ]}
-                    >
-                      <MaterialCommunityIcons
-                        name={isActivated ? 'shield-check' : 'lock-outline'}
-                        size={14}
-                        color={isActivated ? '#16A34A' : '#D97706'}
-                      />
-                      <Text
+                {/* 1. ACTIVATED STATE: 100% Complete & Non-Scrollable */}
+                {isActivated ? (
+                  <View style={styles.activatedCardBody}>
+                    {/* Header Row: Badge & Close */}
+                    <View style={styles.headerRow}>
+                      <View
                         style={[
-                          styles.planBadgeTxt,
-                          { color: isActivated ? '#16A34A' : '#D97706' },
+                          styles.planBadge,
+                          { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.2)' : '#DCFCE7' },
                         ]}
                       >
-                        {isActivated ? `${plan} PRO LICENSE` : 'FREE TIER (PRINTER LOCKED)'}
+                        <MaterialCommunityIcons name="shield-check" size={15} color="#16A34A" />
+                        <Text style={styles.planBadgeTxt}>{plan} PRO LICENSE</Text>
+                      </View>
+
+                      <TouchableOpacity
+                        onPress={onClose}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        style={styles.closeBtn}
+                      >
+                        <MaterialCommunityIcons name="close" size={22} color={colors.textSecondary} />
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Celebration Icon & Title */}
+                    <View style={styles.titleSection}>
+                      <View
+                        style={[
+                          styles.iconCircle,
+                          {
+                            backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#DCFCE7',
+                            borderColor: '#10B981',
+                          },
+                        ]}
+                      >
+                        <MaterialCommunityIcons name="check-decagram" size={38} color="#10B981" />
+                      </View>
+
+                      <Text style={[styles.title, { color: colors.textPrimary }]}>
+                        Store Activated & Verified
+                      </Text>
+                      <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+                        Your store "{user?.shopName || 'FlashBill Store'}" has lifetime access to 0ms thermal printing on 58mm and 80mm rolls.
                       </Text>
                     </View>
 
-                    <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                      <MaterialCommunityIcons name="close" size={22} color={colors.textSecondary} />
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* Icon & Title */}
-                  <View style={styles.titleSection}>
-                    <View
-                      style={[
-                        styles.iconCircle,
-                        {
-                          backgroundColor: isActivated
-                            ? 'rgba(16, 185, 129, 0.15)'
-                            : isDark
-                            ? 'rgba(37, 99, 235, 0.18)'
-                            : '#EFF6FF',
-                          borderColor: isActivated ? '#10B981' : colors.primary,
-                        },
-                      ]}
-                    >
-                      <MaterialCommunityIcons
-                        name={isActivated ? 'check-decagram' : 'key-star'}
-                        size={36}
-                        color={isActivated ? '#10B981' : colors.primary}
-                      />
-                    </View>
-
-                    <Text style={[styles.title, { color: colors.textPrimary }]}>
-                      {isActivated ? 'Store Activated & Verified' : 'Activate Thermal Printing'}
-                    </Text>
-                    <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                      {isActivated
-                        ? `Your store "${user?.shopName || 'FlashBill Store'}" has lifetime access to 0ms thermal printing on 58mm and 80mm rolls.`
-                        : 'Unlock 0ms high-speed thermal printing, custom store headers, and permanent cloud ledger by redeeming your store license key.'}
-                    </Text>
-                  </View>
-
-                  {/* Active License Details Card (If already activated) */}
-                  {isActivated ? (
+                    {/* Active License Details Box */}
                     <View
                       style={[
                         styles.activeLicenseBox,
                         {
-                          backgroundColor: isDark ? 'rgba(16, 185, 129, 0.1)' : '#F0FDF4',
+                          backgroundColor: isDark ? 'rgba(16, 185, 129, 0.08)' : '#F0FDF4',
                           borderColor: '#86EFAC',
                         },
                       ]}
                     >
                       <View style={styles.licenseRow}>
                         <Text style={[styles.licenseLabel, { color: colors.textSecondary }]}>Status:</Text>
-                        <Text style={styles.activeTxt}>Active & Verified</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                          <View style={styles.greenDot} />
+                          <Text style={styles.activeTxt}>Active & Verified</Text>
+                        </View>
                       </View>
+
                       <View style={styles.licenseRow}>
                         <Text style={[styles.licenseLabel, { color: colors.textSecondary }]}>Plan:</Text>
                         <Text style={[styles.licenseValue, { color: colors.textPrimary }]}>{plan}</Text>
                       </View>
+
                       {licenseKey ? (
                         <View style={styles.licenseRow}>
                           <Text style={[styles.licenseLabel, { color: colors.textSecondary }]}>Key:</Text>
@@ -232,8 +213,67 @@ export function ActivationModal({
                         </View>
                       ) : null}
                     </View>
-                  ) : (
-                    /* Voucher Redemption Form */
+
+                    {/* Prominent Bottom Action Button */}
+                    <TouchableOpacity
+                      style={[styles.doneBtn, { backgroundColor: colors.primary }]}
+                      onPress={onClose}
+                      activeOpacity={0.8}
+                    >
+                      <MaterialCommunityIcons name="check" size={18} color="#FFFFFF" />
+                      <Text style={styles.doneBtnTxt}>Continue to POS</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  /* 2. FREE TIER / VOUCHER REDEMPTION STATE */
+                  <ScrollView
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.scrollContent}
+                  >
+                    {/* Header Row */}
+                    <View style={styles.headerRow}>
+                      <View
+                        style={[
+                          styles.planBadge,
+                          {
+                            backgroundColor: isDark ? 'rgba(245, 158, 11, 0.2)' : '#FEF3C7',
+                          },
+                        ]}
+                      >
+                        <MaterialCommunityIcons name="lock-outline" size={14} color="#D97706" />
+                        <Text style={[styles.planBadgeTxt, { color: '#D97706' }]}>
+                          FREE TIER (PRINTER LOCKED)
+                        </Text>
+                      </View>
+
+                      <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                        <MaterialCommunityIcons name="close" size={22} color={colors.textSecondary} />
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Icon & Title */}
+                    <View style={styles.titleSection}>
+                      <View
+                        style={[
+                          styles.iconCircle,
+                          {
+                            backgroundColor: isDark ? 'rgba(37, 99, 235, 0.18)' : '#EFF6FF',
+                            borderColor: colors.primary,
+                          },
+                        ]}
+                      >
+                        <MaterialCommunityIcons name="key-star" size={34} color={colors.primary} />
+                      </View>
+
+                      <Text style={[styles.title, { color: colors.textPrimary }]}>
+                        Activate Thermal Printing
+                      </Text>
+                      <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+                        Unlock 0ms high-speed thermal printing, store headers, and permanent cloud ledger.
+                      </Text>
+                    </View>
+
+                    {/* Voucher Redemption Form */}
                     <View style={styles.formContainer}>
                       <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
                         ENTER 16-CHAR ACTIVATION VOUCHER
@@ -322,11 +362,11 @@ export function ActivationModal({
                       </TouchableOpacity>
 
                       <Text style={[styles.helpSubtext, { color: colors.textMuted }]}>
-                        Send your store name on WhatsApp. We provide instant activation keys or enable your store remotely in 30 seconds.
+                        Send your store name on WhatsApp for instant activation key or remote enablement in 30 seconds.
                       </Text>
                     </View>
-                  )}
-                </ScrollView>
+                  </ScrollView>
+                )}
               </View>
             </TouchableWithoutFeedback>
           </KeyboardAvoidingView>
@@ -342,54 +382,60 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.65)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 16,
+    padding: 20,
   },
   keyboardWrap: {
     width: '100%',
-    maxWidth: 440,
+    maxWidth: 400,
   },
   modalCard: {
     width: '100%',
     borderRadius: 24,
     borderWidth: 1.5,
-    maxHeight: '90%',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.25,
     shadowRadius: 20,
     elevation: 10,
     overflow: 'hidden',
   },
+  activatedCardBody: {
+    padding: 22,
+  },
   scrollContent: {
     padding: 20,
-    paddingBottom: 32,
+    paddingBottom: 24,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    marginBottom: 16,
   },
   planBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
-    gap: 4,
+    gap: 5,
   },
   planBadgeTxt: {
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: '800',
-    letterSpacing: 0.3,
+    letterSpacing: 0.4,
+    color: '#16A34A',
+  },
+  closeBtn: {
+    padding: 4,
   },
   titleSection: {
     alignItems: 'center',
     marginBottom: 18,
   },
   iconCircle: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
@@ -407,13 +453,14 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     textAlign: 'center',
     lineHeight: 18,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
   },
   activeLicenseBox: {
     padding: 14,
     borderRadius: 14,
     borderWidth: 1.5,
-    gap: 8,
+    gap: 9,
+    marginBottom: 18,
   },
   licenseRow: {
     flexDirection: 'row',
@@ -423,6 +470,12 @@ const styles = StyleSheet.create({
   licenseLabel: {
     fontSize: 12,
     fontWeight: '600',
+  },
+  greenDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#16A34A',
   },
   activeTxt: {
     fontSize: 12,
@@ -437,6 +490,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.5,
+  },
+  doneBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 48,
+    borderRadius: 12,
+    gap: 6,
+  },
+  doneBtnTxt: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.2,
   },
   formContainer: {
     width: '100%',
@@ -551,4 +618,3 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
 });
-
