@@ -12,24 +12,53 @@
  * - Real cream thermal paper simulation with feed lines padding
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { StyleSheet, Text, View, Platform } from 'react-native';
 import { PrinterProfile } from '../../types/printer';
 import { InvoiceData } from '../../types/billing';
 import { DashedDivider } from './DashedDivider';
 import { useTheme } from '../../hooks/useTheme';
+import { storageService } from '../../services/storageService';
 
 interface ReceiptPreviewProps {
   activeConfig: PrinterProfile;
   invoice: InvoiceData;
+  footerGreeting?: string;
 }
 
 export function ReceiptPreview({
   activeConfig,
   invoice,
+  footerGreeting: propsFooterGreeting,
 }: ReceiptPreviewProps): React.JSX.Element {
   const { colors } = useTheme();
   const is58mm = activeConfig.id === 'SC588';
+
+  // Live dynamic festive footer greeting (synced with Settings)
+  const [liveFooterGreeting, setLiveFooterGreeting] = useState<string>(
+    propsFooterGreeting ?? 'Thank you! Visit again.'
+  );
+
+  useEffect(() => {
+    if (propsFooterGreeting !== undefined) {
+      setLiveFooterGreeting(propsFooterGreeting);
+      return;
+    }
+
+    // 1. Initial load from storageService
+    storageService.loadReceiptFooter().then((saved) => {
+      setLiveFooterGreeting(saved);
+    });
+
+    // 2. Real-time subscription to storage updates from SettingsModal
+    const unsubscribe = storageService.onFooterChange((updatedFooter) => {
+      setLiveFooterGreeting(updatedFooter);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [propsFooterGreeting]);
 
   // Dynamic on-screen simulation of physical feedLines (topSpace & bottomSpace)
   const topPadding = Math.max(4, activeConfig.feedLines.topSpace * 8 + 6);
@@ -371,10 +400,15 @@ export function ReceiptPreview({
 
         <DashedDivider />
 
-        {/* Centered Polite Closing */}
-        <Text allowFontScaling={false} style={[styles.paperCenterBold, { fontSize: 11, marginVertical: 4 }]}>
-          Thank You! Visit Again
-        </Text>
+        {/* Centered Polite / Festive Closing (Dynamic & removed if empty) */}
+        {liveFooterGreeting.trim().length > 0 && (
+          <Text
+            allowFontScaling={false}
+            style={[styles.paperCenterBold, { fontSize: 11, marginVertical: 4, textAlign: 'center' }]}
+          >
+            {liveFooterGreeting.trim()}
+          </Text>
+        )}
 
         {/* Cutter / Tear Indicator */}
         {activeConfig.hasAutoCutter ? (

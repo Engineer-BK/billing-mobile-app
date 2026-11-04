@@ -18,6 +18,7 @@
 import { BluetoothEscposPrinter } from './bluetoothPrinter';
 import { PrinterProfile } from '../types/printer';
 import { InvoiceData } from '../types/billing';
+import { storageService } from './storageService';
 
 export interface PrintJobResult {
   success: boolean;
@@ -214,9 +215,12 @@ export async function dispatchPrintReceipt(
       );
       await BluetoothEscposPrinter.printText(dividerLine, {});
 
-      // Centered Polite Closing (80mm)
-      await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
-      await BluetoothEscposPrinter.printText('Thank You! Visit Again\n', {});
+      // Centered Festive / Polite Closing (80mm) - removed if merchant cleared greeting
+      const customFooter = await storageService.loadReceiptFooter();
+      if (customFooter.trim().length > 0) {
+        await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
+        await BluetoothEscposPrinter.printText(`${customFooter.trim()}\n`, {});
+      }
     } else {
       // 58mm layout (32 Columns) - Modern 2-Line Retail Layout (Zero Cut-offs / Zero Orphans)
       const shortYear = String(year).slice(-2);
@@ -320,9 +324,12 @@ export async function dispatchPrintReceipt(
       await BluetoothEscposPrinter.printText(lineFinal, {});
       await BluetoothEscposPrinter.printText(dividerLine, {});
 
-      // Centered Polite Closing
-      await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
-      await BluetoothEscposPrinter.printText('Thank You! Visit Again\n', {});
+      // Centered Festive / Polite Closing (58mm) - removed if merchant cleared greeting
+      const customFooter = await storageService.loadReceiptFooter();
+      if (customFooter.trim().length > 0) {
+        await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
+        await BluetoothEscposPrinter.printText(`${customFooter.trim()}\n`, {});
+      }
     }
 
     // --- 8. Paper Feed & Auto-Cut ---

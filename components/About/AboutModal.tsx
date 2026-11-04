@@ -10,7 +10,7 @@
  * - Clean, non-collapsing, hardware-accelerated layout
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -24,6 +24,7 @@ import {
   useWindowDimensions,
   Linking,
   Alert,
+  Clipboard,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
@@ -45,9 +46,20 @@ export const PLAY_STORE_MARKET_URL = 'market://details?id=com.aftabrental.billin
 export function AboutModal({ visible, onClose }: AboutModalProps): React.JSX.Element {
   const { colors, isDark } = useTheme();
   const { height: screenHeight } = useWindowDimensions();
+  const [copied, setCopied] = useState<boolean>(false);
 
   // Bounded modal height: keeps modal centered and elevated above Android navigation bar
   const maxModalHeight = Math.min(Math.round(screenHeight * 0.82), 620);
+
+  const handleCopyEmail = () => {
+    try {
+      Clipboard.setString(DEVELOPER_EMAIL);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      Alert.alert('Email Copied', DEVELOPER_EMAIL);
+    }
+  };
 
   const handleOpenPlayStore = async () => {
     try {
@@ -251,7 +263,11 @@ export function AboutModal({ visible, onClose }: AboutModalProps): React.JSX.Ele
                         },
                       ]}
                     >
-                      <MaterialCommunityIcons name="account-tie" size={24} color={colors.primary} />
+                      <Image
+                        source={require('../../assets/developer_image.png')}
+                        style={styles.devAvatarImg}
+                        resizeMode="cover"
+                      />
                     </View>
                     <View style={styles.devTextCol}>
                       <Text style={[styles.devName, { color: colors.textPrimary }]}>
@@ -263,7 +279,7 @@ export function AboutModal({ visible, onClose }: AboutModalProps): React.JSX.Ele
                     </View>
                   </View>
 
-                  {/* Email Support Box */}
+                  {/* Email Support Box with Copy Action */}
                   <View
                     style={[
                       styles.emailContainer,
@@ -275,10 +291,40 @@ export function AboutModal({ visible, onClose }: AboutModalProps): React.JSX.Ele
                   >
                     <View style={styles.emailLeft}>
                       <MaterialCommunityIcons name="email-outline" size={18} color={colors.primary} />
-                      <Text style={[styles.emailTxt, { color: colors.textPrimary }]}>
+                      <Text style={[styles.emailTxt, { color: colors.textPrimary }]} numberOfLines={1}>
                         {DEVELOPER_EMAIL}
                       </Text>
                     </View>
+
+                    <TouchableOpacity
+                      style={[
+                        styles.copyBtn,
+                        {
+                          backgroundColor: copied
+                            ? (isDark ? 'rgba(16, 185, 129, 0.2)' : '#DCFCE7')
+                            : colors.surfaceLight,
+                          borderColor: copied ? '#10B981' : colors.borderLight,
+                        },
+                      ]}
+                      onPress={handleCopyEmail}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      activeOpacity={0.7}
+                      accessibilityLabel="Copy developer email"
+                    >
+                      <MaterialCommunityIcons
+                        name={copied ? 'check' : 'content-copy'}
+                        size={15}
+                        color={copied ? '#10B981' : colors.primary}
+                      />
+                      <Text
+                        style={[
+                          styles.copyBtnTxt,
+                          { color: copied ? '#10B981' : colors.primary },
+                        ]}
+                      >
+                        {copied ? 'Copied!' : 'Copy'}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
 
                   {/* Action: Send Email */}
@@ -658,13 +704,18 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   devAvatarBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    borderWidth: 1.5,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
+  },
+  devAvatarImg: {
+    width: '100%',
+    height: '100%',
   },
   devTextCol: {
     flex: 1,
@@ -682,20 +733,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingVertical: 8,
+    borderRadius: 10,
     borderWidth: 1,
     marginBottom: 10,
+    gap: 8,
   },
   emailLeft: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    marginRight: 6,
   },
   emailTxt: {
-    fontSize: 12.5,
+    fontSize: 12,
     fontWeight: '700',
     letterSpacing: 0.2,
+  },
+  copyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 7,
+    borderWidth: 1,
+    gap: 4,
+    flexShrink: 0,
+  },
+  copyBtnTxt: {
+    fontSize: 11,
+    fontWeight: '800',
   },
   emailActionBtn: {
     flexDirection: 'row',

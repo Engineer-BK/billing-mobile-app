@@ -12,7 +12,7 @@
  * - Safely bounded modal height with guaranteed clearance above Android system navigation bar
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -30,6 +30,43 @@ import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../context/AuthContext';
 import { PrinterProfileId } from '../../types/printer';
+import { storageService } from '../../services/storageService';
+
+export interface FestivalOccasion {
+  id: string;
+  label: string;
+  wish: string;
+  emoji: string;
+  category: 'default' | 'muslim' | 'national' | 'hindu' | 'christian';
+}
+
+export const FESTIVAL_OCCASIONS: FestivalOccasion[] = [
+  { id: 'default', label: 'Default', wish: 'DEFAULT', emoji: '✨', category: 'default' },
+  { id: 'remove', label: 'None (Remove)', wish: 'REMOVE', emoji: '🚫', category: 'default' },
+  // Muslim / Islamic Festivals & Auspicious Occasions (Priority for store demographic)
+  { id: 'eid_fitr', label: 'Eid Mubarak', wish: 'Eid Mubarak!', emoji: '🌙', category: 'muslim' },
+  { id: 'eid_adha', label: 'Bakrid Mubarak', wish: 'Bakrid Mubarak!', emoji: '🌙', category: 'muslim' },
+  { id: 'ramadan', label: 'Ramzan Mubarak', wish: 'Ramzan Mubarak!', emoji: '🌙', category: 'muslim' },
+  { id: 'juma', label: 'Juma Mubarak', wish: 'Juma Mubarak!', emoji: '🕌', category: 'muslim' },
+  { id: 'milad', label: 'Milad-un-Nabi', wish: 'Milad-un-Nabi Mubarak!', emoji: '🕌', category: 'muslim' },
+  { id: 'shab_barat', label: 'Shab-e-Barat', wish: 'Shab-e-Barat Mubarak!', emoji: '🌙', category: 'muslim' },
+  { id: 'shab_qadr', label: 'Shab-e-Qadr', wish: 'Shab-e-Qadr Mubarak!', emoji: '✨', category: 'muslim' },
+  { id: 'chand_raat', label: 'Chand Raat', wish: 'Chand Raat Mubarak!', emoji: '🌙', category: 'muslim' },
+  { id: 'muharram', label: 'Islamic New Year', wish: 'Islamic New Year Mubarak!', emoji: '🌙', category: 'muslim' },
+  // Indian National & Secular Occasions
+  { id: 'new_year', label: 'Happy New Year', wish: 'Happy New Year!', emoji: '🎆', category: 'national' },
+  { id: 'ind_day', label: 'Independence Day', wish: 'Happy Independence Day!', emoji: '🇮🇳', category: 'national' },
+  { id: 'rep_day', label: 'Republic Day', wish: 'Happy Republic Day!', emoji: '🇮🇳', category: 'national' },
+  // Hindu Celebrations in India
+  { id: 'diwali', label: 'Happy Diwali', wish: 'Happy Diwali!', emoji: '🪔', category: 'hindu' },
+  { id: 'holi', label: 'Happy Holi', wish: 'Happy Holi!', emoji: '🎨', category: 'hindu' },
+  { id: 'dussehra', label: 'Happy Dussehra', wish: 'Happy Dussehra!', emoji: '🏹', category: 'hindu' },
+  { id: 'raksha', label: 'Raksha Bandhan', wish: 'Happy Raksha Bandhan!', emoji: '🧵', category: 'hindu' },
+  { id: 'sankranti', label: 'Makar Sankranti', wish: 'Happy Makar Sankranti!', emoji: '🪁', category: 'hindu' },
+  // Christian Celebrations in India
+  { id: 'christmas', label: 'Merry Christmas', wish: 'Merry Christmas!', emoji: '🎄', category: 'christian' },
+  { id: 'easter', label: 'Happy Easter', wish: 'Happy Easter!', emoji: '🐣', category: 'christian' },
+];
 
 interface SettingsModalProps {
   visible: boolean;
@@ -56,6 +93,56 @@ export function SettingsModal({
   const [autoPrint, setAutoPrint] = useState<boolean>(true);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [footerNote, setFooterNote] = useState<string>('Thank you! Visit again.');
+  const [activeFestivalId, setActiveFestivalId] = useState<string>('default');
+
+  useEffect(() => {
+    if (visible) {
+      storageService.loadReceiptFooter().then((saved) => {
+        if (saved !== null && saved !== undefined) {
+          setFooterNote(saved);
+          if (!saved.trim()) {
+            setActiveFestivalId('remove');
+          } else if (saved.trim().toLowerCase() === 'thank you! visit again.') {
+            setActiveFestivalId('default');
+          } else {
+            const matched = FESTIVAL_OCCASIONS.find(
+              (f) => f.wish && f.wish !== 'REMOVE' && f.wish !== 'DEFAULT' && saved.startsWith(f.wish)
+            );
+            setActiveFestivalId(matched ? matched.id : 'custom');
+          }
+        }
+      });
+    }
+  }, [visible]);
+
+  const handleSelectFestival = (fest: FestivalOccasion) => {
+    setActiveFestivalId(fest.id);
+    let newNote = '';
+    if (fest.id === 'remove') {
+      newNote = '';
+    } else if (fest.id === 'default' || !fest.wish) {
+      newNote = 'Thank you! Visit again.';
+    } else {
+      newNote = `${fest.wish} Thank you! Visit again.`;
+    }
+    setFooterNote(newNote);
+    storageService.saveReceiptFooter(newNote);
+  };
+
+  const handleFooterNoteChange = (text: string) => {
+    setFooterNote(text);
+    storageService.saveReceiptFooter(text);
+    if (!text.trim()) {
+      setActiveFestivalId('remove');
+    } else if (text.trim().toLowerCase() === 'thank you! visit again.') {
+      setActiveFestivalId('default');
+    } else {
+      const matched = FESTIVAL_OCCASIONS.find(
+        (f) => f.wish && f.wish !== 'REMOVE' && f.wish !== 'DEFAULT' && text.startsWith(f.wish)
+      );
+      setActiveFestivalId(matched ? matched.id : 'custom');
+    }
+  };
 
   // Safe bounded modal height: stays elevated with guaranteed clearance above Android nav buttons
   const maxModalHeight = Math.min(Math.round(screenHeight * 0.78), 580);
@@ -335,10 +422,10 @@ export function SettingsModal({
                 </View>
               </View>
 
-              {/* Section 3: Receipt Customization */}
+              {/* Section 3: Receipt Customization & Festive Greetings */}
               <View style={styles.section}>
                 <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-                  RECEIPT CUSTOMIZATION
+                  RECEIPT CUSTOMIZATION & FESTIVE GREETINGS
                 </Text>
 
                 <View
@@ -350,9 +437,29 @@ export function SettingsModal({
                     },
                   ]}
                 >
-                  <Text style={[styles.fieldTitle, { color: colors.textPrimary }]}>
-                    Receipt Footer Greeting
-                  </Text>
+                  <View style={styles.greetingHeaderRow}>
+                    <Text style={[styles.fieldTitle, { color: colors.textPrimary }]}>
+                      Receipt Footer Greeting
+                    </Text>
+                    <View style={styles.headerRightControls}>
+                      {footerNote.length > 0 && (
+                        <TouchableOpacity
+                          onPress={() => handleFooterNoteChange('')}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          activeOpacity={0.7}
+                          style={styles.clearBtn}
+                        >
+                          <Text style={[styles.clearBtnTxt, { color: colors.error || '#EF4444' }]}>
+                            Remove
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                      <Text style={[styles.charCount, { color: colors.textMuted }]}>
+                        {footerNote.length}/60
+                      </Text>
+                    </View>
+                  </View>
+
                   <TextInput
                     style={[
                       styles.footerInput,
@@ -363,13 +470,87 @@ export function SettingsModal({
                       },
                     ]}
                     value={footerNote}
-                    onChangeText={setFooterNote}
-                    placeholder="e.g. Thank you! Visit again."
+                    onChangeText={handleFooterNoteChange}
+                    placeholder="e.g. Eid Mubarak! Thank you! Visit again."
                     placeholderTextColor={colors.textMuted}
-                    maxLength={40}
+                    maxLength={60}
                   />
+
+                  {/* Festive Wish Selector Section */}
+                  <View style={styles.festiveContainer}>
+                    <View style={styles.festiveHeader}>
+                      <MaterialCommunityIcons name="party-popper" size={16} color={colors.primary} />
+                      <Text style={[styles.festiveTitle, { color: colors.textPrimary }]}>
+                        Festive Occasion Wishes (Optional)
+                      </Text>
+                    </View>
+                    <Text style={[styles.festiveSubtitle, { color: colors.textSecondary }]}>
+                      Tap any occasion to add a festive wish before your greeting:
+                    </Text>
+
+                    {/* Horizontal scroll of festive occasion chips */}
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.festivalChipsScroll}
+                      nestedScrollEnabled={true}
+                    >
+                      {FESTIVAL_OCCASIONS.map((fest) => {
+                        const isSelected = activeFestivalId === fest.id;
+                        return (
+                          <TouchableOpacity
+                            key={fest.id}
+                            style={[
+                              styles.festivalChip,
+                              {
+                                backgroundColor: isSelected ? colors.primary : colors.surface,
+                                borderColor: isSelected ? colors.primary : colors.borderLight,
+                              },
+                            ]}
+                            onPress={() => handleSelectFestival(fest)}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={styles.festEmoji}>{fest.emoji}</Text>
+                            <Text
+                              style={[
+                                styles.festLabel,
+                                {
+                                  color: isSelected ? '#FFFFFF' : colors.textPrimary,
+                                  fontWeight: isSelected ? '800' : '600',
+                                },
+                              ]}
+                            >
+                              {fest.label}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </ScrollView>
+                  </View>
+
+                  {/* Real-time Receipt Print Preview */}
+                  <View
+                    style={[
+                      styles.previewPill,
+                      {
+                        backgroundColor: colors.surface,
+                        borderColor: colors.borderLight,
+                      },
+                    ]}
+                  >
+                    <MaterialCommunityIcons name="receipt" size={14} color={colors.primary} />
+                    <Text
+                      style={[styles.previewTxt, { color: colors.textSecondary }]}
+                      numberOfLines={1}
+                    >
+                      {footerNote.trim().length > 0
+                        ? `Print Preview: "${footerNote.trim()}"`
+                        : 'Print Preview: (No footer greeting line - Removed)'}
+                    </Text>
+                  </View>
+
                   <Text style={[styles.inputHint, { color: colors.textMuted }]}>
-                    Printed at bottom of all 58mm / 80mm receipts
+                    Printed at bottom of all 58mm / 80mm thermal receipts
                   </Text>
                 </View>
               </View>
@@ -611,10 +792,34 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
   },
+  greetingHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  headerRightControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  clearBtn: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  clearBtnTxt: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
   fieldTitle: {
     fontSize: 12,
     fontWeight: '700',
-    marginBottom: 6,
+  },
+  charCount: {
+    fontSize: 10,
+    fontWeight: '700',
   },
   footerInput: {
     height: 40,
@@ -622,6 +827,60 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 10,
     fontSize: 13,
+  },
+  festiveContainer: {
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  festiveHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  festiveTitle: {
+    fontSize: 11.5,
+    fontWeight: '800',
+  },
+  festiveSubtitle: {
+    fontSize: 10.5,
+    marginBottom: 8,
+  },
+  festivalChipsScroll: {
+    gap: 8,
+    paddingVertical: 2,
+  },
+  festivalChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  festEmoji: {
+    fontSize: 13,
+  },
+  festLabel: {
+    fontSize: 11.5,
+  },
+  previewPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  previewTxt: {
+    fontSize: 11,
+    fontWeight: '600',
+    flex: 1,
+    fontStyle: 'italic',
   },
   inputHint: {
     fontSize: 10,

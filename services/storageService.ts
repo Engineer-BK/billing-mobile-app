@@ -33,6 +33,7 @@ const STORAGE_KEYS = {
   USER_SESSION: '@flashbill:user_session_v1',
   STORE_LICENSE: '@flashbill:store_license_v1',
   SALE_DRAFT: '@flashbill:sale_draft_v1',
+  RECEIPT_FOOTER: '@flashbill:receipt_footer_v1',
 } as const;
 
 export interface SaleDraft {
@@ -47,6 +48,13 @@ export interface SavedPrinterInfo {
   profileId: PrinterProfileId;
   lastConnectedAt?: string;
 }
+
+// ==========================================
+// 7. RECEIPT GREETINGS & FOOTER NOTE
+// ==========================================
+
+type FooterChangeListener = (footer: string) => void;
+const footerListeners = new Set<FooterChangeListener>();
 
 export const storageService = {
   // ==========================================
@@ -520,6 +528,57 @@ export const storageService = {
       return true;
     } catch (err) {
       console.warn('storageService.saveGuestPresetItems error:', err);
+      return false;
+    }
+  },
+
+  // ==========================================
+  // 7. RECEIPT GREETINGS & FOOTER NOTE
+  // ==========================================
+
+  /**
+   * Subscribe to real-time updates when receipt footer greeting changes.
+   */
+  onFooterChange(listener: FooterChangeListener): () => void {
+    footerListeners.add(listener);
+    return () => footerListeners.delete(listener);
+  },
+
+  /**
+   * Load saved receipt footer greeting note.
+   * If never saved yet (null), returns default "Thank you! Visit again.".
+   * If merchant intentionally cleared/removed it (empty string ""), returns "".
+   */
+  async loadReceiptFooter(): Promise<string> {
+    try {
+      const footer = await AsyncStorage.getItem(STORAGE_KEYS.RECEIPT_FOOTER);
+      if (footer === null) {
+        return 'Thank you! Visit again.';
+      }
+      return footer;
+    } catch (err) {
+      console.warn('storageService.loadReceiptFooter error:', err);
+      return 'Thank you! Visit again.';
+    }
+  },
+
+  /**
+   * Save custom receipt footer greeting note (with festive wish).
+   */
+  async saveReceiptFooter(footer: string): Promise<boolean> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.RECEIPT_FOOTER, footer);
+      // Immediately notify all mounted receipt previews across the app
+      footerListeners.forEach((listener) => {
+        try {
+          listener(footer);
+        } catch (e) {
+          console.warn('footerListener error:', e);
+        }
+      });
+      return true;
+    } catch (err) {
+      console.warn('storageService.saveReceiptFooter error:', err);
       return false;
     }
   },
