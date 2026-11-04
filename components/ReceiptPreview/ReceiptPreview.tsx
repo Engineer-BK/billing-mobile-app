@@ -19,7 +19,7 @@ import { InvoiceData } from '../../types/billing';
 import { DashedDivider } from './DashedDivider';
 import { useTheme } from '../../hooks/useTheme';
 import { storageService } from '../../services/storageService';
-import { wrapTextToWords } from '../../services/printJobService';
+import { wrapTextToWords, roundMoney } from '../../services/printJobService';
 
 interface ReceiptPreviewProps {
   activeConfig: PrinterProfile;
@@ -61,9 +61,9 @@ export function ReceiptPreview({
     };
   }, [propsFooterGreeting]);
 
-  // 1.5-Inch Spacing Simulation (~50dp on mobile screens)
-  const topPadding = 50;
-  const bottomPadding = 50;
+  // Clean, realistic thermal paper padding (starts immediately without paper waste)
+  const topPadding = 12;
+  const bottomPadding = 20;
 
   // Compute live timestamp
   const { displayDate, displayTime } = useMemo(() => {
@@ -94,9 +94,11 @@ export function ReceiptPreview({
   }, [invoice.items]);
 
   const customerName = invoice.customerName?.trim() || 'Walk-in Customer';
-  const subtotalVal = invoice.subtotal || invoice.grandTotal;
-  const discountVal = invoice.totalDiscount || (invoice.discountAmount ? invoice.discountAmount : '0.00');
-  const finalAmountVal = invoice.finalAmount || invoice.grandTotal;
+  const subtotalVal = roundMoney(invoice.subtotal || invoice.grandTotal);
+  const rawDisc = invoice.totalDiscount || invoice.discountAmount;
+  const discountNum = parseFloat(String(rawDisc || '0').replace(/[^0-9.-]/g, '')) || 0;
+  const discountVal = String(Math.round(Math.abs(discountNum)));
+  const finalAmountVal = roundMoney(invoice.finalAmount || invoice.grandTotal);
 
   return (
     <View style={styles.previewContainer}>
@@ -227,25 +229,26 @@ export function ReceiptPreview({
         {/* Alphabetically Ordered Items Loop with Multi-Line Word-Wrapping & Per-Item Dashed Dividers */}
         {sortedItems.map((it, idx) => {
           const sNo = String(idx + 1);
-          const unitStr = it.unit ? ` ${it.unit}` : '';
-          const qtyUnitStr = `${it.qty}${unitStr}`.trim();
-          const cleanPrice = String(it.price || '').replace(/\.00$/, '');
-          const cleanAmt = String(it.amt || '').replace(/\.00$/, '');
+          const formattedQty = String(it.qty).trim();
+          const unitStr = it.unit ? ` ${it.unit.trim()}` : '';
+          const qtyUnitStr = `${formattedQty}${unitStr}`.trim();
+
+          const cleanPrice = roundMoney(it.price);
+          const q = parseFloat(it.qty) || 0;
+          const p = parseFloat(it.price) || 0;
+          const grossVal = Math.round(q * p);
+          const cleanAmt = String(grossVal);
 
           const discPct = parseFloat(it.discountPercent || '0') || 0;
           const discAmt = parseFloat(it.discountAmount || '0') || 0;
           const hasDiscount = discPct > 0 || discAmt > 0;
 
-          const q = parseFloat(it.qty) || 0;
-          const p = parseFloat(it.price) || 0;
-          const gross = q * p;
-          const calcPct = discPct > 0 ? discPct : (gross > 0 ? Math.round((discAmt / gross) * 100) : 0);
-          const calcAmt = discAmt > 0 ? discAmt : (gross * (discPct / 100));
-          const amtStr = calcAmt > 0 ? `(-₹${calcAmt.toFixed(2).replace(/\.00$/, '')})` : '';
-          const pctStr = calcPct > 0 ? `${calcPct}%` : '';
-          const discDetails = [pctStr, amtStr].filter(Boolean).join(' ');
+          const calcPct = discPct > 0 ? discPct : (grossVal > 0 ? Math.round((discAmt / (q * p)) * 100) : 0);
+          const calcAmt = discAmt > 0 ? discAmt : ((q * p) * (discPct / 100));
+          const roundedDiscAmt = Math.round(calcAmt);
+          const finalItemAmt = Math.round(grossVal - roundedDiscAmt);
 
-          const nameColWidth = is58mm ? 11 : 21;
+          const nameColWidth = is58mm ? 14 : 20;
           const nameLines = wrapTextToWords(it.name, nameColWidth);
           const cellFontSize = is58mm ? 9.5 : 10.5;
 
@@ -321,19 +324,52 @@ export function ReceiptPreview({
                 </View>
               ))}
 
-              {/* Dedicated discount note (if available) */}
+              {/* Client Receipt Style Discount Breakdown (Matching client's Item #6) */}
               {hasDiscount && (
-                <View style={[styles.tableRow, { paddingLeft: is58mm ? 16 : 20, marginTop: 1 }]}>
-                  <Text
-                    allowFontScaling={false}
-                    style={[
-                      styles.colCell,
-                      { color: '#16A34A', fontSize: is58mm ? 9 : 10, fontWeight: '700' },
-                    ]}
-                  >
-                    {`* Dis: ${discDetails}`}
-                  </Text>
-                </View>
+                <>
+                  <View style={[styles.tableRow, { paddingLeft: is58mm ? 16 : 20, justifyContent: 'space-between' }]}>
+                    <Text
+                      allowFontScaling={false}
+                      style={[
+                        styles.colCell,
+                        { fontSize: cellFontSize, color: '#334155' },
+                      ]}
+                    >
+                      {`Disc.(${calcPct}%)          :`}
+                    </Text>
+                    <Text
+                      allowFontScaling={false}
+                      style={[
+                        styles.colCell,
+                        styles.txtRight,
+                        { fontSize: cellFontSize, color: '#DC2626', fontWeight: '700' },
+                      ]}
+                    >
+                      {`-${roundedDiscAmt}`}
+                    </Text>
+                  </View>
+                  <View style={[styles.tableRow, { paddingLeft: is58mm ? 16 : 20, justifyContent: 'space-between' }]}>
+                    <Text
+                      allowFontScaling={false}
+                      style={[
+                        styles.colCell,
+                        { fontSize: cellFontSize, color: '#334155' },
+                      ]}
+                    >
+                      {'Final Amount        :'}
+                    </Text>
+                    <Text
+                      allowFontScaling={false}
+                      style={[
+                        styles.colCell,
+                        styles.txtRight,
+                        { fontSize: cellFontSize, fontWeight: '700' },
+                      ]}
+                    >
+                      {`${finalItemAmt}`}
+                    </Text>
+                  </View>
+                </>
               )}
 
               {/* Dashed line divider between each item */}
