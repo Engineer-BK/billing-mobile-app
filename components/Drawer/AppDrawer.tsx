@@ -43,6 +43,7 @@ interface AppDrawerProps {
   onSelectTab: (tab: NavTabId) => void;
   onOpenAccountModal: () => void;
   onOpenSettingsModal: () => void;
+  onOpenPrintersModal?: () => void;
   onSignOut: () => void;
   onOpenActivationModal?: () => void;
 }
@@ -54,6 +55,7 @@ export function AppDrawer({
   onSelectTab,
   onOpenAccountModal,
   onOpenSettingsModal,
+  onOpenPrintersModal,
   onSignOut,
   onOpenActivationModal,
 }: AppDrawerProps): React.JSX.Element {
@@ -364,32 +366,32 @@ export function AppDrawer({
               </Text>
             </TouchableOpacity>
 
-            {/* Thermal Printers Tab */}
+            {/* Items & Catalog Tab */}
             <TouchableOpacity
               style={[
                 styles.navItem,
-                activeTab === 'hardware' && {
+                activeTab === 'items' && {
                   backgroundColor: colors.primaryLight,
                 },
               ]}
-              onPress={() => handleNavigate('hardware')}
+              onPress={() => handleNavigate('items')}
               activeOpacity={0.7}
             >
               <MaterialCommunityIcons
-                name={activeTab === 'hardware' ? 'printer' : 'printer-outline'}
+                name={activeTab === 'items' ? 'package-variant' : 'package-variant-closed'}
                 size={22}
-                color={activeTab === 'hardware' ? colors.primary : colors.textPrimary}
+                color={activeTab === 'items' ? colors.primary : colors.textPrimary}
               />
               <Text
                 style={[
                   styles.navLabel,
                   {
-                    color: activeTab === 'hardware' ? colors.primary : colors.textPrimary,
-                    fontWeight: activeTab === 'hardware' ? '800' : '600',
+                    color: activeTab === 'items' ? colors.primary : colors.textPrimary,
+                    fontWeight: activeTab === 'items' ? '800' : '600',
                   },
                 ]}
               >
-                Thermal Printers
+                Items & Catalog
               </Text>
             </TouchableOpacity>
 
@@ -397,6 +399,26 @@ export function AppDrawer({
             <Text style={[styles.menuSectionHeader, { color: colors.textSecondary, marginTop: 18 }]}>
               STORE & MANAGEMENT
             </Text>
+
+            {/* Thermal Printers Setup */}
+            <TouchableOpacity
+              style={styles.navItem}
+              onPress={() => {
+                if (onOpenPrintersModal) {
+                  handleAction(onOpenPrintersModal);
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              <MaterialCommunityIcons
+                name="printer"
+                size={22}
+                color={colors.textPrimary}
+              />
+              <Text style={[styles.navLabel, { color: colors.textPrimary }]}>
+                Thermal Printers Setup
+              </Text>
+            </TouchableOpacity>
 
             {/* Store Profile */}
             <TouchableOpacity

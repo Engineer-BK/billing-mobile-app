@@ -14,7 +14,7 @@ import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 
-export type NavTabId = 'home' | 'sale' | 'bills' | 'hardware';
+export type NavTabId = 'home' | 'sale' | 'bills' | 'items';
 
 interface BottomNavBarProps {
   activeTab: NavTabId;
@@ -53,10 +53,10 @@ export function BottomNavBar({
       inactiveIcon: 'receipt',
     },
     {
-      id: 'hardware',
-      label: 'Printers',
-      activeIcon: 'printer',
-      inactiveIcon: 'printer-outline',
+      id: 'items',
+      label: 'Items',
+      activeIcon: 'package-variant',
+      inactiveIcon: 'package-variant-closed',
     },
   ];
 

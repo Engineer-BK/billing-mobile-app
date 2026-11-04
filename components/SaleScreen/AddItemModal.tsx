@@ -34,6 +34,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { InvoiceItem } from '../../types/billing';
+import { PresetItem } from '../../types/item';
 
 export interface UnitOption {
   label: string;
@@ -71,6 +72,7 @@ export const RETAIL_UNITS: UnitOption[] = [
 interface AddItemModalProps {
   visible: boolean;
   itemIndex: number;
+  presetItems?: PresetItem[];
   onClose: () => void;
   onAddItem: (item: InvoiceItem) => void;
 }
@@ -78,6 +80,7 @@ interface AddItemModalProps {
 export function AddItemModal({
   visible,
   itemIndex,
+  presetItems = [],
   onClose,
   onAddItem,
 }: AddItemModalProps): React.JSX.Element {
@@ -88,6 +91,26 @@ export function AddItemModal({
   const [unit, setUnit] = useState<string>('KG');
   const [price, setPrice] = useState<string>('');
   const [discountPercent, setDiscountPercent] = useState<string>('');
+
+  // Catalog Auto-Suggestions State
+  const [showSuggestions, setShowSuggestions] = useState<boolean>(true);
+
+  // Live filtered suggestions from catalog presets
+  const suggestions = useMemo(() => {
+    if (!itemName.trim() || !presetItems || presetItems.length === 0) return [];
+    const q = itemName.toLowerCase().trim();
+    return presetItems
+      .filter((it) => it.name.toLowerCase().includes(q))
+      .slice(0, 4);
+  }, [itemName, presetItems]);
+
+  const handleSelectSuggestion = (selected: PresetItem) => {
+    setItemName(selected.name);
+    setUnit(selected.unit || 'KG');
+    setPrice(selected.price || '');
+    setDiscountPercent(selected.defaultDiscount || '');
+    setShowSuggestions(false);
+  };
 
   // Unit Picker Dropdown State
   const [showUnitPicker, setShowUnitPicker] = useState<boolean>(false);
@@ -159,6 +182,7 @@ export function AddItemModal({
     setPrice('');
     setDiscountPercent('');
     setUnit('KG');
+    setShowSuggestions(true);
     onClose();
   };
 
@@ -237,11 +261,67 @@ export function AddItemModal({
                       },
                     ]}
                     value={itemName}
-                    onChangeText={setItemName}
+                    onChangeText={(txt) => {
+                      setItemName(txt);
+                      setShowSuggestions(true);
+                    }}
                     placeholder="e.g. Basmati Rice, Sunflower Oil"
                     placeholderTextColor={colors.textMuted}
                     autoFocus
                   />
+
+                  {/* Instant Auto-Suggestion Dropdown */}
+                  {showSuggestions && suggestions.length > 0 && (
+                    <View
+                      style={[
+                        styles.suggestionsContainer,
+                        {
+                          backgroundColor: colors.surface,
+                          borderColor: colors.borderLight,
+                          shadowColor: isDark ? '#000000' : '#8899A6',
+                        },
+                      ]}
+                    >
+                      <View style={styles.suggestionHeaderRow}>
+                        <Text style={[styles.suggestionHeaderTxt, { color: colors.textMuted }]}>
+                          CATALOG PRESETS (TAP TO AUTO-FILL)
+                        </Text>
+                        <TouchableOpacity onPress={() => setShowSuggestions(false)}>
+                          <MaterialCommunityIcons name="close" size={14} color={colors.textMuted} />
+                        </TouchableOpacity>
+                      </View>
+                      {suggestions.map((sug) => (
+                        <TouchableOpacity
+                          key={sug.id}
+                          style={[
+                            styles.suggestionItem,
+                            { borderTopColor: colors.borderLight },
+                          ]}
+                          onPress={() => handleSelectSuggestion(sug)}
+                          activeOpacity={0.7}
+                        >
+                          <View style={{ flex: 1 }}>
+                            <Text style={[styles.suggestionItemName, { color: colors.textPrimary }]}>
+                              {sug.name}
+                            </Text>
+                            <Text style={[styles.suggestionItemCat, { color: colors.textSecondary }]}>
+                              {sug.category || 'General'}
+                            </Text>
+                          </View>
+                          <View style={styles.suggestionRightCol}>
+                            <Text style={[styles.suggestionItemPrice, { color: colors.primary }]}>
+                              ₹{sug.price} <Text style={{ fontSize: 11, color: colors.textMuted }}>/{sug.unit}</Text>
+                            </Text>
+                            {sug.defaultDiscount && parseFloat(sug.defaultDiscount) > 0 ? (
+                              <Text style={[styles.suggestionItemDisc, { color: '#8B5CF6' }]}>
+                                {sug.defaultDiscount}% Disc
+                              </Text>
+                            ) : null}
+                          </View>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
                 </View>
 
                 {/* 2. Quantity & Unit Row */}
@@ -863,5 +943,56 @@ const styles = StyleSheet.create({
   unitCategoryBadge: {
     fontSize: 11,
     fontWeight: '600',
+  },
+  suggestionsContainer: {
+    marginTop: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: 'hidden',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  suggestionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  suggestionHeaderTxt: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  suggestionItemName: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  suggestionItemCat: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 1,
+  },
+  suggestionRightCol: {
+    alignItems: 'flex-end',
+  },
+  suggestionItemPrice: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  suggestionItemDisc: {
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 1,
   },
 });

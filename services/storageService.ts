@@ -18,10 +18,14 @@ import { PrinterProfileId } from '../types/printer';
 import { UserProfile } from '../types/auth';
 import { LicenseVerificationResult } from '../types/license';
 import { DEMO_GUEST_INVOICES } from '../constants/receipt';
+import { PresetItem } from '../types/item';
+import { DEFAULT_PRESET_ITEMS } from '../constants/presetItems';
 
 const STORAGE_KEYS = {
   INVOICES: '@flashbill:invoices_v1',
   GUEST_INVOICES: '@flashbill:guest_demo_invoices_v1',
+  PRESET_ITEMS: '@flashbill:preset_items_v1',
+  GUEST_PRESET_ITEMS: '@flashbill:guest_preset_items_v1',
   NEXT_INVOICE_NUM: '@flashbill:next_invoice_num_v1',
   SAVED_PRINTER: '@flashbill:saved_printer_v1',
   ACTIVE_PROFILE: '@flashbill:active_profile_v1',
@@ -448,6 +452,74 @@ export const storageService = {
       return true;
     } catch (err) {
       console.warn('storageService.clearSaleDraft error:', err);
+      return false;
+    }
+  },
+
+  // ==========================================
+  // 6. CATALOG PRESET ITEMS PERSISTENCE
+  // ==========================================
+
+  /**
+   * Load real store preset items from local storage.
+   * If fresh (null), seeds with default preset items.
+   */
+  async loadPresetItems(): Promise<PresetItem[]> {
+    try {
+      const json = await AsyncStorage.getItem(STORAGE_KEYS.PRESET_ITEMS);
+      if (!json) {
+        // Seed default items for initial smooth experience
+        await AsyncStorage.setItem(STORAGE_KEYS.PRESET_ITEMS, JSON.stringify(DEFAULT_PRESET_ITEMS));
+        return DEFAULT_PRESET_ITEMS;
+      }
+      const parsed = JSON.parse(json);
+      return Array.isArray(parsed) ? (parsed as PresetItem[]) : DEFAULT_PRESET_ITEMS;
+    } catch (err) {
+      console.warn('storageService.loadPresetItems error:', err);
+      return DEFAULT_PRESET_ITEMS;
+    }
+  },
+
+  /**
+   * Save complete list of preset items to local storage.
+   */
+  async savePresetItems(items: PresetItem[]): Promise<boolean> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.PRESET_ITEMS, JSON.stringify(items));
+      return true;
+    } catch (err) {
+      console.warn('storageService.savePresetItems error:', err);
+      return false;
+    }
+  },
+
+  /**
+   * Load guest demo preset items (isolated sandbox).
+   */
+  async loadGuestPresetItems(): Promise<PresetItem[]> {
+    try {
+      const json = await AsyncStorage.getItem(STORAGE_KEYS.GUEST_PRESET_ITEMS);
+      if (!json) {
+        await AsyncStorage.setItem(STORAGE_KEYS.GUEST_PRESET_ITEMS, JSON.stringify(DEFAULT_PRESET_ITEMS));
+        return DEFAULT_PRESET_ITEMS;
+      }
+      const parsed = JSON.parse(json);
+      return Array.isArray(parsed) ? (parsed as PresetItem[]) : DEFAULT_PRESET_ITEMS;
+    } catch (err) {
+      console.warn('storageService.loadGuestPresetItems error:', err);
+      return DEFAULT_PRESET_ITEMS;
+    }
+  },
+
+  /**
+   * Save guest demo preset items to local storage.
+   */
+  async saveGuestPresetItems(items: PresetItem[]): Promise<boolean> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.GUEST_PRESET_ITEMS, JSON.stringify(items));
+      return true;
+    } catch (err) {
+      console.warn('storageService.saveGuestPresetItems error:', err);
       return false;
     }
   },

@@ -25,6 +25,7 @@ import {
 import { db } from '../config/firebase';
 import { InvoiceData } from '../types/billing';
 import { UserProfile } from '../types/auth';
+import { PresetItem } from '../types/item';
 import { storageService } from './storageService';
 
 export type CloudSyncStatus = 'synced' | 'syncing' | 'offline';
@@ -332,6 +333,132 @@ export const syncService = {
     } catch (err) {
       console.warn('syncService.getUserProfile error:', err);
       return null;
+    }
+  },
+
+  // ==========================================
+  // CATALOG PRESET ITEMS DUAL-SYNC ENGINE
+  // ==========================================
+
+  /**
+   * Background Push: Save or update a single preset item in Cloud Firestore.
+   */
+  async pushPresetItem(userId: string, item: PresetItem): Promise<{ success: boolean; error?: string }> {
+    if (!userId || userId === 'guest_user' || !item.id) {
+      return { success: false, error: 'Guest or invalid user' };
+    }
+
+    try {
+      const itemRef = doc(db, 'users', userId, 'items', item.id);
+      const payload: Record<string, any> = {
+        id: item.id,
+        name: item.name || '',
+        price: item.price || '0',
+        previousPrice: item.previousPrice || '',
+        priceChangedAt: item.priceChangedAt || 0,
+        unit: item.unit || 'PCS',
+        defaultDiscount: item.defaultDiscount || '',
+        category: item.category || 'General',
+        barcode: item.barcode || '',
+        updatedAt: item.updatedAt || Date.now(),
+      };
+
+      await setDoc(itemRef, payload, { merge: true });
+      return { success: true };
+    } catch (err: any) {
+      console.warn('syncService.pushPresetItem notice:', err?.message || err);
+      return { success: false, error: err?.message || 'Sync queued offline' };
+    }
+  },
+
+  /**
+   * Background Delete: Remove a preset item from Cloud Firestore.
+   */
+  async deletePresetItem(userId: string, itemId: string): Promise<boolean> {
+    if (!userId || userId === 'guest_user' || !itemId) return false;
+    try {
+      const itemRef = doc(db, 'users', userId, 'items', itemId);
+      await deleteDoc(itemRef);
+      return true;
+    } catch (err) {
+      console.warn('syncService.deletePresetItem notice:', err);
+      return false;
+    }
+  },
+
+  /**
+   * Multi-Device Restore: Pull all preset items from Cloud Firestore.
+   */
+  async pullAllPresetItems(userId: string): Promise<PresetItem[]> {
+    if (!userId || userId === 'guest_user') return [];
+    try {
+      const colRef = collection(db, 'users', userId, 'items');
+      const snap = await getDocs(colRef);
+      const items: PresetItem[] = [];
+      snap.forEach((d) => {
+        const data = d.data();
+        items.push({
+          id: data.id || d.id,
+          name: data.name || '',
+          price: data.price || '0',
+          previousPrice: data.previousPrice || undefined,
+          priceChangedAt: data.priceChangedAt || undefined,
+          unit: data.unit || 'PCS',
+          defaultDiscount: data.defaultDiscount || undefined,
+          category: data.category || 'General',
+          barcode: data.barcode || undefined,
+          updatedAt: data.updatedAt || Date.now(),
+        });
+      });
+      return items;
+    } catch (err) {
+      console.warn('syncService.pullAllPresetItems notice:', err);
+      return [];
+    }
+  },
+
+  /**
+   * Realtime Stream: Live Firestore listener for Catalog Preset changes.
+   */
+  subscribeToPresetItems(
+    userId: string,
+    onUpdate: (items: PresetItem[]) => void
+  ): Unsubscribe {
+    if (!userId || userId === 'guest_user') {
+      return () => {};
+    }
+
+    try {
+      const colRef = collection(db, 'users', userId, 'items');
+      const q = query(colRef);
+      return onSnapshot(
+        q,
+        (snap) => {
+          const items: PresetItem[] = [];
+          snap.forEach((d) => {
+            const data = d.data();
+            items.push({
+              id: data.id || d.id,
+              name: data.name || '',
+              price: data.price || '0',
+              previousPrice: data.previousPrice || undefined,
+              priceChangedAt: data.priceChangedAt || undefined,
+              unit: data.unit || 'PCS',
+              defaultDiscount: data.defaultDiscount || undefined,
+              category: data.category || 'General',
+              barcode: data.barcode || undefined,
+              updatedAt: data.updatedAt || Date.now(),
+            });
+          });
+          onUpdate(items);
+        },
+        (err) => {
+          console.warn('subscribeToPresetItems snapshot notice:', err);
+        }
+      );
+    } catch (err) {
+      console.warn('subscribeToPresetItems error:', err);
+      return () => {};
     }
   },
 };

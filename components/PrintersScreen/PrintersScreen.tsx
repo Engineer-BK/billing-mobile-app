@@ -261,19 +261,8 @@ export function PrintersScreen({
               { backgroundColor: colors.surfaceLight, borderColor: colors.borderLight },
             ]}
           >
-            <Text style={[styles.specBadgeTxt, { color: colors.textPrimary }]}>
-              {activeConfig.displayName}
-            </Text>
-          </View>
-
-          <View
-            style={[
-              styles.specBadge,
-              { backgroundColor: colors.surfaceLight, borderColor: colors.borderLight },
-            ]}
-          >
-            <Text style={[styles.specBadgeTxt, { color: colors.primary }]}>
-              {activeConfig.lineWidth} Columns ({activeConfig.paperWidth})
+            <Text style={[styles.specBadgeTxt, { color: colors.primary, fontWeight: '700' }]}>
+              {activeConfig.badge}
             </Text>
           </View>
 
@@ -309,18 +298,26 @@ export function PrintersScreen({
               ]}
             >
               <Text style={[styles.specBadgeTxt, { color: colors.success, fontWeight: '700' }]}>
-                ⚡ Auto-Detected Size
+                ⚡ Auto-Detected
               </Text>
             </View>
           )}
         </View>
 
-        {/* Quick Size Switcher Button (shown when connected) */}
+        {/* Quick Size Switcher Button (compact & responsive, never overflows) */}
         {isConnected && (
-          <View style={[styles.quickSwitchRow, { borderTopColor: colors.borderLight }]}>
-            <Text style={[styles.quickSwitchLabel, { color: colors.textSecondary }]}>
-              Current Size: <Text style={{ color: colors.primary, fontWeight: '700' }}>{activeConfig.displayName}</Text>
-            </Text>
+          <View
+            style={[
+              styles.quickSwitchRow,
+              { backgroundColor: colors.surfaceLight, borderColor: colors.borderLight },
+            ]}
+          >
+            <View style={styles.quickSwitchLeftCol}>
+              <MaterialCommunityIcons name="printer-pos" size={16} color={colors.primary} />
+              <Text style={[styles.quickSwitchLabel, { color: colors.textSecondary }]} numberOfLines={1}>
+                Active Roll: <Text style={{ color: colors.primary, fontWeight: '700' }}>{activeConfig.paperWidth}</Text>
+              </Text>
+            </View>
             <TouchableOpacity
               style={[
                 styles.quickSwitchBtn,
@@ -329,7 +326,7 @@ export function PrintersScreen({
               onPress={() => onSelectProfile(selectedProfile === 'SC588' ? 'EZO80' : 'SC588')}
               activeOpacity={0.7}
             >
-              <MaterialCommunityIcons name="swap-horizontal" size={16} color={colors.primary} />
+              <MaterialCommunityIcons name="swap-horizontal" size={14} color={colors.primary} />
               <Text style={[styles.quickSwitchBtnTxt, { color: colors.primary }]}>
                 {selectedProfile === 'SC588' ? 'Switch to 80mm' : 'Switch to 58mm'}
               </Text>
@@ -879,21 +876,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    marginTop: 6,
     marginBottom: 12,
-    borderTopWidth: 1,
+    borderRadius: 8,
+    borderWidth: 1,
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  quickSwitchLeftCol: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    minWidth: 140,
   },
   quickSwitchLabel: {
     fontSize: 12,
     fontWeight: '600',
+    flexShrink: 1,
   },
   quickSwitchBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 5,
-    borderRadius: 8,
+    borderRadius: 6,
     borderWidth: 1,
   },
   quickSwitchBtnTxt: {

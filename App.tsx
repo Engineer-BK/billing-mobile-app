@@ -55,7 +55,8 @@ import { AppDrawer } from './components/Drawer/AppDrawer';
 import { SettingsModal } from './components/Settings/SettingsModal';
 import { SaleScreen } from './components/SaleScreen/SaleScreen';
 import { InvoicesScreen } from './components/InvoicesScreen/InvoicesScreen';
-import { PrintersScreen } from './components/PrintersScreen/PrintersScreen';
+import { ItemsScreen } from './components/ItemsScreen/ItemsScreen';
+import { PrintersModal } from './components/PrintersScreen/PrintersModal';
 import { InvoiceOptionsMenu } from './components/InvoicesScreen/InvoiceOptionsMenu';
 import { BottomNavBar, NavTabId } from './components/HomeScreen/BottomNavBar';
 import { FlashHeader } from './components/HomeScreen/FlashHeader';
@@ -63,6 +64,7 @@ import { FlashStats } from './components/HomeScreen/FlashStats';
 import { QuickActionGrid } from './components/HomeScreen/QuickActionGrid';
 import { RecentBillsCard } from './components/HomeScreen/RecentBillsCard';
 import { ReceiptPreview } from './components/ReceiptPreview/ReceiptPreview';
+import { PresetItem } from './types/item';
 
 function MainScreen(): React.JSX.Element {
   const { colors, isDark } = useTheme();
@@ -102,7 +104,12 @@ function MainScreen(): React.JSX.Element {
   const [isPrinting, setIsPrinting] = useState<boolean>(false);
   const [isRefreshingInvoices, setIsRefreshingInvoices] = useState<boolean>(false);
   const [showGuestPrintModal, setShowGuestPrintModal] = useState<boolean>(false);
+  const [showPrintersModal, setShowPrintersModal] = useState<boolean>(false);
   const activeConfig = PRINTER_PROFILES[selectedProfile];
+
+  // Catalog Preset Items State
+  const [presetItems, setPresetItems] = useState<PresetItem[]>([]);
+  const [isRefreshingItems, setIsRefreshingItems] = useState<boolean>(false);
 
   // Licensing & Activation Engine (Module 2)
   const {
@@ -147,6 +154,9 @@ function MainScreen(): React.JSX.Element {
         setInvoicesList(guestBills);
         setCurrentInvoice(guestBills[0] || null);
       });
+      storageService.loadGuestPresetItems().then((items) => {
+        setPresetItems(items);
+      });
     } else {
       // Real store accounts load from clean real storage key
       storageService.loadInvoices().then((saved) => {
@@ -157,6 +167,9 @@ function MainScreen(): React.JSX.Element {
           setInvoicesList([]);
           setCurrentInvoice(null);
         }
+      });
+      storageService.loadPresetItems().then((items) => {
+        setPresetItems(items);
       });
     }
 
@@ -220,6 +233,14 @@ function MainScreen(): React.JSX.Element {
 
     syncUserInvoices(currentUid);
 
+    // Pull Catalog Preset Items from Cloud Firestore
+    syncService.pullAllPresetItems(currentUid).then((cloudItems) => {
+      if (isMounted && cloudItems && cloudItems.length > 0) {
+        setPresetItems(cloudItems);
+        storageService.savePresetItems(cloudItems);
+      }
+    });
+
     // 3. Real-time Live Firestore Stream (auto-refreshes whenever invoices change)
     const unsubscribe = syncService.subscribeToInvoices(currentUid, async (liveInvoices) => {
       if (isMounted && liveInvoices && liveInvoices.length > 0) {
@@ -228,9 +249,18 @@ function MainScreen(): React.JSX.Element {
       }
     });
 
+    // 4. Real-time Live Firestore Stream for Catalog Presets
+    const unsubscribeItems = syncService.subscribeToPresetItems(currentUid, (liveItems) => {
+      if (isMounted && liveItems && liveItems.length > 0) {
+        setPresetItems(liveItems);
+        storageService.savePresetItems(liveItems);
+      }
+    });
+
     return () => {
       isMounted = false;
       unsubscribe();
+      unsubscribeItems();
     };
   }, [user?.uid, user?.isGuest]);
 
@@ -319,9 +349,12 @@ function MainScreen(): React.JSX.Element {
     if (!targetAddress) {
       Alert.alert(
         'Printer Needed',
-        'Please link your thermal printer first.\n\nOpen the Printers tab to connect your 80mm or 58mm printer.'
+        'Please link your thermal printer first.\n\nOpen Thermal Printers Setup to connect your 80mm or 58mm printer.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Connect Printer', onPress: () => setShowPrintersModal(true) },
+        ]
       );
-      setActiveTab('hardware');
       return;
     }
 
@@ -426,16 +459,9 @@ function MainScreen(): React.JSX.Element {
     }
   };
 
-  // Browse Catalog Alert
+  // Browse Catalog - Direct Navigation to Items Tab
   const handleBrowseCatalog = (): void => {
-    Alert.alert(
-      '📦 FlashBill Catalog',
-      `Catalog loaded with ${groceryProducts.length} products across 23 grocery categories.\n\nReady to add items to your sale!`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: '+ Create Sale', onPress: () => setActiveTab('sale') },
-      ]
-    );
+    setActiveTab('items');
   };
 
   // Handle Save Invoice from SaleScreen
@@ -549,6 +575,70 @@ function MainScreen(): React.JSX.Element {
     }
   };
 
+  // Save or Update Catalog Preset Item (with Price Trend Tracking)
+  const handleSavePresetItem = async (item: PresetItem) => {
+    const existingIdx = presetItems.findIndex((it) => it.id === item.id);
+    let updated: PresetItem[];
+    if (existingIdx >= 0) {
+      updated = [...presetItems];
+      updated[existingIdx] = item;
+    } else {
+      updated = [item, ...presetItems];
+    }
+    setPresetItems(updated);
+    if (user?.isGuest) {
+      await storageService.saveGuestPresetItems(updated);
+    } else {
+      await storageService.savePresetItems(updated);
+      if (user?.uid) {
+        syncService.pushPresetItem(user.uid, item);
+      }
+    }
+  };
+
+  // Delete Catalog Preset Item
+  const handleDeletePresetItem = async (itemId: string) => {
+    const updated = presetItems.filter((it) => it.id !== itemId);
+    setPresetItems(updated);
+    if (user?.isGuest) {
+      await storageService.saveGuestPresetItems(updated);
+    } else {
+      await storageService.savePresetItems(updated);
+      if (user?.uid) {
+        syncService.deletePresetItem(user.uid, itemId);
+      }
+    }
+  };
+
+  // Pull-to-refresh Catalog Preset Items
+  const handleRefreshItems = async () => {
+    if (user?.isGuest) {
+      setIsRefreshingItems(true);
+      const guestItems = await storageService.loadGuestPresetItems();
+      setPresetItems(guestItems);
+      setIsRefreshingItems(false);
+      return;
+    }
+    if (!user?.uid) return;
+    setIsRefreshingItems(true);
+    try {
+      const cloudItems = await syncService.pullAllPresetItems(user.uid);
+      if (cloudItems && cloudItems.length > 0) {
+        setPresetItems(cloudItems);
+        await storageService.savePresetItems(cloudItems);
+      } else {
+        const local = await storageService.loadPresetItems();
+        if (local && local.length > 0) {
+          setPresetItems(local);
+        }
+      }
+    } catch (err) {
+      console.warn('Pull-to-refresh preset items error:', err);
+    } finally {
+      setIsRefreshingItems(false);
+    }
+  };
+
   // State for Home Screen 3-dot popup modal
   const [homeMenuInvoice, setHomeMenuInvoice] = useState<InvoiceData | null>(null);
 
@@ -615,7 +705,7 @@ function MainScreen(): React.JSX.Element {
             storeName={user?.isGuest ? 'Demo Supermarket' : (user?.shopName || 'FlashBill POS')}
             printerName={printerName}
             isConnected={!!targetAddress}
-            onPressPrinterPill={() => setActiveTab('hardware')}
+            onPressPrinterPill={() => setShowPrintersModal(true)}
             onPressMenu={() => setShowDrawer(true)}
             onPressSettings={() => setShowSettingsModal(true)}
             onPressAccount={() => setShowAccountModal(true)}
@@ -637,8 +727,8 @@ function MainScreen(): React.JSX.Element {
           <QuickActionGrid
             onPressNewSale={() => setActiveTab('sale')}
             onPressInvoices={() => setActiveTab('bills')}
-            onPressCatalog={handleBrowseCatalog}
-            onPressPrinters={() => setActiveTab('hardware')}
+            onPressCatalog={() => setActiveTab('items')}
+            onPressPrinters={() => setShowPrintersModal(true)}
           />
 
           {/* Active Transaction Hub Card with 1-Tap Print & Share */}
@@ -674,6 +764,7 @@ function MainScreen(): React.JSX.Element {
           shopName={user?.shopName || currentInvoice?.shopName || 'Delivery Slip'}
           onBack={() => setActiveTab('home')}
           onSaveInvoice={handleSaveInvoice}
+          presetItems={presetItems}
         />
       </View>
 
@@ -699,31 +790,19 @@ function MainScreen(): React.JSX.Element {
         />
       </View>
 
-      {/* Tab 4: Thermal Printers Tab Screen */}
+      {/* Tab 4: Items & Catalog Tab Screen */}
       <View
         style={[
           styles.tabContent,
-          { display: activeTab === 'hardware' ? 'flex' : 'none' },
+          { display: activeTab === 'items' ? 'flex' : 'none' },
         ]}
       >
-        <PrintersScreen
-          targetAddress={targetAddress}
-          printerName={printerName}
-          isScanning={isScanning}
-          isPrinting={isPrinting}
-          deviceList={deviceList}
-          selectedProfile={selectedProfile}
-          activeConfig={activeConfig}
-          sampleInvoice={currentInvoice || SAMPLE_INVOICE}
-          lastError={lastError}
-          isAutoDetected={isAutoDetected}
-          onClearError={clearLastError}
-          onSelectProfile={handleSelectProfile}
-          onScan={discoverAndBindPrinter}
-          onConnect={connectToDevice}
-          onDisconnect={disconnectPrinter}
-          onTestPrint={handleTestPrint}
-          onPaperFeed={handlePaperFeed}
+        <ItemsScreen
+          items={presetItems}
+          onSaveItem={handleSavePresetItem}
+          onDeleteItem={handleDeletePresetItem}
+          onRefresh={handleRefreshItems}
+          isRefreshing={isRefreshingItems}
         />
       </View>
 
@@ -760,6 +839,7 @@ function MainScreen(): React.JSX.Element {
         onSelectTab={(tab) => setActiveTab(tab)}
         onOpenAccountModal={() => setShowAccountModal(true)}
         onOpenSettingsModal={() => setShowSettingsModal(true)}
+        onOpenPrintersModal={() => setShowPrintersModal(true)}
         onSignOut={handleConfirmSignOut}
         onOpenActivationModal={openActivationModal}
       />
@@ -774,7 +854,30 @@ function MainScreen(): React.JSX.Element {
           storageService.saveActiveProfile(profile);
         }}
         onOpenStoreProfile={() => setShowAccountModal(true)}
-        onOpenPrintersTab={() => setActiveTab('hardware')}
+        onOpenPrintersTab={() => setShowPrintersModal(true)}
+      />
+
+      {/* Bluetooth Thermal Printers Setup Modal */}
+      <PrintersModal
+        visible={showPrintersModal}
+        onClose={() => setShowPrintersModal(false)}
+        targetAddress={targetAddress}
+        printerName={printerName}
+        isScanning={isScanning}
+        isPrinting={isPrinting}
+        deviceList={deviceList}
+        selectedProfile={selectedProfile}
+        activeConfig={activeConfig}
+        sampleInvoice={currentInvoice || SAMPLE_INVOICE}
+        lastError={lastError}
+        isAutoDetected={isAutoDetected}
+        onClearError={clearLastError}
+        onSelectProfile={handleSelectProfile}
+        onScan={discoverAndBindPrinter}
+        onConnect={connectToDevice}
+        onDisconnect={disconnectPrinter}
+        onTestPrint={handleTestPrint}
+        onPaperFeed={handlePaperFeed}
       />
 
       {/* Guest Thermal Print Lock Conversion Modal (Sub-Module 1.4) */}

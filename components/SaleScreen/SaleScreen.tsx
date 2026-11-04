@@ -27,6 +27,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { InvoiceData, InvoiceItem } from '../../types/billing';
+import { PresetItem } from '../../types/item';
 import { storageService } from '../../services/storageService';
 import { SaleTopBar } from './SaleTopBar';
 import { SaleInvoiceSubheader } from './SaleInvoiceSubheader';
@@ -41,6 +42,7 @@ import { SaleOptionsModal } from './SaleOptionsModal';
 interface SaleScreenProps {
   initialInvoiceNo?: number;
   shopName: string;
+  presetItems?: PresetItem[];
   onBack?: () => void;
   onSaveInvoice: (invoice: InvoiceData, shouldPrint?: boolean, andNew?: boolean) => void;
 }
@@ -53,6 +55,7 @@ const capitalizeWords = (str: string): string => {
 export function SaleScreen({
   initialInvoiceNo = 1,
   shopName,
+  presetItems = [],
   onBack,
   onSaveInvoice,
 }: SaleScreenProps): React.JSX.Element {
@@ -394,6 +397,7 @@ export function SaleScreen({
       <AddItemModal
         visible={showAddItemModal}
         itemIndex={items.length + 1}
+        presetItems={presetItems}
         onClose={() => setShowAddItemModal(false)}
         onAddItem={handleAddItem}
       />
