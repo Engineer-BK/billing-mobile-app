@@ -178,7 +178,7 @@ export function ReceiptPreview({
             allowFontScaling={false}
             style={[
               styles.colHeader,
-              { flex: activeConfig.gridMetrics[0], fontSize: is58mm ? 9.5 : 10.5 },
+              { flex: activeConfig.gridMetrics[0], fontSize: is58mm ? 9.5 : 11.5 },
             ]}
           >
             #
@@ -187,7 +187,7 @@ export function ReceiptPreview({
             allowFontScaling={false}
             style={[
               styles.colHeader,
-              { flex: activeConfig.gridMetrics[1], fontSize: is58mm ? 9.5 : 10.5 },
+              { flex: activeConfig.gridMetrics[1], fontSize: is58mm ? 9.5 : 11.5 },
             ]}
           >
             Name
@@ -197,7 +197,7 @@ export function ReceiptPreview({
             style={[
               styles.colHeader,
               styles.txtRight,
-              { flex: activeConfig.gridMetrics[2], fontSize: is58mm ? 9.5 : 10.5 },
+              { flex: activeConfig.gridMetrics[2], fontSize: is58mm ? 9.5 : 11.5 },
             ]}
           >
             Qty
@@ -207,7 +207,7 @@ export function ReceiptPreview({
             style={[
               styles.colHeader,
               styles.txtRight,
-              { flex: activeConfig.gridMetrics[3], fontSize: is58mm ? 9.5 : 10.5 },
+              { flex: activeConfig.gridMetrics[3], fontSize: is58mm ? 9.5 : 11.5 },
             ]}
           >
             Price
@@ -217,7 +217,7 @@ export function ReceiptPreview({
             style={[
               styles.colHeader,
               styles.txtRight,
-              { flex: activeConfig.gridMetrics[4], fontSize: is58mm ? 9.5 : 10.5 },
+              { flex: activeConfig.gridMetrics[4], fontSize: is58mm ? 9.5 : 11.5 },
             ]}
           >
             Amount
@@ -248,9 +248,9 @@ export function ReceiptPreview({
           const roundedDiscAmt = Math.round(calcAmt);
           const finalItemAmt = Math.round(grossVal - roundedDiscAmt);
 
-          const nameColWidth = is58mm ? 14 : 20;
+          const nameColWidth = is58mm ? 14 : 18;
           const nameLines = wrapTextToWords(it.name, nameColWidth);
-          const cellFontSize = is58mm ? 9.5 : 10.5;
+          const cellFontSize = is58mm ? 9.5 : 11.5;
 
           return (
             <View key={`${it.sNo}_${idx}`}>

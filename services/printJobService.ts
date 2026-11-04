@@ -71,25 +71,25 @@ export interface ReceiptRowParams {
 /**
  * Builds a single 5-column receipt line with hardcoded, guaranteed empty spacer gaps
  * between EVERY column:
- * 58mm: [# (3)] + [Name (14)] + [GAP 1 (2)] + [Qty (7)] + [GAP 2 (2)] + [Price (6)] + [GAP 3 (2)] + [Amount (6)] = 42 cols
- * 80mm: [# (3)] + [Name (20)] + [GAP 1 (2)] + [Qty (8)] + [GAP 2 (3)] + [Price (8)] + [GAP 3 (3)] + [Amount (9)] = 56 cols
+ * 58mm: [# (3)] + [Name (14)] + [GAP 1 (2)] + [Qty (7)] + [GAP 2 (2)] + [Price (6)] + [GAP 3 (2)] + [Amount (6)] = 42 cols (Font B)
+ * 80mm: [# (3)] + [Name (18)] + [GAP 1 (2)] + [Qty (7)] + [GAP 2 (2)] + [Price (7)] + [GAP 3 (2)] + [Amount (7)] = 48 cols (Font A)
  */
 export function formatReceiptRow(params: ReceiptRowParams): string {
   const { sNo, name, qty, price, amount, is80mm } = params;
 
   if (is80mm) {
-    // 80mm Layout (56 Columns total)
+    // 80mm Layout (48 Columns total • Font A standard bold size)
     const sNoCol = padCell(sNo, 3, 'left');
-    const nameCol = padCell(name, 20, 'left');
+    const nameCol = padCell(name, 18, 'left');
     const gap1 = '  '; // 2 spaces
-    const qtyCol = padCell(qty, 8, 'right');
-    const gap2 = '   '; // 3 spaces
-    const priceCol = padCell(price, 8, 'right');
-    const gap3 = '   '; // 3 spaces
-    const amtCol = padCell(amount, 9, 'right');
+    const qtyCol = padCell(qty, 7, 'right');
+    const gap2 = '  '; // 2 spaces
+    const priceCol = padCell(price, 7, 'right');
+    const gap3 = '  '; // 2 spaces
+    const amtCol = padCell(amount, 7, 'right');
     return `${sNoCol}${nameCol}${gap1}${qtyCol}${gap2}${priceCol}${gap3}${amtCol}\n`;
   } else {
-    // 58mm Layout (42 Columns total)
+    // 58mm Layout (42 Columns total • Font B condensed small font - 100% UNTOUCHED)
     const sNoCol = padCell(sNo, 3, 'left');
     const nameCol = padCell(name, 14, 'left');
     const gap1 = '  '; // 2 spaces
@@ -213,9 +213,13 @@ export async function dispatchPrintReceipt(
     await BluetoothEscposPrinter.printerInit();
     await BluetoothEscposPrinter.printerLeftSpace(0);
 
-    // Guaranteed suitable vertical line spacing: 32 dots (~4mm) prevents lines from touching
+    // Hardware font selection: Font A (0) for 80mm full-width bold; Font B (1) for 58mm condensed small font
+    const activeFont = is80mm ? 0 : 1;
+
+    // Guaranteed suitable vertical line spacing: 36 dots for 80mm (Font A), 32 dots for 58mm (Font B)
+    const targetLineSpace = is80mm ? 36 : 32;
     try {
-      await BluetoothEscposPrinter.printerLineSpace(32);
+      await BluetoothEscposPrinter.printerLineSpace(targetLineSpace);
     } catch {
       // Safe fallback if printer does not support variable line spacing
     }
@@ -225,35 +229,35 @@ export async function dispatchPrintReceipt(
       await BluetoothEscposPrinter.printText('\n'.repeat(activeConfig.feedLines.topSpace), {});
     }
 
-    // --- 3. Header Region: "Delivery Slip" (Centered, Font B condensed small font) ---
+    // --- 3. Header Region: "Delivery Slip" (Centered) ---
     await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
     await BluetoothEscposPrinter.printText('Delivery Slip\n', {
       encoding: 'GBK',
       codepage: 0,
       widthtimes: 0,
       heigthtimes: 0,
-      fonttype: 1, // Font B condensed small font
+      fonttype: activeFont,
     });
-    await BluetoothEscposPrinter.printText(dividerLine, { fonttype: 1 });
+    await BluetoothEscposPrinter.printText(dividerLine, { fonttype: activeFont });
 
     // --- 4. Metadata Block ---
     await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.LEFT);
     if (is80mm) {
-      // 80mm layout (56 Columns)
+      // 80mm layout (48 Columns • Font A)
       const line1 = formatTwoColumns(
         `Invoice No: ${invoice.invoiceNo}`,
         `Date: ${liveDate}`,
-        56
+        48
       );
       const line2 = formatTwoColumns(
         `Customer: ${customer}`,
         `Time: ${liveTime}`,
-        56
+        48
       );
-      await BluetoothEscposPrinter.printText(line1, { fonttype: 1 });
-      await BluetoothEscposPrinter.printText(line2, { fonttype: 1 });
+      await BluetoothEscposPrinter.printText(line1, { fonttype: activeFont });
+      await BluetoothEscposPrinter.printText(line2, { fonttype: activeFont });
     } else {
-      // 58mm layout (42 Columns)
+      // 58mm layout (42 Columns • Font B - 100% UNTOUCHED)
       const shortYear = String(year).slice(-2);
       const shortDate = `${day}/${month}/${shortYear}`;
       const line1 = formatTwoColumns(
@@ -261,21 +265,21 @@ export async function dispatchPrintReceipt(
         `Date: ${shortDate}`,
         42
       );
-      await BluetoothEscposPrinter.printText(line1, { fonttype: 1 });
+      await BluetoothEscposPrinter.printText(line1, { fonttype: activeFont });
 
       if (customer.length > 18) {
-        await BluetoothEscposPrinter.printText(`Cust: ${customer}\n`, { fonttype: 1 });
-        await BluetoothEscposPrinter.printText(`Time: ${liveTime}\n`, { fonttype: 1 });
+        await BluetoothEscposPrinter.printText(`Cust: ${customer}\n`, { fonttype: activeFont });
+        await BluetoothEscposPrinter.printText(`Time: ${liveTime}\n`, { fonttype: activeFont });
       } else {
         const line2 = formatTwoColumns(
           `Cust: ${customer}`,
           `Time: ${liveTime}`,
           42
         );
-        await BluetoothEscposPrinter.printText(line2, { fonttype: 1 });
+        await BluetoothEscposPrinter.printText(line2, { fonttype: activeFont });
       }
     }
-    await BluetoothEscposPrinter.printText(dividerLine, { fonttype: 1 });
+    await BluetoothEscposPrinter.printText(dividerLine, { fonttype: activeFont });
 
     // --- 5. Table Header (#, Name, Qty, Price, Amount) with Guaranteed Spacers ---
     const tableHeader = formatReceiptRow({
@@ -287,15 +291,15 @@ export async function dispatchPrintReceipt(
       is80mm,
       isHeader: true,
     });
-    await BluetoothEscposPrinter.printText(tableHeader, { fonttype: 1 });
-    await BluetoothEscposPrinter.printText(dividerLine, { fonttype: 1 });
+    await BluetoothEscposPrinter.printText(tableHeader, { fonttype: activeFont });
+    await BluetoothEscposPrinter.printText(dividerLine, { fonttype: activeFont });
 
     // --- 6. Items List Loop (Alphabetical A-Z, Multi-Line Word Wrap & Per-Item Dashed Divider) ---
     const sortedItems = [...invoice.items].sort((a, b) =>
       a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
     );
 
-    const nameColWidth = is80mm ? 20 : 14;
+    const nameColWidth = is80mm ? 18 : 14;
 
     for (let i = 0; i < sortedItems.length; i++) {
       const record = sortedItems[i];
@@ -322,12 +326,12 @@ export async function dispatchPrintReceipt(
         amount: grossAmt,
         is80mm,
       });
-      await BluetoothEscposPrinter.printText(firstRow, { fonttype: 1 });
+      await BluetoothEscposPrinter.printText(firstRow, { fonttype: activeFont });
 
       // Continuation lines for Name (indented by 3 spaces directly under Name column)
       for (let k = 1; k < nameLines.length; k++) {
         const continuationRow = '   ' + nameLines[k] + '\n';
-        await BluetoothEscposPrinter.printText(continuationRow, { fonttype: 1 });
+        await BluetoothEscposPrinter.printText(continuationRow, { fonttype: activeFont });
       }
 
       // Client receipt style discount breakdown (matching client's Item #6)
@@ -346,17 +350,17 @@ export async function dispatchPrintReceipt(
 
         if (is80mm) {
           const discLine = formatTwoColumns(
-            padCell(pctLabel, 30, 'left') + ':',
+            padCell(pctLabel, 26, 'left') + ':',
             discValStr,
-            56
+            48
           );
           const finalLine = formatTwoColumns(
-            padCell('     Final Amount', 30, 'left') + ':',
+            padCell('     Final Amount', 26, 'left') + ':',
             finalAmtStr,
-            56
+            48
           );
-          await BluetoothEscposPrinter.printText(discLine, { fonttype: 1 });
-          await BluetoothEscposPrinter.printText(finalLine, { fonttype: 1 });
+          await BluetoothEscposPrinter.printText(discLine, { fonttype: activeFont });
+          await BluetoothEscposPrinter.printText(finalLine, { fonttype: activeFont });
         } else {
           const discLine = formatTwoColumns(
             padCell(pctLabel, 24, 'left') + ':',
@@ -368,13 +372,13 @@ export async function dispatchPrintReceipt(
             finalAmtStr,
             42
           );
-          await BluetoothEscposPrinter.printText(discLine, { fonttype: 1 });
-          await BluetoothEscposPrinter.printText(finalLine, { fonttype: 1 });
+          await BluetoothEscposPrinter.printText(discLine, { fonttype: activeFont });
+          await BluetoothEscposPrinter.printText(finalLine, { fonttype: activeFont });
         }
       }
 
       // Separator dashed line between each item (as requested by user)
-      await BluetoothEscposPrinter.printText(dividerLine, { fonttype: 1 });
+      await BluetoothEscposPrinter.printText(dividerLine, { fonttype: activeFont });
     }
 
     // --- 7. Summary Totals (Clean integer rounding) ---
@@ -390,17 +394,17 @@ export async function dispatchPrintReceipt(
     const lineDisc = formatTwoColumns('Total Discount:', discountValue > 0 ? `-${discountValue}` : '0', activeConfig.lineWidth);
     const lineFinal = formatTwoColumns('Final Amount:', finalAmountValue, activeConfig.lineWidth);
 
-    await BluetoothEscposPrinter.printText(lineQty, { fonttype: 1 });
-    await BluetoothEscposPrinter.printText(lineSub, { fonttype: 1 });
-    await BluetoothEscposPrinter.printText(lineDisc, { fonttype: 1 });
-    await BluetoothEscposPrinter.printText(lineFinal, { fonttype: 1 });
-    await BluetoothEscposPrinter.printText(dividerLine, { fonttype: 1 });
+    await BluetoothEscposPrinter.printText(lineQty, { fonttype: activeFont });
+    await BluetoothEscposPrinter.printText(lineSub, { fonttype: activeFont });
+    await BluetoothEscposPrinter.printText(lineDisc, { fonttype: activeFont });
+    await BluetoothEscposPrinter.printText(lineFinal, { fonttype: activeFont });
+    await BluetoothEscposPrinter.printText(dividerLine, { fonttype: activeFont });
 
     // Centered Festive / Custom Footer Greeting (if configured)
     const customFooter = await storageService.loadReceiptFooter();
     if (customFooter.trim().length > 0) {
       await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
-      await BluetoothEscposPrinter.printText(`${customFooter.trim()}\n`, { fonttype: 1 });
+      await BluetoothEscposPrinter.printText(`${customFooter.trim()}\n`, { fonttype: activeFont });
     }
 
     // --- 8. Paper Feed & Auto-Cut ---

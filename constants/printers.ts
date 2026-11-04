@@ -36,20 +36,20 @@ export const PRINTER_PROFILES: Record<PrinterProfileId, PrinterProfile> = {
     ],
     // Clean margin without paper waste
     feedLines: {
-      topSpace: 0,    // 0 lines at top: starts at top edge without paper waste
-      bottomSpace: 4, // 4 lines at bottom: clears manual tear bar
+      topSpace: 10,    // 0 lines at top: starts at top edge without paper waste
+      bottomSpace: 10, // 4 lines at bottom: clears manual tear bar
     },
   },
   EZO80: {
     id: 'EZO80',
     displayName: '80mm Thermal (3-Inch)',
-    badge: '3-Inch • 56 Col • Auto-Cut',
+    badge: '3-Inch • 48 Col • Auto-Cut',
     paperWidth: '80mm Roll',
-    lineWidth: 56,
-    nameCharLimit: 20,
+    lineWidth: 48,
+    nameCharLimit: 18,
     hasAutoCutter: true,
-    // 5-Column layout: # (3) + Name (20) + Gap (2) + Qty (8) + Gap (3) + Price (8) + Gap (3) + Amount (9) = 56
-    gridMetrics: [3, 20, 10, 11, 12],
+    // 5-Column layout: # (3) + Name (18) + Gap (2) + Qty (7) + Gap (2) + Price (7) + Gap (2) + Amount (7) = 48
+    gridMetrics: [3, 18, 9, 9, 9],
     gridPositions: [
       BluetoothEscposPrinter.ALIGN.LEFT,
       BluetoothEscposPrinter.ALIGN.LEFT,
@@ -58,16 +58,16 @@ export const PRINTER_PROFILES: Record<PrinterProfileId, PrinterProfile> = {
       BluetoothEscposPrinter.ALIGN.RIGHT,
     ],
     headerColumns: ['#', 'Name', 'Qty', 'Price', 'Amount'],
-    // Summary row: Label (36) + Value (20) = 56
-    totalMetrics: [36, 20],
+    // Summary row: Label (30) + Value (18) = 48
+    totalMetrics: [30, 18],
     totalPositions: [
       BluetoothEscposPrinter.ALIGN.LEFT,
       BluetoothEscposPrinter.ALIGN.RIGHT,
     ],
     // Clean margin without paper waste
     feedLines: {
-      topSpace: 0,    // 0 lines at top: starts at top edge without paper waste
-      bottomSpace: 4, // 4 lines at bottom: clears motorized auto-cutter blade
+      topSpace: 4,    // 0 lines at top: starts at top edge without paper waste
+      bottomSpace: 10, // 4 lines at bottom: clears motorized auto-cutter blade
     },
   },
 };
