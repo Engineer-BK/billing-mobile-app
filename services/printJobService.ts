@@ -35,6 +35,80 @@ function formatTwoColumns(left: string, right: string, width: number): string {
   return `${trimmedLeft}${' '.repeat(spaces)}${right}\n`;
 }
 
+export interface ColumnSpec {
+  text: string;
+  width: number;
+  align: 'left' | 'right';
+}
+
+/**
+ * Formats a single line into fixed-width monospace columns.
+ */
+export function formatColumns(cols: ColumnSpec[]): string {
+  let line = '';
+  for (const col of cols) {
+    const txt = col.text || '';
+    if (txt.length >= col.width) {
+      line += txt.substring(0, col.width);
+    } else {
+      const pad = ' '.repeat(col.width - txt.length);
+      if (col.align === 'right') {
+        line += pad + txt;
+      } else {
+        line += txt + pad;
+      }
+    }
+  }
+  return line + '\n';
+}
+
+/**
+ * Wraps text strictly along whitespace boundaries without breaking words mid-character.
+ * Extends across as many lines as necessary without arbitrary line-count limits.
+ */
+export function wrapTextToWords(text: string, maxChars: number): string[] {
+  if (!text || text.trim().length === 0) return [''];
+  const words = text.trim().split(/\s+/);
+  const lines: string[] = [];
+  let currentLine = '';
+
+  for (const word of words) {
+    if (!currentLine) {
+      if (word.length <= maxChars) {
+        currentLine = word;
+      } else {
+        // Individual word exceeds maxChars: split chunks safely
+        let remaining = word;
+        while (remaining.length > maxChars) {
+          lines.push(remaining.substring(0, maxChars));
+          remaining = remaining.substring(maxChars);
+        }
+        currentLine = remaining;
+      }
+    } else {
+      if (currentLine.length + 1 + word.length <= maxChars) {
+        currentLine += ' ' + word;
+      } else {
+        lines.push(currentLine);
+        if (word.length <= maxChars) {
+          currentLine = word;
+        } else {
+          let remaining = word;
+          while (remaining.length > maxChars) {
+            lines.push(remaining.substring(0, maxChars));
+            remaining = remaining.substring(maxChars);
+          }
+          currentLine = remaining;
+        }
+      }
+    }
+  }
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+  return lines;
+}
+
 /**
  * Dispatches a complete formatted receipt job to the connected printer.
  * 
@@ -89,140 +163,23 @@ export async function dispatchPrintReceipt(
     await BluetoothEscposPrinter.printText(dividerLine, {});
 
     // --- 4. Metadata Block ---
-    // Left: Invoice No (up) & Customer (below)
-    // Right: Date (up) & Time (below)
     await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.LEFT);
     if (is80mm) {
-      // 80mm layout (48 Columns) - 100% UNTOUCHED
+      // 80mm layout (48 Columns)
       const line1 = formatTwoColumns(
         `Invoice No: ${invoice.invoiceNo}`,
         `Date: ${liveDate}`,
-        activeConfig.lineWidth
+        48
       );
       const line2 = formatTwoColumns(
         `Customer: ${customer}`,
         `Time: ${liveTime}`,
-        activeConfig.lineWidth
+        48
       );
       await BluetoothEscposPrinter.printText(line1, {});
       await BluetoothEscposPrinter.printText(line2, {});
-      await BluetoothEscposPrinter.printText(dividerLine, {});
-
-      // --- 5. Table Header (#, Item Description, Qty/Unit, Price, Amount) ---
-      await BluetoothEscposPrinter.printColumn(
-        activeConfig.gridMetrics,
-        activeConfig.gridPositions,
-        activeConfig.headerColumns,
-        {}
-      );
-      await BluetoothEscposPrinter.printText(dividerLine, {});
-
-      // Compact line spacing (28 dots) so discount lines hug their parent row tightly as one unit
-      try {
-        await BluetoothEscposPrinter.printerLineSpace(28);
-      } catch {
-        // Safe fallback if printer does not support variable line spacing
-      }
-
-      // --- 6. Items List Loop (Includes Unit e.g. "2 KG") ---
-      for (let i = 0; i < invoice.items.length; i++) {
-        const record = invoice.items[i];
-        const unitText = record.unit ? ` ${record.unit}` : '';
-        const qtyWithUnit = `${record.qty}${unitText}`.trim();
-
-        await BluetoothEscposPrinter.printColumn(
-          activeConfig.gridMetrics,
-          activeConfig.gridPositions,
-          [
-            record.sNo,
-            record.name.substring(0, activeConfig.nameCharLimit),
-            qtyWithUnit,
-            record.price,
-            record.amt,
-          ],
-          {}
-        );
-
-        // Print item discount annotation if available
-        const discPct = parseFloat(record.discountPercent || '0') || 0;
-        const discAmt = parseFloat(record.discountAmount || '0') || 0;
-        if (discPct > 0 || discAmt > 0) {
-          const q = parseFloat(record.qty) || 0;
-          const p = parseFloat(record.price) || 0;
-          const gross = q * p;
-          const calcPct = discPct > 0 ? discPct : (gross > 0 ? Math.round((discAmt / gross) * 100) : 0);
-          const calcAmt = discAmt > 0 ? discAmt : (gross * (discPct / 100));
-          const amtStr = calcAmt > 0 ? `(-Rs.${calcAmt.toFixed(2).replace(/\.00$/, '')})` : '';
-          const pctStr = calcPct > 0 ? `${calcPct}%` : '';
-          const discDetails = [pctStr, amtStr].filter(Boolean).join(' ');
-          const discountLine = `     * Dis: ${discDetails}\n`;
-          await BluetoothEscposPrinter.printText(discountLine, {});
-        }
-
-        // Distinct separation gap (~1.5mm) between different items
-        if (i < invoice.items.length - 1) {
-          try {
-            await BluetoothEscposPrinter.printAndFeed(12);
-          } catch {
-            // Safe fallback if printer does not support dot feed
-          }
-        }
-      }
-
-      // Reset to standard line spacing for totals
-      try {
-        await BluetoothEscposPrinter.printerLineSpace(0);
-      } catch {
-        // ignore
-      }
-      await BluetoothEscposPrinter.printText(dividerLine, {});
-
-      // --- 7. Summary Totals (80mm) ---
-      const subtotalValue = invoice.subtotal || invoice.grandTotal;
-      const discountValue = invoice.totalDiscount || (invoice.discountAmount ? invoice.discountAmount : '0.00');
-      const finalAmountValue = invoice.finalAmount || invoice.grandTotal;
-
-      // Line A: Total Items/Qty
-      await BluetoothEscposPrinter.printColumn(
-        activeConfig.totalMetrics,
-        activeConfig.totalPositions,
-        ['Total Items/Qty:', invoice.totalQty],
-        {}
-      );
-
-      // Line B: Subtotal
-      await BluetoothEscposPrinter.printColumn(
-        activeConfig.totalMetrics,
-        activeConfig.totalPositions,
-        ['Subtotal:', subtotalValue],
-        {}
-      );
-
-      // Line C: Total Discount
-      await BluetoothEscposPrinter.printColumn(
-        activeConfig.totalMetrics,
-        activeConfig.totalPositions,
-        ['Total Discount:', `-${discountValue}`],
-        {}
-      );
-
-      // Line D: Final Amount
-      await BluetoothEscposPrinter.printColumn(
-        activeConfig.totalMetrics,
-        activeConfig.totalPositions,
-        ['Final Amount:', finalAmountValue],
-        {}
-      );
-      await BluetoothEscposPrinter.printText(dividerLine, {});
-
-      // Centered Festive / Polite Closing (80mm) - removed if merchant cleared greeting
-      const customFooter = await storageService.loadReceiptFooter();
-      if (customFooter.trim().length > 0) {
-        await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
-        await BluetoothEscposPrinter.printText(`${customFooter.trim()}\n`, {});
-      }
     } else {
-      // 58mm layout (32 Columns) - Modern 2-Line Retail Layout (Zero Cut-offs / Zero Orphans)
+      // 58mm layout (32 Columns)
       const shortYear = String(year).slice(-2);
       const shortDate = `${day}/${month}/${shortYear}`;
       const line1 = formatTwoColumns(
@@ -232,7 +189,6 @@ export async function dispatchPrintReceipt(
       );
       await BluetoothEscposPrinter.printText(line1, {});
 
-      // Customer line: if longer than 11 chars, print on own line to avoid name truncation
       if (customer.length > 11) {
         await BluetoothEscposPrinter.printText(`Cust: ${customer}\n`, {});
         await BluetoothEscposPrinter.printText(`Time: ${liveTime}\n`, {});
@@ -244,92 +200,115 @@ export async function dispatchPrintReceipt(
         );
         await BluetoothEscposPrinter.printText(line2, {});
       }
-      await BluetoothEscposPrinter.printText(dividerLine, {});
+    }
+    await BluetoothEscposPrinter.printText(dividerLine, {});
 
-      // --- 5. Table Header: #  Item (left) vs Amount (right) ---
-      const tableHeader = formatTwoColumns('#  Item', 'Amount', 32);
-      await BluetoothEscposPrinter.printText(tableHeader, {});
-      await BluetoothEscposPrinter.printText(dividerLine, {});
+    // --- 5. Table Header (#, Name, Qty, Price, Amount) ---
+    const sNoWidth = 3;
+    const nameColWidth = is80mm ? 21 : 11;
+    const qtyColWidth = is80mm ? 8 : 6;
+    const priceColWidth = is80mm ? 8 : 6;
+    const amtColWidth = is80mm ? 8 : 6;
 
-      // Compact line spacing (28 dots) inside each item so Lines 1, 2 & 3 hug together as one single unit
-      try {
-        await BluetoothEscposPrinter.printerLineSpace(28);
-      } catch {
-        // Safe fallback if printer does not support variable line spacing
+    const tableHeader = formatColumns([
+      { text: '#', width: sNoWidth, align: 'left' },
+      { text: 'Name', width: nameColWidth, align: 'left' },
+      { text: 'Qty', width: qtyColWidth, align: 'right' },
+      { text: 'Price', width: priceColWidth, align: 'right' },
+      { text: 'Amount', width: amtColWidth, align: 'right' },
+    ]);
+    await BluetoothEscposPrinter.printText(tableHeader, {});
+    await BluetoothEscposPrinter.printText(dividerLine, {});
+
+    // Compact line spacing (26 dots) inside multi-line items
+    try {
+      await BluetoothEscposPrinter.printerLineSpace(26);
+    } catch {
+      // Safe fallback if printer does not support variable line spacing
+    }
+
+    // --- 6. Items List Loop (Alphabetical A-Z, Multi-Line Word Wrap & Per-Item Dashed Divider) ---
+    const sortedItems = [...invoice.items].sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+    );
+
+    for (let i = 0; i < sortedItems.length; i++) {
+      const record = sortedItems[i];
+      const sNo = String(i + 1);
+      const unitText = record.unit ? ` ${record.unit}` : '';
+      const qtyWithUnit = `${record.qty}${unitText}`.trim();
+
+      // Clean whole-number representation to fit columns neatly
+      const cleanPrice = String(record.price || '').replace(/\.00$/, '');
+      const cleanAmt = String(record.amt || '').replace(/\.00$/, '');
+
+      // Word-wrap item name without breaking words mid-character
+      const nameLines = wrapTextToWords(record.name, nameColWidth);
+
+      // Line 1: SNo + First line of Name + Qty + Price + Amount
+      const firstRow = formatColumns([
+        { text: sNo, width: sNoWidth, align: 'left' },
+        { text: nameLines[0] || '', width: nameColWidth, align: 'left' },
+        { text: qtyWithUnit, width: qtyColWidth, align: 'right' },
+        { text: cleanPrice, width: priceColWidth, align: 'right' },
+        { text: cleanAmt, width: amtColWidth, align: 'right' },
+      ]);
+      await BluetoothEscposPrinter.printText(firstRow, {});
+
+      // Continuation lines for Name (indented by 3 spaces directly under Name column)
+      for (let k = 1; k < nameLines.length; k++) {
+        const continuationRow = '   ' + nameLines[k] + '\n';
+        await BluetoothEscposPrinter.printText(continuationRow, {});
       }
 
-      // --- 6. Items List Loop (2-3 Line Retail POS format) ---
-      for (let i = 0; i < invoice.items.length; i++) {
-        const record = invoice.items[i];
-        const unitText = record.unit ? ` ${record.unit}` : '';
-        const qtyWithUnit = `${record.qty}${unitText}`.trim();
-
-        // Line 1: # Item Name (up to 18 chars) + Amount (right-aligned)
-        // 18 chars leaves at least 4-5 blank spaces before Amount, preventing mashed text
-        const itemHeading = `${record.sNo}  ${record.name.substring(0, activeConfig.nameCharLimit)}`;
-        const line1Item = formatTwoColumns(itemHeading, record.amt, 32);
-        await BluetoothEscposPrinter.printText(line1Item, {});
-
-        // Line 2: Indented Qty x Price (Full rate, never truncated)
-        const rateInfo = `     ${qtyWithUnit}  x  ${record.price}\n`;
-        await BluetoothEscposPrinter.printText(rateInfo, {});
-
-        // Line 3: Dedicated discount line (only printed if item has discount)
-        const discPct = parseFloat(record.discountPercent || '0') || 0;
-        const discAmt = parseFloat(record.discountAmount || '0') || 0;
-        if (discPct > 0 || discAmt > 0) {
-          const q = parseFloat(record.qty) || 0;
-          const p = parseFloat(record.price) || 0;
-          const gross = q * p;
-          const calcPct = discPct > 0 ? discPct : (gross > 0 ? Math.round((discAmt / gross) * 100) : 0);
-          const calcAmt = discAmt > 0 ? discAmt : (gross * (discPct / 100));
-          const amtStr = calcAmt > 0 ? `(-Rs.${calcAmt.toFixed(2).replace(/\.00$/, '')})` : '';
-          const pctStr = calcPct > 0 ? `${calcPct}%` : '';
-          const discDetails = [pctStr, amtStr].filter(Boolean).join(' ');
-          const discountLine = `     * Dis: ${discDetails}\n`;
-          await BluetoothEscposPrinter.printText(discountLine, {});
-        }
-
-        // Distinct separation gap (~1.5mm) between different items
-        if (i < invoice.items.length - 1) {
-          try {
-            await BluetoothEscposPrinter.printAndFeed(12);
-          } catch {
-            // Safe fallback if printer does not support dot feed
-          }
-        }
+      // Dedicated discount line (if configured)
+      const discPct = parseFloat(record.discountPercent || '0') || 0;
+      const discAmt = parseFloat(record.discountAmount || '0') || 0;
+      if (discPct > 0 || discAmt > 0) {
+        const q = parseFloat(record.qty) || 0;
+        const p = parseFloat(record.price) || 0;
+        const gross = q * p;
+        const calcPct = discPct > 0 ? discPct : (gross > 0 ? Math.round((discAmt / gross) * 100) : 0);
+        const calcAmt = discAmt > 0 ? discAmt : (gross * (discPct / 100));
+        const amtStr = calcAmt > 0 ? `(-Rs.${calcAmt.toFixed(2).replace(/\.00$/, '')})` : '';
+        const pctStr = calcPct > 0 ? `${calcPct}%` : '';
+        const discDetails = [pctStr, amtStr].filter(Boolean).join(' ');
+        const discountLine = `   * Dis: ${discDetails}\n`;
+        await BluetoothEscposPrinter.printText(discountLine, {});
       }
 
-      // Reset to standard line spacing for totals
-      try {
-        await BluetoothEscposPrinter.printerLineSpace(0);
-      } catch {
-        // ignore
-      }
+      // Separator dashed line between each item (as requested by store manager)
       await BluetoothEscposPrinter.printText(dividerLine, {});
+    }
 
-      // --- 7. Summary Totals (58mm 32 Columns) ---
-      const subtotalValue = invoice.subtotal || invoice.grandTotal;
-      const discountValue = invoice.totalDiscount || (invoice.discountAmount ? invoice.discountAmount : '0.00');
-      const finalAmountValue = invoice.finalAmount || invoice.grandTotal;
+    // Reset to standard line spacing for totals
+    try {
+      await BluetoothEscposPrinter.printerLineSpace(0);
+    } catch {
+      // ignore
+    }
 
-      const lineQty = formatTwoColumns('Total Items/Qty:', invoice.totalQty, 32);
-      const lineSub = formatTwoColumns('Subtotal:', subtotalValue, 32);
-      const lineDisc = formatTwoColumns('Total Discount:', `-${discountValue}`, 32);
-      const lineFinal = formatTwoColumns('Final Amount:', finalAmountValue, 32);
+    // --- 7. Summary Totals ---
+    const subtotalValue = String(invoice.subtotal || invoice.grandTotal).replace(/\.00$/, '');
+    const discountValue = String(invoice.totalDiscount || (invoice.discountAmount ? invoice.discountAmount : '0.00')).replace(/\.00$/, '');
+    const finalAmountValue = String(invoice.finalAmount || invoice.grandTotal).replace(/\.00$/, '');
 
-      await BluetoothEscposPrinter.printText(lineQty, {});
-      await BluetoothEscposPrinter.printText(lineSub, {});
-      await BluetoothEscposPrinter.printText(lineDisc, {});
-      await BluetoothEscposPrinter.printText(lineFinal, {});
-      await BluetoothEscposPrinter.printText(dividerLine, {});
+    const lineQty = formatTwoColumns('Total Items/Qty:', invoice.totalQty, activeConfig.lineWidth);
+    const lineSub = formatTwoColumns('Subtotal:', subtotalValue, activeConfig.lineWidth);
+    const lineDisc = formatTwoColumns('Total Discount:', `-${discountValue}`, activeConfig.lineWidth);
+    const lineFinal = formatTwoColumns('Final Amount:', finalAmountValue, activeConfig.lineWidth);
 
-      // Centered Festive / Polite Closing (58mm) - removed if merchant cleared greeting
-      const customFooter = await storageService.loadReceiptFooter();
-      if (customFooter.trim().length > 0) {
-        await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
-        await BluetoothEscposPrinter.printText(`${customFooter.trim()}\n`, {});
-      }
+    await BluetoothEscposPrinter.printText(lineQty, {});
+    await BluetoothEscposPrinter.printText(lineSub, {});
+    await BluetoothEscposPrinter.printText(lineDisc, {});
+    await BluetoothEscposPrinter.printText(lineFinal, {});
+    await BluetoothEscposPrinter.printText(dividerLine, {});
+
+    // Centered Festive / Custom Footer Greeting (if configured)
+    const customFooter = await storageService.loadReceiptFooter();
+    if (customFooter.trim().length > 0) {
+      await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
+      await BluetoothEscposPrinter.printText(`${customFooter.trim()}\n`, {});
     }
 
     // --- 8. Paper Feed & Auto-Cut ---

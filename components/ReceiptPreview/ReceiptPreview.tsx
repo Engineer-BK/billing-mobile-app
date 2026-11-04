@@ -19,6 +19,7 @@ import { InvoiceData } from '../../types/billing';
 import { DashedDivider } from './DashedDivider';
 import { useTheme } from '../../hooks/useTheme';
 import { storageService } from '../../services/storageService';
+import { wrapTextToWords } from '../../services/printJobService';
 
 interface ReceiptPreviewProps {
   activeConfig: PrinterProfile;
@@ -60,9 +61,9 @@ export function ReceiptPreview({
     };
   }, [propsFooterGreeting]);
 
-  // Dynamic on-screen simulation of physical feedLines (topSpace & bottomSpace)
-  const topPadding = Math.max(4, activeConfig.feedLines.topSpace * 8 + 6);
-  const bottomPadding = Math.max(6, activeConfig.feedLines.bottomSpace * 2.5 + 8);
+  // 1.5-Inch Spacing Simulation (~50dp on mobile screens)
+  const topPadding = 50;
+  const bottomPadding = 50;
 
   // Compute live timestamp
   const { displayDate, displayTime } = useMemo(() => {
@@ -84,6 +85,13 @@ export function ReceiptPreview({
       displayTime: invoice.time || liveTime,
     };
   }, [invoice.date, invoice.time]);
+
+  // Alphabetical items sorting (A to Z)
+  const sortedItems = useMemo(() => {
+    return [...invoice.items].sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+    );
+  }, [invoice.items]);
 
   const customerName = invoice.customerName?.trim() || 'Walk-in Customer';
   const subtotalVal = invoice.subtotal || invoice.grandTotal;
@@ -162,77 +170,68 @@ export function ReceiptPreview({
 
         <DashedDivider />
 
-        {/* Dynamic Table Header */}
-        {is58mm ? (
-          /* 58mm Clean 2-Column Header */
-          <View style={styles.tableRow}>
-            <Text allowFontScaling={false} style={[styles.colHeader, { flex: 2 }]}>
-              #  Item
-            </Text>
-            <Text allowFontScaling={false} style={[styles.colHeader, styles.txtRight, { flex: 1 }]}>
-              Amount
-            </Text>
-          </View>
-        ) : (
-          /* 80mm Proportional 5-Column Header - UNTOUCHED */
-          <View style={styles.tableRow}>
-            <Text
-              allowFontScaling={false}
-              style={[
-                styles.colHeader,
-                { flex: activeConfig.gridMetrics[0] },
-              ]}
-            >
-              #
-            </Text>
-            <Text
-              allowFontScaling={false}
-              style={[
-                styles.colHeader,
-                { flex: activeConfig.gridMetrics[1] },
-              ]}
-            >
-              Item Description
-            </Text>
-            <Text
-              allowFontScaling={false}
-              style={[
-                styles.colHeader,
-                styles.txtRight,
-                { flex: activeConfig.gridMetrics[2] },
-              ]}
-            >
-              Qty
-            </Text>
-            <Text
-              allowFontScaling={false}
-              style={[
-                styles.colHeader,
-                styles.txtRight,
-                { flex: activeConfig.gridMetrics[3] },
-              ]}
-            >
-              Price
-            </Text>
-            <Text
-              allowFontScaling={false}
-              style={[
-                styles.colHeader,
-                styles.txtRight,
-                { flex: activeConfig.gridMetrics[4] },
-              ]}
-            >
-              Amount
-            </Text>
-          </View>
-        )}
+        {/* Dynamic 5-Column Table Header (#, Name, Qty, Price, Amount) */}
+        <View style={styles.tableRow}>
+          <Text
+            allowFontScaling={false}
+            style={[
+              styles.colHeader,
+              { flex: activeConfig.gridMetrics[0], fontSize: is58mm ? 9.5 : 10.5 },
+            ]}
+          >
+            #
+          </Text>
+          <Text
+            allowFontScaling={false}
+            style={[
+              styles.colHeader,
+              { flex: activeConfig.gridMetrics[1], fontSize: is58mm ? 9.5 : 10.5 },
+            ]}
+          >
+            Name
+          </Text>
+          <Text
+            allowFontScaling={false}
+            style={[
+              styles.colHeader,
+              styles.txtRight,
+              { flex: activeConfig.gridMetrics[2], fontSize: is58mm ? 9.5 : 10.5 },
+            ]}
+          >
+            Qty
+          </Text>
+          <Text
+            allowFontScaling={false}
+            style={[
+              styles.colHeader,
+              styles.txtRight,
+              { flex: activeConfig.gridMetrics[3], fontSize: is58mm ? 9.5 : 10.5 },
+            ]}
+          >
+            Price
+          </Text>
+          <Text
+            allowFontScaling={false}
+            style={[
+              styles.colHeader,
+              styles.txtRight,
+              { flex: activeConfig.gridMetrics[4], fontSize: is58mm ? 9.5 : 10.5 },
+            ]}
+          >
+            Amount
+          </Text>
+        </View>
 
         <DashedDivider />
 
-        {/* Dynamic Items Rows (Includes Unit e.g. "2 KG" and Item Discounts) */}
-        {invoice.items.map((it) => {
+        {/* Alphabetically Ordered Items Loop with Multi-Line Word-Wrapping & Per-Item Dashed Dividers */}
+        {sortedItems.map((it, idx) => {
+          const sNo = String(idx + 1);
           const unitStr = it.unit ? ` ${it.unit}` : '';
           const qtyUnitStr = `${it.qty}${unitStr}`.trim();
+          const cleanPrice = String(it.price || '').replace(/\.00$/, '');
+          const cleanAmt = String(it.amt || '').replace(/\.00$/, '');
+
           const discPct = parseFloat(it.discountPercent || '0') || 0;
           const discAmt = parseFloat(it.discountAmount || '0') || 0;
           const hasDiscount = discPct > 0 || discAmt > 0;
@@ -246,78 +245,38 @@ export function ReceiptPreview({
           const pctStr = calcPct > 0 ? `${calcPct}%` : '';
           const discDetails = [pctStr, amtStr].filter(Boolean).join(' ');
 
-          if (is58mm) {
-            return (
-              <View key={it.sNo} style={{ marginBottom: 6 }}>
-                {/* Line 1: # Item (left) + Amount (right) */}
-                <View style={styles.tableRow}>
-                  <Text
-                    allowFontScaling={false}
-                    numberOfLines={1}
-                    style={[styles.colCell, { flex: 2, fontWeight: '700' }]}
-                  >
-                    {`${it.sNo}  ${it.name.substring(0, activeConfig.nameCharLimit)}`}
-                  </Text>
-                  <Text
-                    allowFontScaling={false}
-                    style={[styles.colCell, styles.txtRight, { flex: 1, fontWeight: '700' }]}
-                  >
-                    {it.amt}
-                  </Text>
-                </View>
-                {/* Line 2: Indented Qty x Price */}
-                <View style={[styles.tableRow, { paddingLeft: 14 }]}>
-                  <Text
-                    allowFontScaling={false}
-                    style={[styles.colCell, { color: '#475569', fontSize: 11, flex: 1 }]}
-                  >
-                    {`${qtyUnitStr}  x  ${it.price}`}
-                  </Text>
-                </View>
-                {/* Line 3: Dedicated Discount Note (if available) */}
-                {hasDiscount && (
-                  <View style={[styles.tableRow, { paddingLeft: 14, marginTop: 1 }]}>
-                    <Text
-                      allowFontScaling={false}
-                      style={[styles.colCell, { color: '#16A34A', fontSize: 10.5, fontWeight: '700' }]}
-                    >
-                      {`* Dis: ${discDetails}`}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            );
-          }
+          const nameColWidth = is58mm ? 11 : 21;
+          const nameLines = wrapTextToWords(it.name, nameColWidth);
+          const cellFontSize = is58mm ? 9.5 : 10.5;
 
           return (
-            <View key={it.sNo} style={{ marginBottom: 5 }}>
+            <View key={`${it.sNo}_${idx}`}>
+              {/* Line 1: # + First Line of Name + Qty + Price + Amount */}
               <View style={styles.tableRow}>
                 <Text
                   allowFontScaling={false}
                   style={[
                     styles.colCell,
-                    { flex: activeConfig.gridMetrics[0] },
+                    { flex: activeConfig.gridMetrics[0], fontSize: cellFontSize, fontWeight: '700' },
                   ]}
                 >
-                  {it.sNo}
+                  {sNo}
                 </Text>
                 <Text
                   allowFontScaling={false}
-                  numberOfLines={1}
                   style={[
                     styles.colCell,
-                    { flex: activeConfig.gridMetrics[1] },
+                    { flex: activeConfig.gridMetrics[1], fontSize: cellFontSize, fontWeight: '700' },
                   ]}
                 >
-                  {it.name.substring(0, activeConfig.nameCharLimit)}
+                  {nameLines[0] || ''}
                 </Text>
                 <Text
                   allowFontScaling={false}
-                  numberOfLines={1}
                   style={[
                     styles.colCell,
                     styles.txtRight,
-                    { flex: activeConfig.gridMetrics[2] },
+                    { flex: activeConfig.gridMetrics[2], fontSize: cellFontSize },
                   ]}
                 >
                   {qtyUnitStr}
@@ -327,39 +286,61 @@ export function ReceiptPreview({
                   style={[
                     styles.colCell,
                     styles.txtRight,
-                    { flex: activeConfig.gridMetrics[3] },
+                    { flex: activeConfig.gridMetrics[3], fontSize: cellFontSize },
                   ]}
                 >
-                  {it.price}
+                  {cleanPrice}
                 </Text>
                 <Text
                   allowFontScaling={false}
                   style={[
                     styles.colCell,
                     styles.txtRight,
-                    { flex: activeConfig.gridMetrics[4] },
+                    { flex: activeConfig.gridMetrics[4], fontSize: cellFontSize, fontWeight: '700' },
                   ]}
                 >
-                  {it.amt}
+                  {cleanAmt}
                 </Text>
               </View>
 
-              {/* 80mm Annotated Item Discount Sub-row */}
-              {hasDiscount && (
-                <View style={{ paddingLeft: 18, marginTop: 1 }}>
+              {/* Continuation Lines for Name (Indented to align under Name column) */}
+              {nameLines.slice(1).map((lineTxt, lineIdx) => (
+                <View
+                  key={`line_${lineIdx}`}
+                  style={[styles.tableRow, { paddingLeft: is58mm ? 16 : 20 }]}
+                >
                   <Text
                     allowFontScaling={false}
-                    style={[styles.colCell, { color: '#16A34A', fontSize: 10.5, fontWeight: '600' }]}
+                    style={[
+                      styles.colCell,
+                      { fontSize: cellFontSize, fontWeight: '600', color: '#1E293B', flex: 1 },
+                    ]}
+                  >
+                    {lineTxt}
+                  </Text>
+                </View>
+              ))}
+
+              {/* Dedicated discount note (if available) */}
+              {hasDiscount && (
+                <View style={[styles.tableRow, { paddingLeft: is58mm ? 16 : 20, marginTop: 1 }]}>
+                  <Text
+                    allowFontScaling={false}
+                    style={[
+                      styles.colCell,
+                      { color: '#16A34A', fontSize: is58mm ? 9 : 10, fontWeight: '700' },
+                    ]}
                   >
                     {`* Dis: ${discDetails}`}
                   </Text>
                 </View>
               )}
+
+              {/* Dashed line divider between each item */}
+              <DashedDivider />
             </View>
           );
         })}
-
-        <DashedDivider />
 
         {/* Dynamic Summary Block: Total Items/Qty, Subtotal, Total Discount, Final Amount */}
         <View style={styles.summaryRow}>

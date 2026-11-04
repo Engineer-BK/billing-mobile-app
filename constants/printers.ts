@@ -16,25 +16,28 @@ export const PRINTER_PROFILES: Record<PrinterProfileId, PrinterProfile> = {
     badge: '2-Inch • 32 Col',
     paperWidth: '58mm Roll',
     lineWidth: 32,
-    nameCharLimit: 18,
+    nameCharLimit: 11,
     hasAutoCutter: false,
-    // Modern 2-Line Column layout: #  Item (22) + Amount (10) = 32
-    gridMetrics: [22, 10],
+    // 5-Column layout: # (3) + Name (11) + Qty (6) + Price (6) + Amount (6) = 32
+    gridMetrics: [3, 11, 6, 6, 6],
     gridPositions: [
       BluetoothEscposPrinter.ALIGN.LEFT,
+      BluetoothEscposPrinter.ALIGN.LEFT,
+      BluetoothEscposPrinter.ALIGN.RIGHT,
+      BluetoothEscposPrinter.ALIGN.RIGHT,
       BluetoothEscposPrinter.ALIGN.RIGHT,
     ],
-    headerColumns: ['#  Item', 'Amount'],
+    headerColumns: ['#', 'Name', 'Qty', 'Price', 'Amount'],
     // Summary row: Label (18) + Value (14) = 32
     totalMetrics: [18, 14],
     totalPositions: [
       BluetoothEscposPrinter.ALIGN.LEFT,
       BluetoothEscposPrinter.ALIGN.RIGHT,
     ],
-    // Customizable paper feed spacing: { topSpace, bottomSpace }
+    // 1.5 Inch paper feed spacing (~38mm / 304 dots)
     feedLines: {
-      topSpace: 1,     // 1 line at top: ~3.5mm clean margin so "Delivery Slip" clears the manual tear bar
-      bottomSpace: 5,  // 5 lines at bottom: feeds past physical manual tear teeth
+      topSpace: 10,    // 10 lines at top: 1.5-inch clean blank margin
+      bottomSpace: 12, // 12 lines at bottom: 1.5-inch margin clearing manual tear bar
     },
   },
   EZO80: {
@@ -43,10 +46,10 @@ export const PRINTER_PROFILES: Record<PrinterProfileId, PrinterProfile> = {
     badge: '3-Inch • 48 Col • Auto-Cut',
     paperWidth: '80mm Roll',
     lineWidth: 48,
-    nameCharLimit: 19,
+    nameCharLimit: 21,
     hasAutoCutter: true,
-    // Column layout: # (3) + Item Description (21) + Qty (8) + Price (7) + Amount (9) = 48
-    gridMetrics: [3, 21, 8, 7, 9],
+    // 5-Column layout: # (3) + Name (21) + Qty (8) + Price (8) + Amount (8) = 48
+    gridMetrics: [3, 21, 8, 8, 8],
     gridPositions: [
       BluetoothEscposPrinter.ALIGN.LEFT,
       BluetoothEscposPrinter.ALIGN.LEFT,
@@ -54,17 +57,17 @@ export const PRINTER_PROFILES: Record<PrinterProfileId, PrinterProfile> = {
       BluetoothEscposPrinter.ALIGN.RIGHT,
       BluetoothEscposPrinter.ALIGN.RIGHT,
     ],
-    headerColumns: ['#', 'Item Description', 'Qty', 'Price', 'Amount'],
+    headerColumns: ['#', 'Name', 'Qty', 'Price', 'Amount'],
     // Summary row: Label (30) + Value (18) = 48
     totalMetrics: [30, 18],
     totalPositions: [
       BluetoothEscposPrinter.ALIGN.LEFT,
       BluetoothEscposPrinter.ALIGN.RIGHT,
     ],
-    // Customizable paper feed spacing: { topSpace, bottomSpace }
+    // 1.5 Inch paper feed spacing (~38mm / 304 dots)
     feedLines: {
-      topSpace: 1,     // 1 line at top
-      bottomSpace: 16, // Feeds paper clear of motorized auto-cutter blade
+      topSpace: 10,    // 10 lines at top: 1.5-inch clean blank margin
+      bottomSpace: 14, // 14 lines at bottom: 1.5-inch margin clearing motorized auto-cutter blade
     },
   },
 };
