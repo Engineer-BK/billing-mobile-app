@@ -7,6 +7,7 @@
  */
 
 import React, { createContext, useContext, useState, useMemo, useEffect, useCallback } from 'react';
+import { Appearance } from 'react-native';
 import { ThemeColors, DarkTheme, LightTheme } from '../constants/theme';
 import { storageService } from '../services/storageService';
 
@@ -19,6 +20,11 @@ export interface ThemeContextType {
   toggleTheme: () => void;
   setTheme: (mode: ThemeMode) => void;
 }
+
+const getInitialTheme = (): ThemeMode => {
+  const systemScheme = Appearance.getColorScheme();
+  return systemScheme === 'dark' ? 'dark' : 'light';
+};
 
 const ThemeContext = createContext<ThemeContextType>({
   theme: 'light',
@@ -33,15 +39,35 @@ export function ThemeProvider({
 }: {
   children: React.ReactNode;
 }): React.JSX.Element {
-  const [theme, setThemeState] = useState<ThemeMode>('light');
+  const [theme, setThemeState] = useState<ThemeMode>(getInitialTheme);
 
-  // Load persisted theme preference on app start
+  // Load persisted theme preference on app start or track system theme
   useEffect(() => {
+    let isMounted = true;
     storageService.loadTheme().then((saved) => {
+      if (!isMounted) return;
       if (saved) {
         setThemeState(saved);
+      } else {
+        const currentSystem = Appearance.getColorScheme();
+        if (currentSystem) {
+          setThemeState(currentSystem === 'dark' ? 'dark' : 'light');
+        }
       }
     });
+
+    const subscription = Appearance.addChangeListener(({ colorScheme }) => {
+      storageService.loadTheme().then((saved) => {
+        if (!saved && colorScheme) {
+          setThemeState(colorScheme === 'dark' ? 'dark' : 'light');
+        }
+      });
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.remove();
+    };
   }, []);
 
   const setTheme = useCallback((mode: ThemeMode) => {

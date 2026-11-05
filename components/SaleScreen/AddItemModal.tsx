@@ -262,9 +262,11 @@ export function AddItemModal({
                     ]}
                     value={itemName}
                     onChangeText={(txt) => {
-                      setItemName(txt);
+                      const formatted = txt.replace(/\b\w/g, (char) => char.toUpperCase());
+                      setItemName(formatted);
                       setShowSuggestions(true);
                     }}
+                    autoCapitalize="words"
                     placeholder="e.g. Basmati Rice, Sunflower Oil"
                     placeholderTextColor={colors.textMuted}
                     autoFocus

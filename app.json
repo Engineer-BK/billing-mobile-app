@@ -6,15 +6,21 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/counter-press-with-orange-background.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/counter-press-without-orange-background.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FFFFFF"
+      "backgroundColor": "#FFFFFF",
+      "dark": {
+        "image": "./assets/counter-press-without-orange-background.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#0A1322"
+      }
     },
     "android": {
       "package": "com.aftabrental.billingapp",
       "versionCode": 1,
+      "userInterfaceStyle": "automatic",
       "adaptiveIcon": {
         "foregroundImage": "./assets/counter-press-with-orange-background.png",
         "backgroundColor": "#ff944f"
@@ -22,7 +28,12 @@
       "splash": {
         "image": "./assets/counter-press-without-orange-background.png",
         "resizeMode": "contain",
-        "backgroundColor": "#FFFFFF"
+        "backgroundColor": "#FFFFFF",
+        "dark": {
+          "image": "./assets/counter-press-without-orange-background.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#0A1322"
+        }
       },
       "permissions": [
         "android.permission.BLUETOOTH",

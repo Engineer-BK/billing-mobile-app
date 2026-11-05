@@ -312,6 +312,12 @@ export function WelcomeScreen({ onFinish }: WelcomeScreenProps): React.JSX.Eleme
           <Text style={[styles.footerSubtext, { color: colors.textMuted }]}>
             High-Performance Offline Thermal Billing System
           </Text>
+          <Text style={[styles.footerDevText, { color: colors.textMuted }]}>
+            Developed by{' '}
+            <Text style={{ color: colors.primary, fontWeight: '600' }}>
+              Er. Basir Ahmed Khan (Software Engineer)
+            </Text>
+          </Text>
         </View>
       </Animated.View>
     </SafeAreaView>
@@ -488,6 +494,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   footerSubtext: {
+    fontSize: 9.5,
+    fontWeight: '500',
+    letterSpacing: 0.2,
+  },
+  footerDevText: {
     fontSize: 9.5,
     fontWeight: '500',
     letterSpacing: 0.2,

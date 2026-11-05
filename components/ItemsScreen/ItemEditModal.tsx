@@ -317,7 +317,8 @@ export function ItemEditModal({
                   <TextInput
                     style={[styles.textInput, { color: colors.textPrimary }]}
                     value={name}
-                    onChangeText={setName}
+                    onChangeText={(txt) => setName(txt.replace(/\b\w/g, (char) => char.toUpperCase()))}
+                    autoCapitalize="words"
                     placeholder="e.g. Basmati Rice, Sunflower Oil"
                     placeholderTextColor={colors.textMuted}
                     autoFocus={!item}
@@ -766,7 +767,8 @@ export function ItemEditModal({
                       placeholder="Search or filter category..."
                       placeholderTextColor={colors.textMuted}
                       value={categorySearch}
-                      onChangeText={setCategorySearch}
+                      onChangeText={(txt) => setCategorySearch(txt.replace(/\b\w/g, (char) => char.toUpperCase()))}
+                      autoCapitalize="words"
                       autoFocus
                     />
                   </View>
