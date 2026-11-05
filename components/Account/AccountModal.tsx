@@ -122,7 +122,7 @@ export function AccountModal({
   const handleSignOut = () => {
     Alert.alert(
       'Sign Out of Store',
-      `Are you sure you want to sign out of ${user?.shopName || 'FlashBill'}?`,
+      `Are you sure you want to sign out of ${user?.shopName || 'CounterPress'}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {

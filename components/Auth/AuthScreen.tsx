@@ -95,12 +95,12 @@ export function AuthScreen({ initialTab = 'login' }: AuthScreenProps): React.JSX
           <View style={styles.heroSection}>
             <View style={[styles.logoCircle, { backgroundColor: isDark ? '#0A1128' : '#F0F9FF' }]}>
               <Image
-                source={require('../../assets/flashBill-bg-removed-png-icon.png')}
+                source={require('../../assets/counter-press-without-orange-background.png')}
                 style={styles.logoImg}
                 resizeMode="contain"
               />
             </View>
-            <Text style={[styles.appName, { color: colors.textPrimary }]}>FlashBill POS</Text>
+            <Text style={[styles.appName, { color: colors.textPrimary }]}>CounterPress POS</Text>
             <Text style={[styles.appTagline, { color: colors.textSecondary }]}>
               Fast Thermal Billing • Permanent Cloud Sync
             </Text>

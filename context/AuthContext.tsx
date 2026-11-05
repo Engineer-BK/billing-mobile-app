@@ -286,7 +286,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
     setError(null);
     const guestUser: UserProfile = {
       uid: 'guest_user',
-      email: 'demo@flashbill.pos',
+      email: 'demo@counterpress.pos',
       shopName: 'Demo Supermarket',
       ownerName: 'Guest Merchant',
       phone: '9876543210',

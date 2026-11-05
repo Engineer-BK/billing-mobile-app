@@ -1,9 +1,9 @@
 /**
  * components/WelcomeScreen.tsx
  * 
- * High-Speed Thermal POS Splash & Welcome Screen for FlashBill.
+ * High-Speed Thermal POS Splash & Welcome Screen for CounterPress.
  * Features:
- * - Direct use of the transparent FlashBill brand emblem (assets/flash-bill-icon-for-any-usecases-app-icon-with-no-background.png)
+ * - Direct use of the transparent CounterPress brand emblem (assets/counter-press-without-orange-background.png)
  * - Pure, borderless, crisp emblem rendering with smooth spring/fade animation
  * - Elegant light theme default background with zero clipping artifacts
  * - Prominent Developer Info: Er. Basir Ahmed Khan, B.Tech(Software Engineer)
@@ -99,7 +99,7 @@ export function WelcomeScreen({ onFinish }: WelcomeScreenProps): React.JSX.Eleme
         </TouchableOpacity>
       </View>
 
-      {/* Center Hero: Pure Transparent FlashBill Emblem & Branding */}
+      {/* Center Hero: Pure Transparent CounterPress Emblem & Branding */}
       <View style={styles.centerContainer}>
         <Animated.View
           style={[
@@ -122,15 +122,15 @@ export function WelcomeScreen({ onFinish }: WelcomeScreenProps): React.JSX.Eleme
             ]}
           >
             <Image
-              source={require('../assets/flash-bill-icon-for-any-usecases-app-icon-with-no-background.png')}
+              source={require('../assets/counter-press-without-orange-background.png')}
               style={styles.logoImage}
               resizeMode="contain"
             />
           </View>
 
-          {/* FlashBill Typography */}
+          {/* CounterPress Typography */}
           <Text style={[styles.appName, { color: colors.textPrimary }]}>
-            Flash<Text style={{ color: colors.primary }}>Bill</Text>
+            Counter<Text style={{ color: colors.primary }}>Press</Text>
           </Text>
 
           <Text style={[styles.tagline, { color: colors.textSecondary }]}>
@@ -229,7 +229,7 @@ export function WelcomeScreen({ onFinish }: WelcomeScreenProps): React.JSX.Eleme
             B.Tech (Software Engineer)
           </Text>
           <Text style={[styles.versionBadge, { color: colors.textMuted }]}>
-            FlashBill v1.0.0 • Production POS
+            CounterPress v1.0.0 • Production POS
           </Text>
         </View>
       </Animated.View>

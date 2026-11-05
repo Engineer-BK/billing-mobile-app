@@ -51,8 +51,8 @@ export function LoginView({
 
   // Quick fill for testing
   const handleQuickDemo = () => {
-    setEmail('demo.store@flashbill.in');
-    setPassword('flashbill123');
+    setEmail('demo.store@counterpress.in');
+    setPassword('counterpress123');
   };
 
   return (
@@ -216,7 +216,7 @@ export function LoginView({
       {/* Switch to Register link */}
       <View style={styles.footerRow}>
         <Text style={[styles.footerTxt, { color: colors.textSecondary }]}>
-          Don't have a FlashBill account?
+          Don't have a CounterPress account?
         </Text>
         <TouchableOpacity onPress={onSwitchToRegister} style={styles.linkTouch}>
           <Text style={[styles.linkTxt, { color: colors.primary }]}>Create Store Account</Text>

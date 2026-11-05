@@ -21,7 +21,7 @@ export function HeaderBar(): React.JSX.Element {
             ⚡ POS
           </Text>
           <Text style={[styles.title, { color: colors.textPrimary }]}>
-            FlashBill
+            CounterPress
           </Text>
         </View>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>

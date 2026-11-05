@@ -82,7 +82,7 @@ export function FlashHeader({
             ]}
           >
             <Image
-              source={require('../../assets/flash-bill-icon-for-any-usecases-app-icon-with-no-background.png')}
+              source={require('../../assets/counter-press-without-orange-background.png')}
               style={styles.avatarImage}
               resizeMode="contain"
             />

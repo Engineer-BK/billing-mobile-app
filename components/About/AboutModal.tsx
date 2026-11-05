@@ -73,14 +73,14 @@ export function AboutModal({ visible, onClose }: AboutModalProps): React.JSX.Ele
       Linking.openURL(PLAY_STORE_URL).catch(() => {
         Alert.alert(
           'Play Store Link',
-          `Visit FlashBill on Google Play Store:\n${PLAY_STORE_URL}`
+          `Visit CounterPress on Google Play Store:\n${PLAY_STORE_URL}`
         );
       });
     }
   };
 
   const handleSendEmail = () => {
-    const subject = encodeURIComponent('FlashBill POS - Feedback & Support');
+    const subject = encodeURIComponent('CounterPress POS - Feedback & Support');
     const mailtoUrl = `mailto:${DEVELOPER_EMAIL}?subject=${subject}`;
     Linking.openURL(mailtoUrl).catch(() => {
       Alert.alert(
@@ -139,7 +139,7 @@ export function AboutModal({ visible, onClose }: AboutModalProps): React.JSX.Ele
                 </View>
                 <View style={styles.headerTitleCol}>
                   <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
-                    About FlashBill
+                    About CounterPress
                   </Text>
                   <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
                     App Details, Version & Developer
@@ -193,7 +193,7 @@ export function AboutModal({ visible, onClose }: AboutModalProps): React.JSX.Ele
                   ]}
                 >
                   <Image
-                    source={require('../../assets/flash-bill-icon-for-any-usecases-app-icon-with-no-background.png')}
+                    source={require('../../assets/counter-press-without-orange-background.png')}
                     style={styles.appLogoImg}
                     resizeMode="contain"
                   />
@@ -202,7 +202,7 @@ export function AboutModal({ visible, onClose }: AboutModalProps): React.JSX.Ele
                 <View style={styles.heroTextCol}>
                   <View style={styles.heroTitleRow}>
                     <Text style={[styles.heroAppName, { color: colors.textPrimary }]}>
-                      FlashBill POS
+                      CounterPress POS
                     </Text>
                     <View style={[styles.proBadge, { backgroundColor: colors.primaryLight }]}>
                       <Text style={[styles.proBadgeTxt, { color: colors.primary }]}>PRO</Text>
@@ -230,10 +230,10 @@ export function AboutModal({ visible, onClose }: AboutModalProps): React.JSX.Ele
                   ]}
                 >
                   <Text style={[styles.descText, { color: colors.textPrimary }]}>
-                    FlashBill is a specialized, enterprise-grade mobile Point of Sale and billing application built for retail shops, supermarkets, grocery stores, and mobile vendors.
+                    CounterPress is a specialized, enterprise-grade mobile Point of Sale and billing application built for retail shops, supermarkets, grocery stores, and mobile vendors.
                   </Text>
                   <Text style={[styles.descSubtext, { color: colors.textSecondary }]}>
-                    Engineered with an offline-first architecture, FlashBill delivers 0ms instant Bluetooth thermal receipt printing on 58mm and 80mm paper rolls, fast barcode lookup, preset catalog management, and automated Google Cloud backup.
+                    Engineered with an offline-first architecture, CounterPress delivers 0ms instant Bluetooth thermal receipt printing on 58mm and 80mm paper rolls, fast barcode lookup, preset catalog management, and automated Google Cloud backup.
                   </Text>
                 </View>
               </View>
@@ -423,7 +423,7 @@ export function AboutModal({ visible, onClose }: AboutModalProps): React.JSX.Ele
                         Check for Updates
                       </Text>
                       <Text style={[styles.playCardSub, { color: colors.textSecondary }]}>
-                        Keep FlashBill updated with latest printer drivers & fixes
+                        Keep CounterPress updated with latest printer drivers & fixes
                       </Text>
                     </View>
                   </View>
@@ -446,7 +446,7 @@ export function AboutModal({ visible, onClose }: AboutModalProps): React.JSX.Ele
                   Crafted with ❤️ for fast Indian & global retail businesses.
                 </Text>
                 <Text style={[styles.footerCopyrightTxt, { color: colors.textMuted }]}>
-                  © 2026 FlashBill POS. All rights reserved.
+                  © 2026 CounterPress POS. All rights reserved.
                 </Text>
               </View>
             </ScrollView>

@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "FlashBill",
+    "name": "CounterPress",
     "slug": "billing-mobile-app",
     "owner": "basirexpos-team",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/counter-press-with-orange-background.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/counter-press-without-orange-background.png",
       "resizeMode": "contain",
       "backgroundColor": "#FFFFFF"
     },
@@ -16,11 +16,11 @@
       "package": "com.aftabrental.billingapp",
       "versionCode": 1,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0A1128"
+        "foregroundImage": "./assets/counter-press-with-orange-background.png",
+        "backgroundColor": "#ff944f"
       },
       "splash": {
-        "image": "./assets/splash.png",
+        "image": "./assets/counter-press-without-orange-background.png",
         "resizeMode": "contain",
         "backgroundColor": "#FFFFFF"
       },

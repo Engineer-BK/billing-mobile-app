@@ -1,8 +1,8 @@
 /**
- * App.tsx - Dual-Engine Thermal POS Billing Mobile App (FlashBill)
+ * App.tsx - Dual-Engine Thermal POS Billing Mobile App (CounterPress)
  * 
  * Main Application Controller orchestrating:
- * - Welcome / Splash screen with FlashBill logo & hardware indicators
+ * - Welcome / Splash screen with CounterPress logo & hardware indicators
  * - Home Dashboard with POS Metrics, Command Deck, and Hardware Switcher
  * - Invoices Tab Screen with real-time search, invoice inspection, and 1-tap print
  * - Sale Screen with modular structure, units dropdown, live calculations, and renumbering
@@ -702,9 +702,9 @@ function MainScreen(): React.JSX.Element {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Distinctive FlashBill Header with Store Info & Drawer Action */}
+          {/* Distinctive CounterPress Header with Store Info & Drawer Action */}
           <FlashHeader
-            storeName={user?.isGuest ? 'Demo Supermarket' : (user?.shopName || 'FlashBill POS')}
+            storeName={user?.isGuest ? 'Demo Supermarket' : (user?.shopName || 'CounterPress POS')}
             printerName={printerName}
             isConnected={!!targetAddress}
             onPressPrinterPill={() => setShowPrintersModal(true)}
@@ -859,7 +859,7 @@ function MainScreen(): React.JSX.Element {
         onOpenPrintersTab={() => setShowPrintersModal(true)}
       />
 
-      {/* About FlashBill Modal */}
+      {/* About CounterPress Modal */}
       <AboutModal
         visible={showAboutModal}
         onClose={() => setShowAboutModal(false)}

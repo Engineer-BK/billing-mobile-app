@@ -179,7 +179,7 @@ export function ActivationModal({
                         Store Activated & Verified
                       </Text>
                       <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                        Your store "{user?.shopName || 'FlashBill Store'}" has lifetime access to 0ms thermal printing on 58mm and 80mm rolls.
+                        Your store "{user?.shopName || 'CounterPress Store'}" has lifetime access to 0ms thermal printing on 58mm and 80mm rolls.
                       </Text>
                     </View>
 

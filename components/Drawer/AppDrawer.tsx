@@ -174,7 +174,7 @@ export function AppDrawer({
                 ]}
               >
                 <Image
-                  source={require('../../assets/flash-bill-icon-for-any-usecases-app-icon-with-no-background.png')}
+                  source={require('../../assets/counter-press-without-orange-background.png')}
                   style={styles.storeAvatarImg}
                   resizeMode="contain"
                 />
@@ -239,7 +239,7 @@ export function AppDrawer({
               <Text style={[styles.storeEmail, { color: colors.textSecondary }]} numberOfLines={1}>
                 {user?.isGuest
                   ? 'Guest Sandbox • Printer Locked'
-                  : (user?.ownerName ? `${user.ownerName} • ` : '') + (user?.email || 'FlashBill Active')}
+                  : (user?.ownerName ? `${user.ownerName} • ` : '') + (user?.email || 'CounterPress Active')}
               </Text>
             </TouchableOpacity>
 
@@ -498,7 +498,7 @@ export function AppDrawer({
               </Text>
             </TouchableOpacity>
 
-            {/* About FlashBill (Directly below Settings) */}
+            {/* About CounterPress (Directly below Settings) */}
             <TouchableOpacity
               style={styles.navItem}
               onPress={() => {
@@ -514,7 +514,7 @@ export function AppDrawer({
                 color={colors.primary}
               />
               <Text style={[styles.navLabel, { color: colors.textPrimary }]}>
-                About FlashBill
+                About CounterPress
               </Text>
               <View style={[styles.pillBadge, { backgroundColor: colors.primaryLight }]}>
                 <Text style={[styles.pillBadgeTxt, { color: colors.primary }]}>v1.0</Text>
@@ -633,7 +633,7 @@ export function AppDrawer({
               activeOpacity={0.7}
             >
               <Text style={[styles.versionTxt, { color: colors.textMuted }]}>
-                FlashBill POS • Enterprise Offline v1.0
+                CounterPress POS • Enterprise Offline v1.0
               </Text>
             </TouchableOpacity>
           </View>

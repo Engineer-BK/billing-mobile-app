@@ -307,7 +307,7 @@ export const licenseService = {
     const storeTxt = shopName ? `"${shopName}"` : 'my store';
     const emailTxt = email ? ` (${email})` : '';
     const text = encodeURIComponent(
-      `Hello FlashBill Team! 🚀\nI want to purchase an activation license key for ${storeTxt}${emailTxt}. Please share the UPI payment details and pricing.`
+      `Hello CounterPress Team! 🚀\nI want to purchase an activation license key for ${storeTxt}${emailTxt}. Please share the UPI payment details and pricing.`
     );
     return `https://wa.me/${ADMIN_WHATSAPP_PHONE}?text=${text}`;
   },
