@@ -8,7 +8,7 @@ export type LicensePlan = 'FREE' | '1_YEAR' | 'LIFETIME';
 export type LicenseStatus = 'AVAILABLE' | 'CLAIMED' | 'REVOKED';
 
 export interface StoreLicense {
-  key: string;                       // Formatted 16-char key: FLASH-XXXX-XXXX-XXXX
+  key: string;                       // Formatted key: CP-XXXX-XXXX-XXXX
   plan: LicensePlan;                 // 'LIFETIME' | '1_YEAR'
   status: LicenseStatus;             // 'AVAILABLE' | 'CLAIMED' | 'REVOKED'
   claimedByUid?: string;             // Firebase Auth UID of Merchant

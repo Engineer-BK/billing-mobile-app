@@ -7,7 +7,7 @@
  * - 100% Complete, non-scrollable Verified State dialog with zero clipping
  * - 16-character alphanumeric voucher code input with automatic formatting
  * - 1-Tap "Activate Store" with Firestore transaction verification
- * - "Contact Admin on WhatsApp" for direct B2B UPI payment & instant key delivery
+ * - "Contact Admin via Email" for direct B2B UPI payment & instant key delivery
  * - Visual indicators for Activated vs Free Tier accounts
  * - Light and Dark theme dynamic styling
  */
@@ -63,7 +63,7 @@ export function ActivationModal({
   // Submit Voucher Redemption
   const handleRedeem = async () => {
     if (!inputKey.trim()) {
-      setErrorMessage('Please enter your 16-character activation code.');
+      setErrorMessage('Please enter your activation code (e.g. CP-XXXX-XXXX-XXXX).');
       return;
     }
 
@@ -91,23 +91,25 @@ export function ActivationModal({
     }
   };
 
-  // Open WhatsApp directly to Admin
-  const handleContactWhatsApp = async () => {
-    const url = licenseService.getWhatsAppSalesUrl(user?.shopName, user?.email);
+  // Open Email directly to Admin (bachirak47@gmail.com)
+  const ADMIN_EMAIL = 'bachirak47@gmail.com';
+
+  const handleContactEmail = async () => {
+    const url = licenseService.getEmailSalesUrl(user?.shopName, user?.email);
     try {
       const supported = await Linking.canOpenURL(url);
       if (supported) {
         await Linking.openURL(url);
       } else {
         Alert.alert(
-          'WhatsApp Not Found',
-          'Please WhatsApp us at +91 86385 14961 with your store name to get your activation token.'
+          'Email Support',
+          `Please email us directly at ${ADMIN_EMAIL} with your store name to get your activation token.`
         );
       }
     } catch {
       Alert.alert(
-        'Contact Admin',
-        'Please WhatsApp us at +91 86385 14961 with your store name to get your activation token.'
+        'Email Support',
+        `Please email us directly at ${ADMIN_EMAIL} with your store name to get your activation token.`
       );
     }
   };
@@ -276,7 +278,7 @@ export function ActivationModal({
                     {/* Voucher Redemption Form */}
                     <View style={styles.formContainer}>
                       <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                        ENTER 16-CHAR ACTIVATION VOUCHER
+                        ENTER ACTIVATION VOUCHER
                       </Text>
 
                       <View
@@ -293,10 +295,10 @@ export function ActivationModal({
                           style={[styles.textInput, { color: colors.textPrimary }]}
                           value={inputKey}
                           onChangeText={handleKeyChange}
-                          placeholder="FLASH-XXXX-XXXX-XXXX"
+                          placeholder="CP-XXXX-XXXX-XXXX"
                           placeholderTextColor={colors.textMuted}
                           autoCapitalize="characters"
-                          maxLength={20}
+                          maxLength={24}
                           autoCorrect={false}
                         />
                         {inputKey.length > 0 ? (
@@ -351,18 +353,18 @@ export function ActivationModal({
                         <View style={[styles.dividerLine, { backgroundColor: colors.borderLight }]} />
                       </View>
 
-                      {/* WhatsApp Sales Button */}
+                      {/* Email Sales Button */}
                       <TouchableOpacity
-                        style={styles.whatsAppBtn}
-                        onPress={handleContactWhatsApp}
+                        style={[styles.mailBtn, { backgroundColor: colors.primary }]}
+                        onPress={handleContactEmail}
                         activeOpacity={0.8}
                       >
-                        <MaterialCommunityIcons name="whatsapp" size={20} color="#FFFFFF" />
-                        <Text style={styles.whatsAppBtnTxt}>Get Key via WhatsApp (Instant UPI)</Text>
+                        <MaterialCommunityIcons name="email-outline" size={20} color="#FFFFFF" />
+                        <Text style={styles.mailBtnTxt}>Request Key via Email (Instant UPI)</Text>
                       </TouchableOpacity>
 
                       <Text style={[styles.helpSubtext, { color: colors.textMuted }]}>
-                        Send your store name on WhatsApp for instant activation key or remote enablement in 30 seconds.
+                        Tap above or email <Text style={{ color: colors.primary, fontWeight: '700' }}>{ADMIN_EMAIL}</Text> with your store name for pricing and your activation key.
                       </Text>
                     </View>
                   </ScrollView>
@@ -591,21 +593,20 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
     letterSpacing: 0.5,
   },
-  whatsAppBtn: {
+  mailBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#25D366',
     paddingVertical: 12,
     borderRadius: 12,
     gap: 8,
-    shadowColor: '#25D366',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.15,
     shadowRadius: 5,
     elevation: 3,
   },
-  whatsAppBtnTxt: {
+  mailBtnTxt: {
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '800',

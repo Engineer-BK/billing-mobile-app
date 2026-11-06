@@ -24,20 +24,41 @@ import {
 } from '../types/license';
 import { UserProfile } from '../types/auth';
 
+export const ADMIN_EMAIL = 'bachirak47@gmail.com'; // Official Admin Email
 export const ADMIN_WHATSAPP_PHONE = '918638514961'; // Official Admin WhatsApp number
 
 export const licenseService = {
   /**
    * Format raw input into readable voucher chunks:
-   * Supports both:
-   * 1. Branded keys: "FLASH-XXXX-XXXX-XXXX" (e.g. "FLASH-8942-X7K1-9920")
+   * Supports:
+   * 1. Branded keys: "CP-XXXX-XXXX-XXXX" or "COUNTER-XXXX-XXXX-XXXX" or "FLASH-XXXX-XXXX-XXXX"
    * 2. Standard keys: "XXXX-XXXX-XXXX-XXXX"
    */
   formatLicenseKey(raw: string): string {
     const cleaned = raw.toUpperCase().replace(/[^A-Z0-9]/g, '');
     if (!cleaned) return '';
 
-    // Handle "FLASH" branded prefix: FLASH-XXXX-XXXX-XXXX
+    // Handle "COUNTER" branded prefix: COUNTER-XXXX-XXXX-XXXX
+    if (cleaned.startsWith('COUNTER')) {
+      const rest = cleaned.substring(7);
+      const parts = ['COUNTER'];
+      for (let i = 0; i < rest.length && parts.length < 4; i += 4) {
+        parts.push(rest.substring(i, i + 4));
+      }
+      return parts.join('-');
+    }
+
+    // Handle "CP" branded prefix: CP-XXXX-XXXX-XXXX
+    if (cleaned.startsWith('CP')) {
+      const rest = cleaned.substring(2);
+      const parts = ['CP'];
+      for (let i = 0; i < rest.length && parts.length < 4; i += 4) {
+        parts.push(rest.substring(i, i + 4));
+      }
+      return parts.join('-');
+    }
+
+    // Handle legacy "FLASH" branded prefix: FLASH-XXXX-XXXX-XXXX
     if (cleaned.startsWith('FLASH')) {
       const rest = cleaned.substring(5);
       const parts = ['FLASH'];
@@ -188,10 +209,10 @@ export const licenseService = {
     }
 
     const formattedKey = this.formatLicenseKey(rawKey);
-    if (!formattedKey || formattedKey.length < 16) {
+    if (!formattedKey || formattedKey.length < 14) {
       return {
         success: false,
-        message: 'Invalid license format. Please enter a valid 16-character voucher code (e.g. FLASH-XXXX-XXXX-XXXX).',
+        message: 'Invalid license format. Please enter a valid voucher code (e.g. CP-XXXX-XXXX-XXXX).',
       };
     }
 
@@ -298,6 +319,21 @@ export const licenseService = {
     };
 
     await storageService.saveLocalLicense(verification);
+  },
+
+  /**
+   * Build Email support/purchase link with pre-filled subject and body.
+   */
+  getEmailSalesUrl(shopName?: string, email?: string): string {
+    const storeTxt = shopName ? `"${shopName}"` : 'my store';
+    const emailTxt = email ? ` (${email})` : '';
+    const subject = encodeURIComponent(
+      `CounterPress POS - License Key Request (${shopName || 'Store Account'})`
+    );
+    const body = encodeURIComponent(
+      `Hello Basir Khan,\n\nI want to purchase an activation license key for ${storeTxt}${emailTxt}.\nPlease share the UPI payment details and pricing.\n\nThank you!`
+    );
+    return `mailto:${ADMIN_EMAIL}?subject=${subject}&body=${body}`;
   },
 
   /**
