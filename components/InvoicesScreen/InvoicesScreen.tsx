@@ -258,7 +258,7 @@ export function InvoicesScreen({
               <MaterialCommunityIcons name="close" size={18} color="#FFFFFF" />
             </TouchableOpacity>
             <Text style={styles.selectionCountTxt} numberOfLines={1}>
-              {selectedInvoiceNos.size} Selected
+              {selectedInvoiceNos.size} selected
             </Text>
           </View>
 
@@ -278,11 +278,11 @@ export function InvoicesScreen({
             >
               <MaterialCommunityIcons
                 name={allFilteredSelected ? 'checkbox-marked' : 'checkbox-blank-outline'}
-                size={15}
+                size={14}
                 color="#FFFFFF"
               />
               <Text style={styles.selectAllBtnTxt}>
-                {allFilteredSelected ? 'Deselect' : 'Select All'}
+                {allFilteredSelected ? 'Clear' : 'Select All'}
               </Text>
             </TouchableOpacity>
 
@@ -299,7 +299,7 @@ export function InvoicesScreen({
               disabled={selectedInvoiceNos.size === 0}
               activeOpacity={0.8}
             >
-              <MaterialCommunityIcons name="trash-can-outline" size={15} color="#FFFFFF" />
+              <MaterialCommunityIcons name="trash-can-outline" size={14} color="#FFFFFF" />
               <Text style={styles.bulkDeleteBtnTxt}>
                 Delete ({selectedInvoiceNos.size})
               </Text>
@@ -796,8 +796,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 9,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     borderRadius: 14,
     borderWidth: 1,
     marginBottom: 12,
@@ -805,21 +805,21 @@ const styles = StyleSheet.create({
   selectionLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     flexShrink: 1,
   },
   selectionCloseBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: 'rgba(255, 255, 255, 0.16)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   selectionCountTxt: {
     color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '800',
+    fontSize: 12,
+    fontWeight: '700',
     letterSpacing: 0.2,
   },
   selectionActionsGroup: {
@@ -832,8 +832,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 9,
-    paddingVertical: 7,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
     borderRadius: 8,
     flexShrink: 0,
   },
@@ -846,8 +846,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
     borderRadius: 8,
     flexShrink: 0,
   },

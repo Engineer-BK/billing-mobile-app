@@ -27,6 +27,34 @@ import { UserProfile } from '../types/auth';
 export const ADMIN_EMAIL = 'bachirak47@gmail.com'; // Official Admin Email
 export const ADMIN_WHATSAPP_PHONE = '918638514961'; // Official Admin WhatsApp number
 
+/**
+ * Robust helper: checks whether the store document is flagged active across
+ * all common field naming conventions (canPrint, isActivated, isActive, active, status)
+ * supporting both boolean (true) and string ("true") values from Firebase Console.
+ */
+function parseActivationFlag(data?: Record<string, any>): boolean {
+  if (!data) return false;
+  return (
+    data.canPrint === true ||
+    data.canPrint === 'true' ||
+    data.canPrint === 1 ||
+    data.isActivated === true ||
+    data.isActivated === 'true' ||
+    data.isActivated === 1 ||
+    data.isActive === true ||
+    data.isActive === 'true' ||
+    data.isActive === 1 ||
+    data.active === true ||
+    data.active === 'true' ||
+    data.active === 1 ||
+    data.is_active === true ||
+    data.is_active === 'true' ||
+    data.status === 'ACTIVE' ||
+    data.status === 'active' ||
+    data.status === 'CLAIMED'
+  );
+}
+
 export const licenseService = {
   /**
    * Format raw input into readable voucher chunks:
@@ -95,7 +123,7 @@ export const licenseService = {
 
       if (snap.exists()) {
         const data = snap.data();
-        const canPrint = Boolean(data.canPrint || data.isActivated);
+        const canPrint = parseActivationFlag(data);
         const plan = (data.plan as any) || (canPrint ? 'LIFETIME' : 'FREE');
         const expiresAt = typeof data.expiresAt === 'number' ? data.expiresAt : null;
 
@@ -163,7 +191,7 @@ export const licenseService = {
         (snap) => {
           if (snap.exists()) {
             const data = snap.data();
-            const canPrint = Boolean(data.canPrint || data.isActivated);
+            const canPrint = parseActivationFlag(data);
             const plan = (data.plan as any) || (canPrint ? 'LIFETIME' : 'FREE');
             const expiresAt = typeof data.expiresAt === 'number' ? data.expiresAt : null;
             const isExpired = expiresAt !== null && Date.now() > expiresAt;

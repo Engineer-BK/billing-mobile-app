@@ -506,6 +506,67 @@ function MainScreen(): React.JSX.Element {
       }
     }
 
+    // -------------------------------------------------------------
+    // AUTOMATIC STOCK DEDUCTION (INVENTORY OUT)
+    // -------------------------------------------------------------
+    if (savedInvoice.items && savedInvoice.items.length > 0 && presetItems.length > 0) {
+      // 1. Calculate total sold quantities per catalog preset item
+      const soldQtyByPresetId: Record<string, number> = {};
+
+      for (const item of savedInvoice.items) {
+        const soldQty = parseFloat(item.qty) || 0;
+        if (soldQty <= 0) continue;
+
+        // Match by itemId first, then fallback to case-insensitive name matching
+        const matched =
+          (item.itemId && presetItems.find((p) => p.id === item.itemId)) ||
+          presetItems.find(
+            (p) => p.name.trim().toLowerCase() === (item.name || '').trim().toLowerCase()
+          );
+
+        if (matched && typeof matched.stockQuantity === 'number') {
+          soldQtyByPresetId[matched.id] = (soldQtyByPresetId[matched.id] || 0) + soldQty;
+        }
+      }
+
+      // 2. If any inventory-tracked preset items were sold, deduct stock
+      const affectedIds = Object.keys(soldQtyByPresetId);
+      if (affectedIds.length > 0) {
+        const updatedPresets = presetItems.map((preset) => {
+          if (soldQtyByPresetId[preset.id] !== undefined) {
+            const currentStock = preset.stockQuantity ?? 0;
+            const soldQty = soldQtyByPresetId[preset.id];
+            // Round to 2 decimal places to avoid IEEE-754 floating point drift (e.g. 100 - 50 = 50, 10 - 0.5 = 9.5)
+            const newStock = Math.round((currentStock - soldQty) * 100) / 100;
+            return {
+              ...preset,
+              stockQuantity: newStock,
+              updatedAt: Date.now(),
+            };
+          }
+          return preset;
+        });
+
+        // 3. Update React UI state immediately (0ms instant UI update)
+        setPresetItems(updatedPresets);
+
+        // 4. Persist updated stock locally
+        if (user?.isGuest) {
+          storageService.saveGuestPresetItems(updatedPresets);
+        } else {
+          storageService.savePresetItems(updatedPresets);
+
+          // 5. Background push updated stock quantities to Cloud Firestore
+          affectedIds.forEach((id) => {
+            const updatedItem = updatedPresets.find((p) => p.id === id);
+            if (updatedItem && user?.uid) {
+              syncService.pushPresetItem(user.uid, updatedItem);
+            }
+          });
+        }
+      }
+    }
+
     // Background non-blocking push to Cloud Firestore (Real stores only)
     if (user?.uid && !user.isGuest) {
       syncService.pushInvoice(user.uid, savedInvoice);

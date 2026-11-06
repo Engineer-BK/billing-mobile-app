@@ -20,7 +20,8 @@ import {
   sendPasswordResetEmail,
   onAuthStateChanged,
 } from 'firebase/auth';
-import { auth } from '../config/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { auth, db } from '../config/firebase';
 import { UserProfile, AuthContextType } from '../types/auth';
 import { storageService } from '../services/storageService';
 import { syncService } from '../services/syncService';
@@ -78,26 +79,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
           setUser(cachedUser);
         }
 
+        let profileUnsub: (() => void) | null = null;
+
         // 2. Listen for Firebase Auth state changes
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
           if (!isMounted) return;
 
+          // Clean up previous profile listener if any
+          if (profileUnsub) {
+            profileUnsub();
+            profileUnsub = null;
+          }
+
           if (firebaseUser) {
             try {
-              // Attempt to fetch latest profile from Firestore
-              const cloudProfile = await syncService.getUserProfile(firebaseUser.uid);
-              const resolvedUser: UserProfile = {
-                uid: firebaseUser.uid,
-                email: firebaseUser.email || cachedUser?.email || '',
-                shopName: cloudProfile?.shopName || cachedUser?.shopName || 'Store Account',
-                ownerName: cloudProfile?.ownerName || cachedUser?.ownerName || 'Store Owner',
-                phone: cloudProfile?.phone || cachedUser?.phone || '',
-                createdAt: cloudProfile?.createdAt || cachedUser?.createdAt || new Date().toISOString(),
-                lastLoginAt: new Date().toISOString(),
-              };
-
-              await storageService.saveUserSession(resolvedUser);
-              if (isMounted) setUser(resolvedUser);
+              // Real-time listener for profile changes in Firestore (/users/{uid})
+              profileUnsub = onSnapshot(
+                doc(db, 'users', firebaseUser.uid),
+                async (docSnap) => {
+                  if (!isMounted) return;
+                  if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    const resolvedUser: UserProfile = {
+                      uid: firebaseUser.uid,
+                      email: firebaseUser.email || data.email || cachedUser?.email || '',
+                      shopName: data.shopName || cachedUser?.shopName || 'Store Account',
+                      ownerName: data.ownerName || cachedUser?.ownerName || 'Store Owner',
+                      phone: data.phone || cachedUser?.phone || '',
+                      createdAt: data.createdAt || cachedUser?.createdAt || new Date().toISOString(),
+                      lastLoginAt: new Date().toISOString(),
+                    };
+                    await storageService.saveUserSession(resolvedUser);
+                    if (isMounted) setUser(resolvedUser);
+                  }
+                },
+                (err) => {
+                  console.warn('Real-time profile sync notice:', err);
+                }
+              );
             } catch (err) {
               console.warn('Profile fetch notice on auth change:', err);
             }
@@ -111,6 +130,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
         });
 
         return () => {
+          if (profileUnsub) {
+            profileUnsub();
+          }
           unsubscribe();
         };
       } catch (err) {

@@ -293,6 +293,80 @@ assert(!validateInvoicePayload({ invoiceNo: 123 }), 'Malformed invoice without d
 assert(!validatePresetItemPayload({ name: 'No ID' }), 'Malformed item without id is rejected');
 
 // ------------------------------------------------------------------
+// SUITE 6: REAL-TIME INVENTORY STOCK DEDUCTION (STOCK-OUT ENGINE)
+// ------------------------------------------------------------------
+console.log('\n--- Suite 6: Real-Time Inventory Stock Deduction ---');
+
+function deductInventoryStock(presets, invoiceItems) {
+  const soldQtyByPresetId = {};
+
+  for (const item of invoiceItems) {
+    const soldQty = parseFloat(item.qty) || 0;
+    if (soldQty <= 0) continue;
+
+    const matched =
+      (item.itemId && presets.find((p) => p.id === item.itemId)) ||
+      presets.find((p) => p.name.trim().toLowerCase() === (item.name || '').trim().toLowerCase());
+
+    if (matched && typeof matched.stockQuantity === 'number') {
+      soldQtyByPresetId[matched.id] = (soldQtyByPresetId[matched.id] || 0) + soldQty;
+    }
+  }
+
+  return presets.map((preset) => {
+    if (soldQtyByPresetId[preset.id] !== undefined) {
+      const currentStock = preset.stockQuantity ?? 0;
+      const soldQty = soldQtyByPresetId[preset.id];
+      const newStock = Math.round((currentStock - soldQty) * 100) / 100;
+      return {
+        ...preset,
+        stockQuantity: newStock,
+        updatedAt: Date.now(),
+      };
+    }
+    return preset;
+  });
+}
+
+// Scenario 1: User's exact case (Rice 100 KG in stock, sells 50 KG -> 50 KG remaining)
+const initialCatalog = [
+  { id: 'rice-1', name: 'Rice', price: '40.00', stockQuantity: 100, unit: 'KG' },
+  { id: 'sugar-1', name: 'Sugar', price: '45.00', stockQuantity: 25, unit: 'KG' },
+  { id: 'oil-1', name: 'Sunflower Oil', price: '130.00', stockQuantity: 10, unit: 'L' },
+  { id: 'service-1', name: 'Delivery Charge', price: '50.00', unit: 'PCS' }, // untracked
+];
+
+const saleItems = [
+  { sNo: '1', name: 'Rice', qty: '50', unit: 'KG', price: '40.00', amt: '2000.00' },
+  { sNo: '2', itemId: 'oil-1', name: 'Sunflower Oil', qty: '2.5', unit: 'L', price: '130.00', amt: '325.00' },
+  { sNo: '3', name: 'Delivery Charge', qty: '1', unit: 'PCS', price: '50.00', amt: '50.00' },
+];
+
+const updatedCatalog = deductInventoryStock(initialCatalog, saleItems);
+
+const updatedRice = updatedCatalog.find((i) => i.id === 'rice-1');
+const updatedSugar = updatedCatalog.find((i) => i.id === 'sugar-1');
+const updatedOil = updatedCatalog.find((i) => i.id === 'oil-1');
+const updatedService = updatedCatalog.find((i) => i.id === 'service-1');
+
+assertEqual(updatedRice.stockQuantity, 50, 'Rice 100 KG minus 50 KG sold leaves exactly 50 KG');
+assertEqual(updatedSugar.stockQuantity, 25, 'Unsold Sugar remains untouched at 25 KG');
+assertEqual(updatedOil.stockQuantity, 7.5, 'Sunflower Oil 10 L minus 2.5 L sold leaves exactly 7.5 L');
+assertEqual(updatedService.stockQuantity, undefined, 'Untracked service item remains untracked without crashing');
+
+// Scenario 2: Multiple rows of same item in one invoice (e.g. 20 KG + 30 KG = 50 KG deducted)
+const multiRowSale = [
+  { sNo: '1', name: 'Rice', qty: '20', unit: 'KG', price: '40', amt: '800' },
+  { sNo: '2', name: 'Rice', qty: '30', unit: 'KG', price: '40', amt: '1200' },
+];
+const updatedMulti = deductInventoryStock([{ id: 'rice-1', name: 'Rice', stockQuantity: 100 }], multiRowSale);
+assertEqual(updatedMulti[0].stockQuantity, 50, 'Multiple sale lines of same item correctly sum to 50 KG deduction');
+
+// Scenario 3: Overselling past 0 produces negative inventory count
+const oversell = deductInventoryStock([{ id: 'biscuit-1', name: 'Parle-G', stockQuantity: 2 }], [{ sNo: '1', name: 'Parle-G', qty: '5', price: '10', amt: '50' }]);
+assertEqual(oversell[0].stockQuantity, -3, 'Oversold inventory gracefully tracks negative stock (-3)');
+
+// ------------------------------------------------------------------
 // FINAL SUMMARY
 // ------------------------------------------------------------------
 console.log('\n====================================================');

@@ -7,9 +7,10 @@ $src = [System.Drawing.Bitmap]::FromFile($srcPath)
 # Bounding box is (80, 74) to (428, 418), size is 348 x 344
 $cropRect = [System.Drawing.Rectangle]::new(80, 74, 348, 344)
 
-# Target size: 520px max dimension ensures it fits 100% within the 66dp keyline circle!
-$targetW = 520
-$targetH = [int](520 * (344 / 348))
+# Target size: 450px ensures the emblem occupies ~65% of the visible launcher squircle (682px)
+# leaving generous, elegant breathing room on all sides with zero cropping on Samsung OneUI / Pixel.
+$targetW = 450
+$targetH = [int](450 * (344 / 348))
 $destX = [int]((1024 - $targetW) / 2)
 $destY = [int]((1024 - $targetH) / 2)
 $destRect = [System.Drawing.Rectangle]::new($destX, $destY, $targetW, $targetH)

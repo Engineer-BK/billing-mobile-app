@@ -7,6 +7,8 @@
 export interface InvoiceItem {
   /** Serial number in invoice (e.g. "1", "2") */
   sNo: string;
+  /** Optional linked catalog preset item ID for live inventory tracking */
+  itemId?: string;
   /** Product name (e.g. "Basmati Rice") */
   name: string;
   /** Quantity sold, decimal or integer (e.g. "2", "0.5") */

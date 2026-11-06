@@ -94,6 +94,7 @@ export function AddItemModal({
 
   // Catalog Auto-Suggestions State
   const [showSuggestions, setShowSuggestions] = useState<boolean>(true);
+  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
 
   // Live filtered suggestions from catalog presets
   const suggestions = useMemo(() => {
@@ -105,6 +106,7 @@ export function AddItemModal({
   }, [itemName, presetItems]);
 
   const handleSelectSuggestion = (selected: PresetItem) => {
+    setSelectedPresetId(selected.id);
     setItemName(selected.name);
     setUnit(selected.unit || 'KG');
     setPrice(selected.price || '');
@@ -165,8 +167,18 @@ export function AddItemModal({
     const finalPrice = price.trim() || '0';
     const finalAmt = calcs.netAmount || '0';
 
+    // Link preset item id if selected or if matched by name
+    let linkedId = selectedPresetId;
+    if (!linkedId && presetItems && presetItems.length > 0) {
+      const match = presetItems.find(
+        (p) => p.name.trim().toLowerCase() === finalName.toLowerCase()
+      );
+      if (match) linkedId = match.id;
+    }
+
     onAddItem({
       sNo: itemIndex.toString(),
+      itemId: linkedId || undefined,
       name: finalName,
       qty: finalQty,
       unit: finalUnit,
@@ -177,6 +189,7 @@ export function AddItemModal({
     });
 
     // Reset fields and close
+    setSelectedPresetId(null);
     setItemName('');
     setQty('1');
     setPrice('');
@@ -264,6 +277,7 @@ export function AddItemModal({
                     onChangeText={(txt) => {
                       const formatted = txt.replace(/\b\w/g, (char) => char.toUpperCase());
                       setItemName(formatted);
+                      setSelectedPresetId(null);
                       setShowSuggestions(true);
                     }}
                     autoCapitalize="words"
