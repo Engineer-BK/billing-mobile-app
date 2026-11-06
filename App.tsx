@@ -9,7 +9,7 @@
  * - Full Dark & Light Mode Theme Support
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -111,6 +111,9 @@ function MainScreen(): React.JSX.Element {
   // Catalog Preset Items State
   const [presetItems, setPresetItems] = useState<PresetItem[]>([]);
   const [isRefreshingItems, setIsRefreshingItems] = useState<boolean>(false);
+
+  // Bulk Operations Guard: Prevents intermediate Firestore snapshot races during multi-delete/resequence
+  const isBulkSyncingRef = useRef<boolean>(false);
 
   // Licensing & Activation Engine (Module 2)
   const {
@@ -244,9 +247,14 @@ function MainScreen(): React.JSX.Element {
 
     // 3. Real-time Live Firestore Stream (auto-refreshes whenever invoices change)
     const unsubscribe = syncService.subscribeToInvoices(currentUid, async (liveInvoices) => {
-      if (isMounted && liveInvoices && liveInvoices.length > 0) {
+      // Shield intermediate snapshots if a bulk delete/resequence operation is active
+      if (isMounted && !isBulkSyncingRef.current) {
         setInvoicesList(liveInvoices);
-        setCurrentInvoice(liveInvoices[0]);
+        if (liveInvoices && liveInvoices.length > 0) {
+          setCurrentInvoice(liveInvoices[0]);
+        } else {
+          setCurrentInvoice(null);
+        }
       }
     });
 
@@ -315,6 +323,7 @@ function MainScreen(): React.JSX.Element {
     }
     if (!user?.uid || invoicesList.length === 0) return;
     try {
+      isBulkSyncingRef.current = true;
       const fixed = await syncService.resequenceInvoices(user.uid, invoicesList);
       setInvoicesList(fixed);
       if (fixed.length > 0) {
@@ -326,6 +335,10 @@ function MainScreen(): React.JSX.Element {
       );
     } catch (err) {
       console.warn('Resequence error:', err);
+    } finally {
+      setTimeout(() => {
+        isBulkSyncingRef.current = false;
+      }, 500);
     }
   };
 
@@ -540,13 +553,67 @@ function MainScreen(): React.JSX.Element {
     await storageService.saveInvoices(reseq);
     await storageService.saveNextInvoiceNumber(reseq.length + 1);
 
-    // 2. Background Firestore synchronization & cloud resequence (fault-tolerant)
+    // 2. Background Firestore synchronization & cloud resequence (fault-tolerant & atomic)
     if (user?.uid) {
+      isBulkSyncingRef.current = true;
       try {
-        await syncService.deleteInvoice(user.uid, invoiceNo);
-        await syncService.resequenceInvoices(user.uid, remaining);
+        await syncService.bulkDeleteAndResequence(user.uid, [invoiceNo], remaining);
       } catch (err) {
         console.warn('Background delete/resequence notice:', err);
+      } finally {
+        setTimeout(() => {
+          isBulkSyncingRef.current = false;
+        }, 500);
+      }
+    }
+  };
+
+  // Handle Multiple Invoices Delete with Automatic Sequential Renumbering
+  const handleDeleteMultipleInvoices = async (invoiceNos: string[]) => {
+    if (!invoiceNos || invoiceNos.length === 0) return;
+    const deleteSet = new Set(invoiceNos);
+
+    // Guest Mode Sandbox handling
+    if (user?.isGuest) {
+      const remaining = invoicesList.filter((inv) => !deleteSet.has(inv.invoiceNo));
+      const sortedAsc = [...remaining].sort((a, b) => (parseInt(a.invoiceNo, 10) || 0) - (parseInt(b.invoiceNo, 10) || 0));
+      const reseq = sortedAsc.map((inv, idx) => ({ ...inv, invoiceNo: String(idx + 1) })).sort((a, b) => (parseInt(b.invoiceNo, 10) || 0) - (parseInt(a.invoiceNo, 10) || 0));
+      setInvoicesList(reseq);
+      await storageService.saveGuestInvoices(reseq);
+      await storageService.saveNextInvoiceNumber(reseq.length + 1);
+      if (reseq.length > 0) {
+        setCurrentInvoice(reseq[0]);
+      } else {
+        setCurrentInvoice(null);
+      }
+      return;
+    }
+
+    // 1. Immediately update UI state (0ms latency, zero popup interruption)
+    const remaining = invoicesList.filter((inv) => !deleteSet.has(inv.invoiceNo));
+    const sortedAsc = [...remaining].sort((a, b) => (parseInt(a.invoiceNo, 10) || 0) - (parseInt(b.invoiceNo, 10) || 0));
+    const reseq = sortedAsc.map((inv, idx) => ({ ...inv, invoiceNo: String(idx + 1) })).sort((a, b) => (parseInt(b.invoiceNo, 10) || 0) - (parseInt(a.invoiceNo, 10) || 0));
+
+    setInvoicesList(reseq);
+    if (reseq.length > 0) {
+      setCurrentInvoice(reseq[0]);
+    } else {
+      setCurrentInvoice(null);
+    }
+    await storageService.saveInvoices(reseq);
+    await storageService.saveNextInvoiceNumber(reseq.length + 1);
+
+    // 2. Background Firestore synchronization & cloud resequence (fault-tolerant & atomic)
+    if (user?.uid) {
+      isBulkSyncingRef.current = true;
+      try {
+        await syncService.bulkDeleteAndResequence(user.uid, invoiceNos, remaining);
+      } catch (err) {
+        console.warn('Background bulk delete notice:', err);
+      } finally {
+        setTimeout(() => {
+          isBulkSyncingRef.current = false;
+        }, 500);
       }
     }
   };
@@ -782,6 +849,7 @@ function MainScreen(): React.JSX.Element {
           onPressPrint={(inv) => handlePrint(inv)}
           onPressNewSale={() => setActiveTab('sale')}
           onDeleteInvoice={handleDeleteInvoice}
+          onDeleteMultipleInvoices={handleDeleteMultipleInvoices}
           onChangeStatus={handleUpdateInvoiceStatus}
           onRefresh={handleRefreshInvoices}
           isRefreshing={isRefreshingInvoices}

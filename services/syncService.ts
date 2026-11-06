@@ -21,6 +21,7 @@ import {
   serverTimestamp,
   onSnapshot,
   Unsubscribe,
+  writeBatch,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { InvoiceData } from '../types/billing';
@@ -163,7 +164,12 @@ export const syncService = {
       return onSnapshot(
         q,
         (snapshot) => {
-          if (snapshot.empty) return;
+          if (snapshot.empty) {
+            storageService.saveInvoices([]);
+            storageService.saveNextInvoiceNumber(1);
+            onUpdate([]);
+            return;
+          }
 
           const invoices: InvoiceData[] = [];
           snapshot.forEach((docSnap) => {
@@ -192,14 +198,12 @@ export const syncService = {
             return numB - numA;
           });
 
-          if (invoices.length > 0) {
-            storageService.saveInvoices(invoices);
-            const maxInvoiceNo = Math.max(...invoices.map((inv) => parseInt(inv.invoiceNo, 10) || 0));
-            if (maxInvoiceNo > 0) {
-              storageService.saveNextInvoiceNumber(maxInvoiceNo + 1);
-            }
-            onUpdate(invoices);
+          storageService.saveInvoices(invoices);
+          const maxInvoiceNo = Math.max(...invoices.map((inv) => parseInt(inv.invoiceNo, 10) || 0));
+          if (maxInvoiceNo > 0) {
+            storageService.saveNextInvoiceNumber(maxInvoiceNo + 1);
           }
+          onUpdate(invoices);
         },
         (err) => {
           console.warn('syncService.subscribeToInvoices notice:', err?.message || err);
@@ -238,6 +242,126 @@ export const syncService = {
   },
 
   /**
+   * Atomic Bulk Delete & Resequence in Cloud Firestore:
+   * Uses Firestore writeBatch to atomically:
+   * 1. Delete all removed invoice documents
+   * 2. Renumber and write surviving invoices sequentially (#1, #2, #3...)
+   * 3. Triggers AT MOST ONE snapshot event to real-time listeners instead of N separate events.
+   * Completely avoids intermediate one-by-one reductions and empty screen flickers!
+   */
+  async bulkDeleteAndResequence(
+    userId: string,
+    deletedInvoiceNos: string[],
+    remainingInvoices: InvoiceData[]
+  ): Promise<InvoiceData[]> {
+    if (!userId || userId === 'guest_user') return [];
+
+    try {
+      // Sort surviving invoices chronologically ascending (oldest first: 1, 2, 3...)
+      const sortedAsc = [...remainingInvoices].sort((a, b) => {
+        const numA = parseInt(a.invoiceNo, 10) || 0;
+        const numB = parseInt(b.invoiceNo, 10) || 0;
+        return numA - numB;
+      });
+
+      // Assign contiguous sequential numbers
+      const resequenced: InvoiceData[] = sortedAsc.map((inv, idx) => ({
+        ...inv,
+        invoiceNo: String(idx + 1),
+      }));
+
+      // Identify document IDs that will exist after this operation
+      const newIdsSet = new Set(resequenced.map((inv) => inv.invoiceNo));
+
+      // Identify document IDs that existed before
+      const allOldIds = new Set([
+        ...deletedInvoiceNos,
+        ...remainingInvoices.map((inv) => inv.invoiceNo),
+      ]);
+
+      // Any old document ID that will not be present in the new set must be deleted
+      const idsToDelete: string[] = [];
+      for (const oldId of allOldIds) {
+        if (!newIdsSet.has(oldId)) {
+          idsToDelete.push(oldId);
+        }
+      }
+
+      // Collect operations
+      const operations: Array<{ type: 'delete'; ref: any } | { type: 'set'; ref: any; data: any }> = [];
+
+      for (const oldId of idsToDelete) {
+        operations.push({
+          type: 'delete',
+          ref: doc(db, 'users', userId, 'invoices', oldId),
+        });
+      }
+
+      for (const inv of resequenced) {
+        operations.push({
+          type: 'set',
+          ref: doc(db, 'users', userId, 'invoices', inv.invoiceNo),
+          data: {
+            invoiceNo: inv.invoiceNo,
+            date: inv.date || '',
+            time: inv.time || '',
+            customerName: inv.customerName || 'Walk-in Customer',
+            customerPhone: inv.customerPhone || '',
+            status: inv.status || 'PAID',
+            subtotal: inv.subtotal || inv.grandTotal || '0.00',
+            totalDiscount: inv.totalDiscount || '0.00',
+            grandTotal: inv.grandTotal || '0.00',
+            finalAmount: inv.finalAmount || inv.grandTotal || '0.00',
+            totalQty: inv.totalQty || '0',
+            shopName: inv.shopName || '',
+            items: (inv.items || []).map((item) => ({
+              sNo: item.sNo || '',
+              name: item.name || '',
+              qty: item.qty || '1',
+              unit: item.unit || 'PCS',
+              price: item.price || '0',
+              discountPercent: item.discountPercent || '',
+              discountAmount: item.discountAmount || '',
+              amt: item.amt || '0',
+            })),
+            updatedAt: Date.now(),
+          },
+        });
+      }
+
+      // Commit in batches of up to 400 operations (Firestore limit is 500)
+      for (let i = 0; i < operations.length; i += 400) {
+        const batch = writeBatch(db);
+        const chunk = operations.slice(i, i + 400);
+        for (const op of chunk) {
+          if (op.type === 'delete') {
+            batch.delete(op.ref);
+          } else {
+            batch.set(op.ref, op.data, { merge: true });
+          }
+        }
+        await batch.commit();
+      }
+
+      // Sort descending for UI presentation (newest on top)
+      const sortedDesc = [...resequenced].sort((a, b) => {
+        const numA = parseInt(a.invoiceNo, 10) || 0;
+        const numB = parseInt(b.invoiceNo, 10) || 0;
+        return numB - numA;
+      });
+
+      // Save locally
+      await storageService.saveInvoices(sortedDesc);
+      await storageService.saveNextInvoiceNumber(sortedDesc.length + 1);
+
+      return sortedDesc;
+    } catch (err) {
+      console.warn('syncService.bulkDeleteAndResequence error:', err);
+      return [];
+    }
+  },
+
+  /**
    * Re-sequence / Renumber all invoices continuously (1, 2, 3...)
    * Guarantees zero gaps in the serial numbering sequence when a bill is deleted.
    */
@@ -251,49 +375,7 @@ export const syncService = {
       return [];
     }
 
-    // Sort chronologically ascending (oldest first)
-    const sortedAsc = [...currentInvoices].sort((a, b) => {
-      const numA = parseInt(a.invoiceNo, 10) || 0;
-      const numB = parseInt(b.invoiceNo, 10) || 0;
-      return numA - numB;
-    });
-
-    const resequenced: InvoiceData[] = [];
-    const oldNumbersToDelete: string[] = [];
-
-    sortedAsc.forEach((inv, index) => {
-      const newNo = String(index + 1);
-      if (inv.invoiceNo !== newNo) {
-        oldNumbersToDelete.push(inv.invoiceNo);
-      }
-      resequenced.push({
-        ...inv,
-        invoiceNo: newNo,
-      });
-    });
-
-    // In Cloud Firestore: remove obsolete document IDs and save updated IDs (Real stores only)
-    if (userId && userId !== 'guest_user') {
-      for (const oldNo of oldNumbersToDelete) {
-        await this.deleteInvoice(userId, oldNo);
-      }
-      for (const inv of resequenced) {
-        await this.pushInvoice(userId, inv);
-      }
-    }
-
-    // Sort descending for UI presentation (newest on top)
-    const sortedDesc = [...resequenced].sort((a, b) => {
-      const numA = parseInt(a.invoiceNo, 10) || 0;
-      const numB = parseInt(b.invoiceNo, 10) || 0;
-      return numB - numA;
-    });
-
-    // Save locally
-    await storageService.saveInvoices(sortedDesc);
-    await storageService.saveNextInvoiceNumber(sortedDesc.length + 1);
-
-    return sortedDesc;
+    return this.bulkDeleteAndResequence(userId, [], currentInvoices);
   },
 
   /**
