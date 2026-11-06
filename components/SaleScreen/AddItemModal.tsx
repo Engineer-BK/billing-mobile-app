@@ -16,7 +16,7 @@
  * - Bound directly to FlashBill branding colors (constants/theme.ts)
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -92,6 +92,12 @@ export function AddItemModal({
   const [price, setPrice] = useState<string>('');
   const [discountPercent, setDiscountPercent] = useState<string>('');
 
+  // Keypad Tab / Next Navigation Refs
+  const itemNameRef = useRef<TextInput>(null);
+  const qtyRef = useRef<TextInput>(null);
+  const priceRef = useRef<TextInput>(null);
+  const discountRef = useRef<TextInput>(null);
+
   // Catalog Auto-Suggestions State
   const [showSuggestions, setShowSuggestions] = useState<boolean>(true);
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
@@ -112,6 +118,9 @@ export function AddItemModal({
     setPrice(selected.price || '');
     setDiscountPercent(selected.defaultDiscount || '');
     setShowSuggestions(false);
+    setTimeout(() => {
+      qtyRef.current?.focus();
+    }, 50);
   };
 
   // Unit Picker Dropdown State
@@ -265,6 +274,7 @@ export function AddItemModal({
                     ITEM NAME <Text style={{ color: colors.primary }}>*</Text>
                   </Text>
                   <TextInput
+                    ref={itemNameRef}
                     style={[
                       styles.textInput,
                       {
@@ -284,6 +294,9 @@ export function AddItemModal({
                     placeholder="e.g. Basmati Rice, Sunflower Oil"
                     placeholderTextColor={colors.textMuted}
                     autoFocus
+                    returnKeyType="next"
+                    blurOnSubmit={false}
+                    onSubmitEditing={() => qtyRef.current?.focus()}
                   />
 
                   {/* Instant Auto-Suggestion Dropdown */}
@@ -373,6 +386,7 @@ export function AddItemModal({
                       QUANTITY <Text style={{ color: colors.primary }}>*</Text>
                     </Text>
                     <TextInput
+                      ref={qtyRef}
                       style={[
                         styles.textInput,
                         {
@@ -385,7 +399,10 @@ export function AddItemModal({
                       onChangeText={setQty}
                       placeholder="e.g. 2"
                       placeholderTextColor={colors.textMuted}
-                      keyboardType="numeric"
+                      keyboardType="decimal-pad"
+                      returnKeyType="next"
+                      blurOnSubmit={false}
+                      onSubmitEditing={() => priceRef.current?.focus()}
                     />
                   </View>
 
@@ -428,6 +445,7 @@ export function AddItemModal({
                       UNIT PRICE (₹) <Text style={{ color: colors.primary }}>*</Text>
                     </Text>
                     <TextInput
+                      ref={priceRef}
                       style={[
                         styles.textInput,
                         {
@@ -440,7 +458,10 @@ export function AddItemModal({
                       onChangeText={setPrice}
                       placeholder="0.00"
                       placeholderTextColor={colors.textMuted}
-                      keyboardType="numeric"
+                      keyboardType="decimal-pad"
+                      returnKeyType="next"
+                      blurOnSubmit={false}
+                      onSubmitEditing={() => discountRef.current?.focus()}
                     />
                   </View>
 
@@ -450,6 +471,7 @@ export function AddItemModal({
                       DISCOUNT (%)
                     </Text>
                     <TextInput
+                      ref={discountRef}
                       style={[
                         styles.textInput,
                         {
@@ -462,7 +484,9 @@ export function AddItemModal({
                       onChangeText={setDiscountPercent}
                       placeholder="0%"
                       placeholderTextColor={colors.textMuted}
-                      keyboardType="numeric"
+                      keyboardType="decimal-pad"
+                      returnKeyType="done"
+                      onSubmitEditing={handleAdd}
                     />
                   </View>
                 </View>

@@ -12,7 +12,7 @@
  * - Modals: ChangeInvoiceModal, CalendarModal, AddItemModal
  */
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -84,6 +84,7 @@ export function SaleScreen({
   // Customer Details
   const [customerName, setCustomerName] = useState<string>('');
   const [phoneNumber, setPhoneNumber] = useState<string>('');
+  const phoneInputRef = useRef<TextInput>(null);
 
   // Cart / Items
   const [items, setItems] = useState<InvoiceItem[]>([]);
@@ -308,6 +309,9 @@ export function SaleScreen({
               autoCapitalize="words"
               placeholder="e.g. Basir Khan (or Walk-in)"
               placeholderTextColor={colors.textMuted}
+              returnKeyType="next"
+              blurOnSubmit={false}
+              onSubmitEditing={() => phoneInputRef.current?.focus()}
             />
             {customerName.length > 0 && (
               <TouchableOpacity onPress={() => setCustomerName('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -336,12 +340,15 @@ export function SaleScreen({
             ]}
           >
             <TextInput
+              ref={phoneInputRef}
               style={[styles.inputText, { color: colors.textPrimary }]}
               value={phoneNumber}
               onChangeText={setPhoneNumber}
               placeholder="e.g. 98765 43210"
               placeholderTextColor={colors.textMuted}
               keyboardType="phone-pad"
+              returnKeyType="done"
+              onSubmitEditing={() => phoneInputRef.current?.blur()}
             />
             {phoneNumber.length > 0 && (
               <TouchableOpacity onPress={() => setPhoneNumber('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>

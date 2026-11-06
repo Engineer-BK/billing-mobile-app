@@ -11,7 +11,7 @@
  * - Dark & Light mode theme integration
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -67,6 +67,13 @@ export function ItemEditModal({
   const [unit, setUnit] = useState<string>('KG');
   const [discount, setDiscount] = useState<string>('');
   const [category, setCategory] = useState<string>('General');
+
+  // Keypad Tab / Next Navigation Refs
+  const nameRef = useRef<TextInput>(null);
+  const priceRef = useRef<TextInput>(null);
+  const purchasePriceRef = useRef<TextInput>(null);
+  const stockRef = useRef<TextInput>(null);
+  const discountRef = useRef<TextInput>(null);
 
   // Unit Picker Dropdown State
   const [showUnitPicker, setShowUnitPicker] = useState<boolean>(false);
@@ -315,6 +322,7 @@ export function ItemEditModal({
                     style={styles.inputLeadingIcon}
                   />
                   <TextInput
+                    ref={nameRef}
                     style={[styles.textInput, { color: colors.textPrimary }]}
                     value={name}
                     onChangeText={(txt) => setName(txt.replace(/\b\w/g, (char) => char.toUpperCase()))}
@@ -322,6 +330,9 @@ export function ItemEditModal({
                     placeholder="e.g. Basmati Rice, Sunflower Oil"
                     placeholderTextColor={colors.textMuted}
                     autoFocus={!item}
+                    returnKeyType="next"
+                    blurOnSubmit={false}
+                    onSubmitEditing={() => priceRef.current?.focus()}
                   />
                   {name.length > 0 && (
                     <TouchableOpacity onPress={() => setName('')} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
@@ -349,12 +360,16 @@ export function ItemEditModal({
                   >
                     <Text style={[styles.currencyPrefix, { color: colors.primary }]}>₹</Text>
                     <TextInput
+                      ref={priceRef}
                       style={[styles.textInput, { color: colors.textPrimary, fontWeight: '800' }]}
                       value={price}
                       onChangeText={setPrice}
                       placeholder="0.00"
                       placeholderTextColor={colors.textMuted}
-                      keyboardType="numeric"
+                      keyboardType="decimal-pad"
+                      returnKeyType="next"
+                      blurOnSubmit={false}
+                      onSubmitEditing={() => purchasePriceRef.current?.focus()}
                     />
                   </View>
                 </View>
@@ -375,12 +390,16 @@ export function ItemEditModal({
                   >
                     <Text style={[styles.currencyPrefix, { color: colors.secondary || '#D97706' }]}>₹</Text>
                     <TextInput
+                      ref={purchasePriceRef}
                       style={[styles.textInput, { color: colors.textPrimary, fontWeight: '700' }]}
                       value={purchasePrice}
                       onChangeText={setPurchasePrice}
                       placeholder="0.00 (Cost)"
                       placeholderTextColor={colors.textMuted}
-                      keyboardType="numeric"
+                      keyboardType="decimal-pad"
+                      returnKeyType="next"
+                      blurOnSubmit={false}
+                      onSubmitEditing={() => stockRef.current?.focus()}
                     />
                   </View>
                 </View>
@@ -409,12 +428,16 @@ export function ItemEditModal({
                       style={{ marginRight: 6 }}
                     />
                     <TextInput
+                      ref={stockRef}
                       style={[styles.textInput, { color: colors.textPrimary, fontWeight: '700' }]}
                       value={stockQuantity}
                       onChangeText={setStockQuantity}
                       placeholder="0"
                       placeholderTextColor={colors.textMuted}
-                      keyboardType="numeric"
+                      keyboardType="decimal-pad"
+                      returnKeyType="next"
+                      blurOnSubmit={false}
+                      onSubmitEditing={() => discountRef.current?.focus()}
                     />
                   </View>
                 </View>
@@ -491,12 +514,15 @@ export function ItemEditModal({
                       style={{ marginRight: 6 }}
                     />
                     <TextInput
+                      ref={discountRef}
                       style={[styles.textInput, { color: colors.textPrimary }]}
                       value={discount}
                       onChangeText={setDiscount}
                       placeholder="0"
                       placeholderTextColor={colors.textMuted}
-                      keyboardType="numeric"
+                      keyboardType="decimal-pad"
+                      returnKeyType="done"
+                      onSubmitEditing={handleSave}
                     />
                   </View>
                 </View>
