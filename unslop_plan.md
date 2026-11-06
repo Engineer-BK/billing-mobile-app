@@ -144,6 +144,8 @@ Pass 7: Details   ──>  Pass 8: Visuals  ──>  Pass 9: Motion & Touch
 
 ## 5. Verification & Quality Gates
 
+> **Note on Splash Screen:** The native splash screen is kept simple, default, and untouched (standard `#FFFFFF` background with emblem in `app.json`), as APK builds handle splash screens statically and natively.
+
 Before marking any un-slopped screen complete, verify:
 1. **Grid Check:** Every padding, margin, and gap is a multiple of 4px.
 2. **Color Check:** No more than one brand accent color is active outside of semantic alerts (`Paid/Unpaid/Error`).

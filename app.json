@@ -5,35 +5,24 @@
     "owner": "basirexpos-team",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/counter-press-with-orange-background.png",
-    "userInterfaceStyle": "automatic",
+    "icon": "./assets/counter-press-app-icon.png",
+    "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/counter-press-without-orange-background.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FFFFFF",
-      "dark": {
-        "image": "./assets/counter-press-without-orange-background.png",
-        "resizeMode": "contain",
-        "backgroundColor": "#0A1322"
-      }
+      "backgroundColor": "#FFFFFF"
     },
     "android": {
       "package": "com.aftabrental.billingapp",
       "versionCode": 1,
-      "userInterfaceStyle": "automatic",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/counter-press-with-orange-background.png",
-        "backgroundColor": "#ff944f"
+        "foregroundImage": "./assets/counter-press-adaptive-foreground.png",
+        "backgroundColor": "#FE8E46"
       },
       "splash": {
         "image": "./assets/counter-press-without-orange-background.png",
         "resizeMode": "contain",
-        "backgroundColor": "#FFFFFF",
-        "dark": {
-          "image": "./assets/counter-press-without-orange-background.png",
-          "resizeMode": "contain",
-          "backgroundColor": "#0A1322"
-        }
+        "backgroundColor": "#FFFFFF"
       },
       "permissions": [
         "android.permission.BLUETOOTH",

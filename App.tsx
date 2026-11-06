@@ -522,50 +522,9 @@ function MainScreen(): React.JSX.Element {
   };
 
   // Handle Delete Invoice with Auto-Renumbering to maintain continuous 1, 2, 3... sequence
+  // Delete a single invoice (delegates cleanly to atomic bulk delete & resequence)
   const handleDeleteInvoice = async (invoiceNo: string) => {
-    if (user?.isGuest) {
-      const remaining = invoicesList.filter((inv) => inv.invoiceNo !== invoiceNo);
-      // Auto-renumber remaining guest demo invoices so serial sequence is never broken (1, 2, 3...)
-      const sortedAsc = [...remaining].sort((a, b) => (parseInt(a.invoiceNo, 10) || 0) - (parseInt(b.invoiceNo, 10) || 0));
-      const reseq = sortedAsc.map((inv, idx) => ({ ...inv, invoiceNo: String(idx + 1) })).sort((a, b) => (parseInt(b.invoiceNo, 10) || 0) - (parseInt(a.invoiceNo, 10) || 0));
-      setInvoicesList(reseq);
-      await storageService.saveGuestInvoices(reseq);
-      await storageService.saveNextInvoiceNumber(reseq.length + 1);
-      if (reseq.length > 0) {
-        setCurrentInvoice(reseq[0]);
-      } else {
-        setCurrentInvoice(null);
-      }
-      return;
-    }
-
-    // 1. Immediately update UI state (0ms latency, zero popup interruption)
-    const remaining = invoicesList.filter((inv) => inv.invoiceNo !== invoiceNo);
-    const sortedAsc = [...remaining].sort((a, b) => (parseInt(a.invoiceNo, 10) || 0) - (parseInt(b.invoiceNo, 10) || 0));
-    const reseq = sortedAsc.map((inv, idx) => ({ ...inv, invoiceNo: String(idx + 1) })).sort((a, b) => (parseInt(b.invoiceNo, 10) || 0) - (parseInt(a.invoiceNo, 10) || 0));
-
-    setInvoicesList(reseq);
-    if (reseq.length > 0) {
-      setCurrentInvoice(reseq[0]);
-    } else {
-      setCurrentInvoice(null);
-    }
-    await storageService.saveInvoices(reseq);
-    await storageService.saveNextInvoiceNumber(reseq.length + 1);
-
-    // 2. Background Firestore synchronization & cloud resequence (fault-tolerant & atomic)
-    if (user?.uid) {
-      isBulkSyncingRef.current = true;
-      try {
-        await syncService.bulkDeleteAndResequence(user.uid, [invoiceNo], remaining);
-      } catch (err) {
-        console.warn('Background delete/resequence notice:', err);
-      } finally {
-        setTimeout(() => {
-          isBulkSyncingRef.current = false;
-        }, 500);
-      }
-    }
+    return handleDeleteMultipleInvoices([invoiceNo]);
   };
 
   // Handle Multiple Invoices Delete with Automatic Sequential Renumbering
