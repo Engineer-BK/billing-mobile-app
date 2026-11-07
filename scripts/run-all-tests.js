@@ -655,6 +655,95 @@ assertEqual(engine.getSaved().find(c => c.name === 'Basir Khan'), undefined, 'De
 assertEqual(engine.getSaved().some(c => c.name === 'Amit Patel'), true, 'New past customer Amit Patel is harvested from invoices');
 
 // ------------------------------------------------------------------
+// TEST SUITE 9: INVOICE IN-PLACE EDITING & INVENTORY DELTA RECONCILIATION
+// ------------------------------------------------------------------
+console.log('\n--- Suite 9: Invoice In-Place Editing & Inventory Delta ---');
+
+function reconcileStock(presetItems, oldInvoice, updatedInvoice) {
+  const oldSold = {};
+  if (oldInvoice && oldInvoice.items) {
+    for (const it of oldInvoice.items) {
+      const q = parseFloat(it.qty) || 0;
+      if (q > 0 && it.itemId) oldSold[it.itemId] = (oldSold[it.itemId] || 0) + q;
+    }
+  }
+
+  const newSold = {};
+  if (updatedInvoice && updatedInvoice.items) {
+    for (const it of updatedInvoice.items) {
+      const q = parseFloat(it.qty) || 0;
+      if (q > 0 && it.itemId) newSold[it.itemId] = (newSold[it.itemId] || 0) + q;
+    }
+  }
+
+  const allIds = new Set([...Object.keys(oldSold), ...Object.keys(newSold)]);
+  return presetItems.map((preset) => {
+    if (allIds.has(preset.id)) {
+      const delta = (oldSold[preset.id] || 0) - (newSold[preset.id] || 0);
+      const newStock = Math.round(((preset.stockQuantity ?? 0) + delta) * 100) / 100;
+      return { ...preset, stockQuantity: newStock };
+    }
+    return preset;
+  });
+}
+
+const mockPresets = [
+  { id: 'item_rice', name: 'BASMATI RICE', stockQuantity: 50 },
+  { id: 'item_oil', name: 'SUNFLOWER OIL', stockQuantity: 10 },
+  { id: 'item_sugar', name: 'PURE SUGAR', stockQuantity: 20 },
+];
+
+const originalInvoice = {
+  invoiceNo: '105',
+  date: '07/11/2026',
+  customerName: 'Rahul Sharma',
+  items: [
+    { itemId: 'item_rice', name: 'BASMATI RICE', qty: '5', price: '100', amt: '500', sNo: '1' },
+    { itemId: 'item_oil', name: 'SUNFLOWER OIL', qty: '2', price: '150', amt: '300', sNo: '2' },
+  ],
+  grandTotal: '800',
+};
+
+// Case 1: Edit invoice reducing rice from 5 to 2, increasing oil from 2 to 4, adding sugar (3)
+const editedInvoice = {
+  invoiceNo: '105',
+  date: '07/11/2026',
+  customerName: 'Rahul Sharma (VIP)',
+  items: [
+    { itemId: 'item_rice', name: 'BASMATI RICE', qty: '2', price: '100', amt: '200', sNo: '1' },
+    { itemId: 'item_oil', name: 'SUNFLOWER OIL', qty: '4', price: '150', amt: '600', sNo: '2' },
+    { itemId: 'item_sugar', name: 'PURE SUGAR', qty: '3', price: '50', amt: '150', sNo: '3' },
+  ],
+  grandTotal: '950',
+};
+
+const reconciled = reconcileStock(mockPresets, originalInvoice, editedInvoice);
+
+// Rice had 50 in stock, sold was 5, now sold is 2 -> delta is +3 -> new stock = 53
+assertEqual(reconciled.find(p => p.id === 'item_rice').stockQuantity, 53, 'Rice stock correctly returned by 3 (+3) when qty reduced');
+
+// Oil had 10 in stock, sold was 2, now sold is 4 -> delta is -2 -> new stock = 8
+assertEqual(reconciled.find(p => p.id === 'item_oil').stockQuantity, 8, 'Oil stock correctly deducted by 2 (-2) when qty increased');
+
+// Sugar had 20 in stock, was 0, now sold is 3 -> delta is -3 -> new stock = 17
+assertEqual(reconciled.find(p => p.id === 'item_sugar').stockQuantity, 17, 'Sugar stock correctly deducted by 3 when new item added in edit');
+
+// Case 2: In-place invoice list replacement
+const invoiceList = [
+  { invoiceNo: '106', customerName: 'Amit' },
+  originalInvoice,
+  { invoiceNo: '104', customerName: 'Priya' },
+];
+
+const updatedInvoiceList = invoiceList.map(inv => inv.invoiceNo === editedInvoice.invoiceNo ? editedInvoice : inv);
+
+assertEqual(updatedInvoiceList.length, 3, 'Invoice count unchanged after edit');
+assertEqual(updatedInvoiceList[1].invoiceNo, '105', 'Invoice #105 retains exact number and position');
+assertEqual(updatedInvoiceList[1].customerName, 'Rahul Sharma (VIP)', 'Customer name successfully updated in-place');
+assertEqual(updatedInvoiceList[1].items.length, 3, 'Item count updated to 3 line items');
+assertEqual(updatedInvoiceList[1].items.map(it => it.sNo).join(','), '1,2,3', 'Line items sequentially indexed (#1, #2, #3)');
+
+// ------------------------------------------------------------------
 // FINAL SUMMARY
 // ------------------------------------------------------------------
 console.log('\n====================================================');

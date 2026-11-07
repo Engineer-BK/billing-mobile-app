@@ -48,6 +48,9 @@ interface SaleScreenProps {
   presetItems?: PresetItem[];
   onBack?: () => void;
   onSaveInvoice: (invoice: InvoiceData, shouldPrint?: boolean, andNew?: boolean) => void;
+  editingInvoice?: InvoiceData | null;
+  onCancelEdit?: () => void;
+  onUpdateInvoice?: (invoice: InvoiceData, shouldPrint?: boolean) => void;
 }
 
 // Helper to title-case each word (e.g. "ali ahmed" -> "Ali Ahmed")
@@ -61,6 +64,9 @@ export function SaleScreen({
   presetItems = [],
   onBack,
   onSaveInvoice,
+  editingInvoice,
+  onCancelEdit,
+  onUpdateInvoice,
 }: SaleScreenProps): React.JSX.Element {
   const { colors, isDark } = useTheme();
   const { user } = useAuth();
@@ -71,6 +77,7 @@ export function SaleScreen({
 
   // Keep invoiceNo strictly synchronized with initialInvoiceNo from Invoices tab
   useEffect(() => {
+    if (editingInvoice) return;
     if (initialInvoiceNo && initialInvoiceNo > 0) {
       setInvoiceNo(initialInvoiceNo.toString());
     } else {
@@ -80,7 +87,34 @@ export function SaleScreen({
         }
       });
     }
-  }, [initialInvoiceNo]);
+  }, [initialInvoiceNo, editingInvoice]);
+
+  // Populate form fields when entering edit mode for an existing invoice
+  useEffect(() => {
+    if (editingInvoice) {
+      setInvoiceNo(editingInvoice.invoiceNo);
+      setInvoicePrefix('');
+      setCustomerName(editingInvoice.customerName || '');
+      setPhoneNumber(editingInvoice.customerPhone || '');
+      setItems(
+        (editingInvoice.items || []).map((it, idx) => ({
+          ...it,
+          sNo: String(idx + 1),
+        }))
+      );
+      if (editingInvoice.date) {
+        const parts = editingInvoice.date.split('/');
+        if (parts.length === 3) {
+          const d = new Date(
+            parseInt(parts[2], 10),
+            parseInt(parts[1], 10) - 1,
+            parseInt(parts[0], 10)
+          );
+          if (!isNaN(d.getTime())) setSaleDate(d);
+        }
+      }
+    }
+  }, [editingInvoice]);
 
   // Date state
   const [saleDate, setSaleDate] = useState<Date>(new Date());
@@ -175,8 +209,9 @@ export function SaleScreen({
   // Cart / Items
   const [items, setItems] = useState<InvoiceItem[]>([]);
 
-  // Restore unsaved sale draft on mount
+  // Restore unsaved sale draft on mount (only when not editing an existing invoice)
   useEffect(() => {
+    if (editingInvoice) return;
     storageService.loadSaleDraft().then((draft) => {
       if (draft) {
         if (draft.customerName) setCustomerName(draft.customerName);
@@ -184,14 +219,15 @@ export function SaleScreen({
         if (Array.isArray(draft.items) && draft.items.length > 0) setItems(draft.items);
       }
     });
-  }, []);
+  }, [editingInvoice]);
 
-  // Auto-persist unsaved sale draft to AsyncStorage across tab switches or app exits
+  // Auto-persist unsaved sale draft to AsyncStorage across tab switches or app exits (only when not editing)
   useEffect(() => {
+    if (editingInvoice) return;
     if (customerName || phoneNumber || items.length > 0) {
       storageService.saveSaleDraft({ customerName, phoneNumber, items });
     }
-  }, [customerName, phoneNumber, items]);
+  }, [customerName, phoneNumber, items, editingInvoice]);
 
   // Modals state
   const [showInvoiceModal, setShowInvoiceModal] = useState<boolean>(false);
@@ -332,6 +368,16 @@ export function SaleScreen({
     }
 
     const invoice = buildInvoicePayload();
+
+    if (editingInvoice && onUpdateInvoice) {
+      const updated: InvoiceData = {
+        ...invoice,
+        invoiceNo: editingInvoice.invoiceNo,
+      };
+      onUpdateInvoice(updated, false);
+      return;
+    }
+
     const nextNum = (parseInt(invoiceNo, 10) || 1) + 1;
     storageService.saveNextInvoiceNumber(nextNum);
 
@@ -399,6 +445,39 @@ export function SaleScreen({
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        {/* Edit Mode Alert Banner */}
+        {editingInvoice && (
+          <View
+            style={[
+              styles.editingBanner,
+              {
+                backgroundColor: isDark ? 'rgba(245, 158, 11, 0.16)' : '#FEF3C7',
+                borderColor: '#F59E0B',
+              },
+            ]}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+              <MaterialCommunityIcons name="pencil" size={18} color="#D97706" />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.editingBannerTitle, { color: '#B45309' }]}>
+                  Editing Invoice #{editingInvoice.invoiceNo}
+                </Text>
+                <Text style={[styles.editingBannerSub, { color: '#D97706' }]}>
+                  Modify items, qty, prices or customer and tap "Update Bill"
+                </Text>
+              </View>
+            </View>
+            {onCancelEdit && (
+              <TouchableOpacity
+                style={styles.cancelEditBtn}
+                onPress={onCancelEdit}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.cancelEditTxt}>Cancel</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
         {/* Customer Input Card with Quick Cash Suggestion & Dropdown */}
         <View style={styles.fieldGroup}>
           <View style={styles.labelRow}>
@@ -620,6 +699,8 @@ export function SaleScreen({
       <SaleBottomBar
         onSave={handleSave}
         onMoreOptions={handleMoreOptions}
+        isEditing={!!editingInvoice}
+        onCancelEdit={onCancelEdit}
       />
 
       {/* --- Modals --- */}
@@ -661,6 +742,7 @@ export function SaleScreen({
         invoiceNo={fullInvoiceNumber}
         amount={finalAmount}
         itemsCount={items.length}
+        isEditing={!!editingInvoice}
         onClose={() => setShowOptionsModal(false)}
         onPrintDirectly={() => {
           const cleanCustName = customerName.trim();
@@ -670,6 +752,15 @@ export function SaleScreen({
             }).catch((e) => console.warn('Customer save notice:', e));
           }
           const invoice = buildInvoicePayload();
+          if (editingInvoice && onUpdateInvoice) {
+            const updated: InvoiceData = {
+              ...invoice,
+              invoiceNo: editingInvoice.invoiceNo,
+            };
+            setShowOptionsModal(false);
+            onUpdateInvoice(updated, true);
+            return;
+          }
           const nextNum = (parseInt(invoiceNo, 10) || 1) + 1;
           storageService.saveNextInvoiceNumber(nextNum);
           resetSaleForm(nextNum);
@@ -800,5 +891,33 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  editingBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1.2,
+    marginBottom: 14,
+  },
+  editingBannerTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  editingBannerSub: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+  cancelEditBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+  },
+  cancelEditTxt: {
+    color: '#DC2626',
+    fontSize: 12,
+    fontWeight: '700',
   },
 });

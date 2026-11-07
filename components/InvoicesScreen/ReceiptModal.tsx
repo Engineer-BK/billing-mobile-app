@@ -35,6 +35,7 @@ interface ReceiptModalProps {
   activeConfig: PrinterProfile;
   onClose: () => void;
   onPrint: (invoice: InvoiceData) => void;
+  onEdit?: (invoice: InvoiceData) => void;
   onDelete?: (invoiceNo: string) => void;
 }
 
@@ -44,6 +45,7 @@ export function ReceiptModal({
   activeConfig,
   onClose,
   onPrint,
+  onEdit,
   onDelete,
 }: ReceiptModalProps): React.JSX.Element | null {
   const { colors, isDark } = useTheme();
@@ -121,6 +123,26 @@ export function ReceiptModal({
             </Text>
           </View>
 
+          {/* Edit Action in Header */}
+          {onEdit && (
+            <TouchableOpacity
+              onPress={() => {
+                onClose();
+                onEdit(invoice);
+              }}
+              style={styles.iconBtn}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              activeOpacity={0.7}
+              accessibilityLabel="Edit invoice in sale screen"
+            >
+              <MaterialCommunityIcons
+                name="pencil-outline"
+                size={22}
+                color={colors.primary}
+              />
+            </TouchableOpacity>
+          )}
+
           {/* Share Action */}
           <TouchableOpacity
             onPress={handleShare}
@@ -164,7 +186,7 @@ export function ReceiptModal({
           />
         </ScrollView>
 
-        {/* Bottom Print Action Bar */}
+        {/* Bottom Action Bar: Edit & Print */}
         <View
           style={[
             styles.bottomBar,
@@ -174,12 +196,39 @@ export function ReceiptModal({
             },
           ]}
         >
+          {onEdit && (
+            <TouchableOpacity
+              style={[
+                styles.editBtn,
+                {
+                  borderColor: colors.primary,
+                  backgroundColor: isDark ? 'rgba(37, 99, 235, 0.12)' : '#EFF6FF',
+                },
+              ]}
+              onPress={() => {
+                onClose();
+                onEdit(invoice);
+              }}
+              activeOpacity={0.8}
+            >
+              <MaterialCommunityIcons
+                name="pencil-outline"
+                size={20}
+                color={colors.primary}
+              />
+              <Text style={[styles.editBtnTxt, { color: colors.primary }]}>
+                Edit Items
+              </Text>
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity
             style={[
               styles.printBtn,
               {
                 backgroundColor: colors.primary,
                 shadowColor: colors.primary,
+                flex: onEdit ? 1.3 : 1,
               },
             ]}
             onPress={() => onPrint(invoice)}
@@ -187,11 +236,11 @@ export function ReceiptModal({
           >
             <MaterialCommunityIcons
               name="printer-pos"
-              size={24}
+              size={22}
               color="#FFFFFF"
             />
             <Text style={styles.printBtnTxt}>
-              Print to {activeConfig.displayName}
+              Print {activeConfig.displayName}
             </Text>
           </TouchableOpacity>
         </View>
@@ -240,10 +289,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   bottomBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: Platform.OS === 'ios' ? 26 : 14,
     borderTopWidth: 1,
+  },
+  editBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    gap: 8,
+  },
+  editBtnTxt: {
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 0.2,
   },
   printBtn: {
     flexDirection: 'row',

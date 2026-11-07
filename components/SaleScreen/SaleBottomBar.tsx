@@ -14,12 +14,16 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 
 interface SaleBottomBarProps {
+  isEditing?: boolean;
   onSave: (andNew: boolean) => void;
+  onCancelEdit?: () => void;
   onMoreOptions: () => void;
 }
 
 export function SaleBottomBar({
+  isEditing = false,
   onSave,
+  onCancelEdit,
   onMoreOptions,
 }: SaleBottomBarProps): React.JSX.Element {
   const { colors, isDark } = useTheme();
@@ -34,29 +38,52 @@ export function SaleBottomBar({
         },
       ]}
     >
-      {/* 1. Symmetrical "Save & New" Action Button */}
-      <TouchableOpacity
-        style={[
-          styles.saveNewBtn,
-          {
-            backgroundColor: isDark ? 'rgba(37, 99, 235, 0.12)' : '#EFF6FF',
-            borderColor: colors.primary,
-          },
-        ]}
-        onPress={() => onSave(true)}
-        activeOpacity={0.7}
-      >
-        <MaterialCommunityIcons
-          name="plus-circle-outline"
-          size={18}
-          color={colors.primary}
-        />
-        <Text style={[styles.saveNewTxt, { color: colors.primary }]}>
-          Save & New
-        </Text>
-      </TouchableOpacity>
+      {/* 1. Secondary Action Button (Cancel Edit if editing, else Save & New) */}
+      {isEditing ? (
+        <TouchableOpacity
+          style={[
+            styles.saveNewBtn,
+            {
+              backgroundColor: isDark ? 'rgba(239, 68, 68, 0.12)' : '#FEE2E2',
+              borderColor: colors.error,
+            },
+          ]}
+          onPress={onCancelEdit}
+          activeOpacity={0.7}
+        >
+          <MaterialCommunityIcons
+            name="close-circle-outline"
+            size={18}
+            color={colors.error}
+          />
+          <Text style={[styles.saveNewTxt, { color: colors.error }]}>
+            Cancel Edit
+          </Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          style={[
+            styles.saveNewBtn,
+            {
+              backgroundColor: isDark ? 'rgba(37, 99, 235, 0.12)' : '#EFF6FF',
+              borderColor: colors.primary,
+            },
+          ]}
+          onPress={() => onSave(true)}
+          activeOpacity={0.7}
+        >
+          <MaterialCommunityIcons
+            name="plus-circle-outline"
+            size={18}
+            color={colors.primary}
+          />
+          <Text style={[styles.saveNewTxt, { color: colors.primary }]}>
+            Save & New
+          </Text>
+        </TouchableOpacity>
+      )}
 
-      {/* 2. Primary Solid "Save Bill" Button */}
+      {/* 2. Primary Solid Action Button */}
       <TouchableOpacity
         style={[
           styles.savePrimaryBtn,
@@ -73,7 +100,9 @@ export function SaleBottomBar({
           size={18}
           color="#FFFFFF"
         />
-        <Text style={styles.savePrimaryTxt}>Save Bill</Text>
+        <Text style={styles.savePrimaryTxt}>
+          {isEditing ? 'Update Bill' : 'Save Bill'}
+        </Text>
       </TouchableOpacity>
 
       {/* 3. More Options (⋮) Button */}

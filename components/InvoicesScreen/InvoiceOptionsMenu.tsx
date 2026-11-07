@@ -32,6 +32,7 @@ interface InvoiceOptionsMenuProps {
   onClose: () => void;
   onPrint: (invoice: InvoiceData) => void;
   onPreview: (invoice: InvoiceData) => void;
+  onEdit?: (invoice: InvoiceData) => void;
   onDelete: (invoice: InvoiceData) => void;
   onChangeStatus?: (invoice: InvoiceData, newStatus: 'PAID' | 'UNPAID') => void;
 }
@@ -42,6 +43,7 @@ export function InvoiceOptionsMenu({
   onClose,
   onPrint,
   onPreview,
+  onEdit,
   onDelete,
   onChangeStatus,
 }: InvoiceOptionsMenuProps): React.JSX.Element | null {
@@ -371,6 +373,44 @@ export function InvoiceOptionsMenu({
                   color={colors.textSecondary}
                 />
               </TouchableOpacity>
+
+              {/* Action 2B: Edit Invoice & Items */}
+              {onEdit && (
+                <TouchableOpacity
+                  style={[styles.menuItem, { borderBottomColor: colors.borderLight }]}
+                  onPress={() => {
+                    handleClose();
+                    onEdit(invoice);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <View
+                    style={[
+                      styles.menuIconCircle,
+                      { backgroundColor: isDark ? 'rgba(37, 99, 235, 0.15)' : '#EFF6FF' },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="pencil-outline"
+                      size={22}
+                      color={colors.primary}
+                    />
+                  </View>
+                  <View style={styles.menuItemTextCol}>
+                    <Text style={[styles.menuItemTitle, { color: colors.primary }]}>
+                      Edit Invoice & Items
+                    </Text>
+                    <Text style={[styles.menuItemSub, { color: colors.textSecondary }]}>
+                      Modify items, quantities, rates, or customer details
+                    </Text>
+                  </View>
+                  <MaterialCommunityIcons
+                    name="chevron-right"
+                    size={20}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              )}
 
               {/* Action 3: Change Status (Paid <-> Unpaid) */}
               {onChangeStatus && (

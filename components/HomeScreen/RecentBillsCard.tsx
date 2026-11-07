@@ -20,6 +20,7 @@ interface RecentBillsCardProps {
   onTogglePreview: () => void;
   onPressPrint: () => void;
   onPressShare: () => void;
+  onPressEdit?: (invoice: InvoiceData) => void;
   onPressMenu?: () => void;
   onPressNewSale?: () => void;
 }
@@ -30,6 +31,7 @@ export function RecentBillsCard({
   onTogglePreview,
   onPressPrint,
   onPressShare,
+  onPressEdit,
   onPressMenu,
   onPressNewSale,
 }: RecentBillsCardProps): React.JSX.Element {
@@ -177,6 +179,25 @@ export function RecentBillsCard({
 
         {/* 1-Tap Action Icons */}
         <View style={styles.actionsBox}>
+          {/* Edit Trigger */}
+          {onPressEdit && (
+            <TouchableOpacity
+              style={[
+                styles.actionCircle,
+                { backgroundColor: colors.primaryLight },
+              ]}
+              onPress={() => onPressEdit(invoice)}
+              activeOpacity={0.7}
+              accessibilityLabel="Edit invoice"
+            >
+              <MaterialCommunityIcons
+                name="pencil-outline"
+                size={18}
+                color={colors.primary}
+              />
+            </TouchableOpacity>
+          )}
+
           {/* Print Trigger */}
           <TouchableOpacity
             style={[

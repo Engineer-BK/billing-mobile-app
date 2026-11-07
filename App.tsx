@@ -91,6 +91,9 @@ function MainScreen(): React.JSX.Element {
   // Active Invoice State (most recent transaction)
   const [currentInvoice, setCurrentInvoice] = useState<InvoiceData | null>(null);
 
+  // Invoice Editing state (for in-place modifications from preview or bills tab)
+  const [editingInvoice, setEditingInvoice] = useState<InvoiceData | null>(null);
+
   // Preload Retail Vector Icon Fonts
   const [fontsLoaded] = useFonts({
     ...MaterialCommunityIcons.font,
@@ -589,6 +592,140 @@ function MainScreen(): React.JSX.Element {
     }
   };
 
+  // Open Invoice in SaleScreen for editing line items or customer details
+  const handleEditInvoice = (inv: InvoiceData) => {
+    setEditingInvoice(inv);
+    setActiveTab('sale');
+  };
+
+  // Cancel edit mode and return to regular new-sale mode
+  const handleCancelEditInvoice = () => {
+    setEditingInvoice(null);
+  };
+
+  // Commit updated invoice (in-place replacement without advancing sequence counter)
+  const handleUpdateInvoice = async (
+    updatedInvoice: InvoiceData,
+    shouldPrint?: boolean
+  ) => {
+    // 1. Find previous invoice to reconcile stock changes
+    const oldInvoice =
+      invoicesList.find((inv) => inv.invoiceNo === updatedInvoice.invoiceNo) ||
+      editingInvoice;
+
+    // 2. Reconcile stock delta between oldInvoice and updatedInvoice
+    if (presetItems.length > 0) {
+      const oldSoldByPresetId: Record<string, number> = {};
+      if (oldInvoice && oldInvoice.items) {
+        for (const item of oldInvoice.items) {
+          const qty = parseFloat(item.qty) || 0;
+          if (qty <= 0) continue;
+          const matched =
+            (item.itemId && presetItems.find((p) => p.id === item.itemId)) ||
+            presetItems.find(
+              (p) => p.name.trim().toLowerCase() === (item.name || '').trim().toLowerCase()
+            );
+          if (matched && typeof matched.stockQuantity === 'number') {
+            oldSoldByPresetId[matched.id] = (oldSoldByPresetId[matched.id] || 0) + qty;
+          }
+        }
+      }
+
+      const newSoldByPresetId: Record<string, number> = {};
+      if (updatedInvoice.items) {
+        for (const item of updatedInvoice.items) {
+          const qty = parseFloat(item.qty) || 0;
+          if (qty <= 0) continue;
+          const matched =
+            (item.itemId && presetItems.find((p) => p.id === item.itemId)) ||
+            presetItems.find(
+              (p) => p.name.trim().toLowerCase() === (item.name || '').trim().toLowerCase()
+            );
+          if (matched && typeof matched.stockQuantity === 'number') {
+            newSoldByPresetId[matched.id] = (newSoldByPresetId[matched.id] || 0) + qty;
+          }
+        }
+      }
+
+      const allAffectedIds = new Set([
+        ...Object.keys(oldSoldByPresetId),
+        ...Object.keys(newSoldByPresetId),
+      ]);
+      let stockChanged = false;
+
+      const updatedPresets = presetItems.map((preset) => {
+        if (allAffectedIds.has(preset.id)) {
+          const oldSold = oldSoldByPresetId[preset.id] || 0;
+          const newSold = newSoldByPresetId[preset.id] || 0;
+          const delta = oldSold - newSold; // positive = items returned to stock, negative = more sold
+          if (delta !== 0) {
+            stockChanged = true;
+            const currentStock = preset.stockQuantity ?? 0;
+            const newStock = Math.round((currentStock + delta) * 100) / 100;
+            return {
+              ...preset,
+              stockQuantity: newStock,
+              updatedAt: Date.now(),
+            };
+          }
+        }
+        return preset;
+      });
+
+      if (stockChanged) {
+        setPresetItems(updatedPresets);
+        if (user?.isGuest) {
+          storageService.saveGuestPresetItems(updatedPresets);
+        } else {
+          storageService.savePresetItems(updatedPresets);
+          allAffectedIds.forEach((id) => {
+            const updatedItem = updatedPresets.find((p) => p.id === id);
+            if (updatedItem && user?.uid) {
+              syncService.pushPresetItem(user.uid, updatedItem);
+            }
+          });
+        }
+      }
+    }
+
+    // 3. Update invoice in list (in-place replacement)
+    setCurrentInvoice(updatedInvoice);
+    setInvoicesList((prev) => {
+      const updated = prev.map((inv) =>
+        inv.invoiceNo === updatedInvoice.invoiceNo ? updatedInvoice : inv
+      );
+      if (user?.isGuest) {
+        storageService.saveGuestInvoices(updated);
+      } else {
+        storageService.saveInvoices(updated);
+      }
+      return updated;
+    });
+
+    // 4. Save customer name & phone for future suggestions
+    const rawCustName = updatedInvoice.customerName?.trim();
+    if (rawCustName && rawCustName.toLowerCase() !== 'cash' && rawCustName.toLowerCase() !== 'walk-in customer') {
+      customerService.saveCustomer(rawCustName, updatedInvoice.customerPhone?.trim() || undefined, user?.uid);
+    }
+
+    // 5. Background push to Cloud Firestore
+    if (user?.uid && !user.isGuest) {
+      syncService.pushInvoice(user.uid, updatedInvoice);
+    }
+
+    // 6. Clear editing state
+    setEditingInvoice(null);
+
+    // 7. Print if requested
+    if (shouldPrint) {
+      handlePrint(updatedInvoice);
+    }
+
+    // 8. Navigate to Invoices tab
+    setActiveTab('bills');
+    Alert.alert('Invoice Updated', `Invoice #${updatedInvoice.invoiceNo} has been updated successfully.`);
+  };
+
   // Handle Delete Invoice with Auto-Renumbering to maintain continuous 1, 2, 3... sequence
   // Delete a single invoice (delegates cleanly to atomic bulk delete & resequence)
   const handleDeleteInvoice = async (invoiceNo: string) => {
@@ -833,6 +970,7 @@ function MainScreen(): React.JSX.Element {
             onTogglePreview={() => setShowPreview(!showPreview)}
             onPressPrint={() => handlePrint(currentInvoice)}
             onPressShare={() => handleShare(currentInvoice)}
+            onPressEdit={() => currentInvoice && handleEditInvoice(currentInvoice)}
             onPressMenu={() => currentInvoice && setHomeMenuInvoice(currentInvoice)}
             onPressNewSale={() => setActiveTab('sale')}
           />
@@ -860,6 +998,9 @@ function MainScreen(): React.JSX.Element {
           onBack={() => setActiveTab('home')}
           onSaveInvoice={handleSaveInvoice}
           presetItems={presetItems}
+          editingInvoice={editingInvoice}
+          onCancelEdit={handleCancelEditInvoice}
+          onUpdateInvoice={handleUpdateInvoice}
         />
       </View>
 
@@ -883,6 +1024,7 @@ function MainScreen(): React.JSX.Element {
           onResequence={handleResequenceInvoices}
           isGuest={!!user?.isGuest}
           onRegisterStore={() => setShowGuestPrintModal(true)}
+          onEditInvoice={handleEditInvoice}
         />
       </View>
 

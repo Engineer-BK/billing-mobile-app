@@ -29,6 +29,7 @@ interface SaleOptionsModalProps {
   invoiceNo: string;
   amount: string;
   itemsCount: number;
+  isEditing?: boolean;
   onClose: () => void;
   onPrintDirectly: () => void;
   onClearItems: () => void;
@@ -39,6 +40,7 @@ export function SaleOptionsModal({
   invoiceNo,
   amount,
   itemsCount,
+  isEditing = false,
   onClose,
   onPrintDirectly,
   onClearItems,
@@ -157,7 +159,7 @@ export function SaleOptionsModal({
               >
                 <View style={styles.headerLeft}>
                   <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
-                    Sale Options
+                    {isEditing ? 'Edit Bill Options' : 'Sale Options'}
                   </Text>
                   <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
                     Invoice #{invoiceNo} • {itemsCount} items
@@ -196,10 +198,10 @@ export function SaleOptionsModal({
                 </View>
                 <View style={styles.menuItemTextCol}>
                   <Text style={[styles.menuItemTitle, { color: colors.textPrimary }]}>
-                    Print Directly to Thermal POS
+                    {isEditing ? 'Update & Print Directly' : 'Print Directly to Thermal POS'}
                   </Text>
                   <Text style={[styles.menuItemSub, { color: colors.textSecondary }]}>
-                    Save invoice & send to connected ESC/POS printer
+                    {isEditing ? 'Save changes & print updated receipt' : 'Save invoice & send to connected ESC/POS printer'}
                   </Text>
                 </View>
                 <MaterialCommunityIcons

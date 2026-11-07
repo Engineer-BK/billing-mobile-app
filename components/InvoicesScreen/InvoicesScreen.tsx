@@ -37,6 +37,7 @@ interface InvoicesScreenProps {
   activeConfig: PrinterProfile;
   onPressPrint: (invoice: InvoiceData) => void;
   onPressNewSale: () => void;
+  onEditInvoice?: (invoice: InvoiceData) => void;
   onDeleteInvoice: (invoiceNo: string) => void;
   onDeleteMultipleInvoices?: (invoiceNos: string[]) => void;
   onChangeStatus?: (invoiceNo: string, newStatus: 'PAID' | 'UNPAID') => void;
@@ -52,6 +53,7 @@ export function InvoicesScreen({
   activeConfig,
   onPressPrint,
   onPressNewSale,
+  onEditInvoice,
   onDeleteInvoice,
   onDeleteMultipleInvoices,
   onChangeStatus,
@@ -742,6 +744,7 @@ export function InvoicesScreen({
         onPrint={(inv) => {
           onPressPrint(inv);
         }}
+        onEdit={(inv) => onEditInvoice?.(inv)}
         onDelete={onDeleteInvoice}
       />
 
@@ -752,6 +755,7 @@ export function InvoicesScreen({
         onClose={() => setMenuInvoice(null)}
         onPrint={(inv) => onPressPrint(inv)}
         onPreview={(inv) => setSelectedInvoice(inv)}
+        onEdit={(inv) => onEditInvoice?.(inv)}
         onDelete={(inv) => onDeleteInvoice(inv.invoiceNo)}
         onChangeStatus={(inv, newStatus) => onChangeStatus?.(inv.invoiceNo, newStatus)}
       />
