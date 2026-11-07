@@ -257,7 +257,7 @@ export function ReceiptPreview({
             <View
               key={`${it.sNo}_${idx}`}
               style={{
-                marginBottom: idx < displayItems.length - 1 ? 5 : 0, // Option B: 4.5mm proportional gap ONLY between Item 1 & Item 2
+                marginBottom: idx < displayItems.length - 1 ? 3 : 0, // Option A: 3.0mm proportional gap ONLY between Item 1 & Item 2
               }}
             >
               {/* Line 1: # + First Line of Name + Qty + Price + Amount */}

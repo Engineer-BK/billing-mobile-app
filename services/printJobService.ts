@@ -406,24 +406,11 @@ export async function dispatchPrintReceipt(
       }
 
       // ------------------------------------------------------------------
-      // Inter-Item Separation Gap (Option B: 4.5mm between Item 1 & Item 2; not after the last item)
+      // Inter-Item Separation Gap (Option A: 3.0mm between Item 1 & Item 2; not after the last item)
       // ------------------------------------------------------------------
       if (i < itemsToPrint.length - 1) {
         try {
-          await BluetoothEscposPrinter.printerLineSpace(36); // 4.5mm inter-item gap (36 dots at 203 DPI)
-          await BluetoothEscposPrinter.printText('\n', {});
-          await BluetoothEscposPrinter.printerLineSpace(24); // Return to compact 24 dots for next item's lines
-        } catch {
-          // Ignore if unsupported
-        }
-      }
-
-      // ------------------------------------------------------------------
-      // Inter-Item Separation Gap (Option B: 4.5mm between Item 1 & Item 2; not after the last item)
-      // ------------------------------------------------------------------
-      if (i < itemsToPrint.length - 1) {
-        try {
-          await BluetoothEscposPrinter.printerLineSpace(36); // 4.5mm inter-item gap (36 dots at 203 DPI)
+          await BluetoothEscposPrinter.printerLineSpace(24); // 3.0mm inter-item gap (24 dots at 203 DPI)
           await BluetoothEscposPrinter.printText('\n', {});
           await BluetoothEscposPrinter.printerLineSpace(24); // Return to compact 24 dots for next item's lines
         } catch {
