@@ -256,7 +256,7 @@ export function ReceiptPreview({
           const cellFontSize = is58mm ? 9.5 : 11.5;
 
           return (
-            <View key={`${it.sNo}_${idx}`} style={{ marginVertical: 1 }}>
+            <View key={`${it.sNo}_${idx}`} style={{ marginVertical: 3 }}>
               {/* Line 1: # + First Line of Name + Qty + Price + Amount */}
               <View style={[styles.tableRow, { marginVertical: 1 }]}>
                 <Text

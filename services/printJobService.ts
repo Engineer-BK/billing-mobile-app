@@ -322,9 +322,9 @@ export async function dispatchPrintReceipt(
 
     const nameColWidth = is80mm ? 18 : 14;
 
-    // Set tight line spacing (~24 dots = ~3mm) to reduce paper waste
+    // Set 7mm line spacing (56 dots = 7.0mm at standard 203 DPI thermal print heads)
     try {
-      await BluetoothEscposPrinter.printerLineSpace(24);
+      await BluetoothEscposPrinter.printerLineSpace(56);
     } catch {
       // Ignore if unsupported by printer
     }

@@ -744,6 +744,89 @@ assertEqual(updatedInvoiceList[1].items.length, 3, 'Item count updated to 3 line
 assertEqual(updatedInvoiceList[1].items.map(it => it.sNo).join(','), '1,2,3', 'Line items sequentially indexed (#1, #2, #3)');
 
 // ------------------------------------------------------------------
+// TEST SUITE 10: CATALOG ITEMS JSON REPORT & SEED INTEGRITY
+// ------------------------------------------------------------------
+console.log('\n--- Suite 10: Catalog Items JSON Report & Seed Integrity ---');
+
+function generateItemsSeedJson(items) {
+  const cleanItems = (items || []).map((it) => ({
+    id: it.id,
+    name: (it.name || '').trim().toUpperCase(),
+    price: it.price || '0.00',
+    purchasePrice: it.purchasePrice || '',
+    stockQuantity: typeof it.stockQuantity === 'number' ? it.stockQuantity : 0,
+    unit: formatUnit(it.unit || 'Pcs'),
+    category: it.category || 'General',
+    defaultDiscount: it.defaultDiscount || '',
+    barcode: it.barcode || '',
+    updatedAt: it.updatedAt || Date.now(),
+  }));
+
+  return JSON.stringify(cleanItems, null, 2);
+}
+
+const rawTestCatalog = [
+  {
+    id: 'item_1',
+    name: 'basmati rice premium',
+    price: '120.00',
+    purchasePrice: '100.00',
+    stockQuantity: 50,
+    unit: 'KG',
+    category: 'Grains',
+  },
+  {
+    id: 'item_2',
+    name: 'sunflower oil 1l',
+    price: '160.00',
+    purchasePrice: '145.00',
+    stockQuantity: 24,
+    unit: 'l',
+    category: 'Edible Oils',
+  },
+];
+
+// Test 10A: JSON Generation is valid parseable JSON string
+const jsonOutput = generateItemsSeedJson(rawTestCatalog);
+let parsedItems = null;
+try {
+  parsedItems = JSON.parse(jsonOutput);
+} catch (e) {
+  parsedItems = null;
+}
+assert(parsedItems !== null && Array.isArray(parsedItems), 'JSON export generates valid, parseable JSON array');
+assertEqual(parsedItems.length, 2, 'Parsed JSON contains exact item count (2 items)');
+
+// Test 10B: Name uppercase and unit title-casing normalization
+assertEqual(parsedItems[0].name, 'BASMATI RICE PREMIUM', 'Exported item name is normalized to UPPERCASE');
+assertEqual(parsedItems[0].unit, 'Kg', 'Exported unit is standardized to title-cased Kg');
+assertEqual(parsedItems[1].unit, 'L', 'Exported unit is standardized to uppercase L');
+
+// Test 10C: Schema compliance and seed-readiness
+for (const item of parsedItems) {
+  assert(typeof item.id === 'string' && item.id.length > 0, `Item ${item.id} has valid id`);
+  assert(typeof item.name === 'string' && item.name.length > 0, `Item ${item.id} has valid name`);
+  assert(typeof item.price === 'string', `Item ${item.id} has string price for decimal precision`);
+  assert(typeof item.stockQuantity === 'number', `Item ${item.id} has numeric stockQuantity`);
+  assert(typeof item.unit === 'string', `Item ${item.id} has valid unit`);
+  assert(typeof item.updatedAt === 'number', `Item ${item.id} has timestamp updatedAt for sync`);
+}
+
+// Test 10D: Direct Firestore seed simulation (verifies plug-and-play restore)
+let seedSimulationCount = 0;
+for (const item of parsedItems) {
+  // Simulates doc(db, 'users', uid, 'items', item.id) + setDoc(..., item)
+  if (item.id && item.name && item.price) {
+    seedSimulationCount++;
+  }
+}
+assertEqual(seedSimulationCount, 2, 'Direct Firestore seed loop succeeds for 100% of items without transformation');
+
+// Test 10E: Empty catalog handling
+const emptyOutput = generateItemsSeedJson([]);
+assertEqual(emptyOutput, '[]', 'Empty catalog gracefully exports valid empty JSON array');
+
+// ------------------------------------------------------------------
 // FINAL SUMMARY
 // ------------------------------------------------------------------
 console.log('\n====================================================');

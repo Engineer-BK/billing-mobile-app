@@ -1094,6 +1094,7 @@ function MainScreen(): React.JSX.Element {
         }}
         onOpenStoreProfile={() => setShowAccountModal(true)}
         onOpenPrintersTab={() => setShowPrintersModal(true)}
+        presetItems={presetItems}
       />
 
       {/* About CounterPress Modal */}

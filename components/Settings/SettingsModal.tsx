@@ -30,7 +30,9 @@ import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../context/AuthContext';
 import { PrinterProfileId } from '../../types/printer';
+import { PresetItem } from '../../types/item';
 import { storageService } from '../../services/storageService';
+import { reportService } from '../../services/reportService';
 
 export interface FestivalOccasion {
   id: string;
@@ -75,6 +77,7 @@ interface SettingsModalProps {
   onSelectProfile: (profile: PrinterProfileId) => void;
   onOpenStoreProfile: () => void;
   onOpenPrintersTab: () => void;
+  presetItems?: PresetItem[];
 }
 
 export function SettingsModal({
@@ -84,6 +87,7 @@ export function SettingsModal({
   onSelectProfile,
   onOpenStoreProfile,
   onOpenPrintersTab,
+  presetItems = [],
 }: SettingsModalProps): React.JSX.Element {
   const { colors, isDark, toggleTheme } = useTheme();
   const { user } = useAuth();
@@ -94,6 +98,19 @@ export function SettingsModal({
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [footerNote, setFooterNote] = useState<string>('Thank you! Visit again.');
   const [activeFestivalId, setActiveFestivalId] = useState<string>('default');
+  const [isExporting, setIsExporting] = useState<boolean>(false);
+
+  const handleDownloadItemsReport = async () => {
+    setIsExporting(true);
+    try {
+      await reportService.downloadItemsJsonReport(
+        presetItems,
+        user?.shopName || 'store'
+      );
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   useEffect(() => {
     if (visible) {
@@ -555,7 +572,73 @@ export function SettingsModal({
                 </View>
               </View>
 
-              {/* Section 4: Quick Navigation Hub */}
+              {/* Section 4: Reports & Data Backup */}
+              <View style={styles.section}>
+                <View style={styles.sectionHeaderRow}>
+                  <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+                    REPORTS & DATA EXPORT
+                  </Text>
+                  <View style={[styles.reportBadge, { backgroundColor: colors.primaryLight }]}>
+                    <Text style={[styles.reportBadgeTxt, { color: colors.primary }]}>
+                      {(presetItems || []).length} Products
+                    </Text>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={[
+                    styles.reportCard,
+                    {
+                      backgroundColor: colors.surfaceLight,
+                      borderColor: colors.borderLight,
+                    },
+                  ]}
+                  onPress={handleDownloadItemsReport}
+                  disabled={isExporting}
+                  activeOpacity={0.7}
+                  accessibilityLabel="Download all items report as JSON"
+                >
+                  <View
+                    style={[
+                      styles.reportIconBox,
+                      { backgroundColor: isDark ? 'rgba(37, 99, 235, 0.18)' : '#EFF6FF' },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name={isExporting ? 'progress-download' : 'database-export-outline'}
+                      size={22}
+                      color={colors.primary}
+                    />
+                  </View>
+                  <View style={styles.reportTextCol}>
+                    <View style={styles.reportTitleRow}>
+                      <Text style={[styles.reportTitle, { color: colors.textPrimary }]}>
+                        Download All Items Report as JSON
+                      </Text>
+                      <View
+                        style={[
+                          styles.jsonPill,
+                          { backgroundColor: isDark ? '#1E293B' : '#E2E8F0' },
+                        ]}
+                      >
+                        <Text style={[styles.jsonPillTxt, { color: colors.primary }]}>
+                          DB SEED
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={[styles.reportSubtitle, { color: colors.textSecondary }]}>
+                      Export full catalog with stock & rates to mobile storage. Ready for 1-click database restore anytime.
+                    </Text>
+                  </View>
+                  <MaterialCommunityIcons
+                    name="download"
+                    size={20}
+                    color={colors.primary}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* Section 5: Quick Navigation Hub */}
               <View style={styles.section}>
                 <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
                   QUICK ACTIONS
@@ -904,5 +987,65 @@ const styles = StyleSheet.create({
   quickActionTxt: {
     fontSize: 12,
     fontWeight: '700',
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+    paddingHorizontal: 2,
+  },
+  reportBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  reportBadgeTxt: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  reportCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 12,
+  },
+  reportIconBox: {
+    width: 42,
+    height: 42,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  reportTextCol: {
+    flex: 1,
+  },
+  reportTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
+  reportTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  jsonPill: {
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 4,
+  },
+  jsonPillTxt: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  reportSubtitle: {
+    fontSize: 11,
+    marginTop: 3,
+    lineHeight: 15,
   },
 });
