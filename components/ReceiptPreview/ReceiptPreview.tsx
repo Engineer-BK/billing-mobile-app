@@ -254,9 +254,14 @@ export function ReceiptPreview({
           const cellFontSize = is58mm ? 9.5 : 11.5;
 
           return (
-            <View key={`${it.sNo}_${idx}`} style={{ marginVertical: 3 }}>
+            <View
+              key={`${it.sNo}_${idx}`}
+              style={{
+                marginBottom: idx < displayItems.length - 1 ? 5 : 0, // Option B: 4.5mm proportional gap ONLY between Item 1 & Item 2
+              }}
+            >
               {/* Line 1: # + First Line of Name + Qty + Price + Amount */}
-              <View style={[styles.tableRow, { marginVertical: 1 }]}>
+              <View style={[styles.tableRow, { marginVertical: 0.5 }]}>
                 <Text
                   allowFontScaling={false}
                   style={[

@@ -320,9 +320,9 @@ export async function dispatchPrintReceipt(
 
     const nameColWidth = is80mm ? 18 : 14;
 
-    // Set 7mm line spacing (56 dots = 7.0mm at standard 203 DPI thermal print heads)
+    // Set compact line spacing within each item (24 dots = 3.0mm) so wrapped words & discount lines stay grouped
     try {
-      await BluetoothEscposPrinter.printerLineSpace(56);
+      await BluetoothEscposPrinter.printerLineSpace(24);
     } catch {
       // Ignore if unsupported by printer
     }
@@ -402,6 +402,32 @@ export async function dispatchPrintReceipt(
           );
           await BluetoothEscposPrinter.printText(discLine, { fonttype: activeFont });
           await BluetoothEscposPrinter.printText(finalLine, { fonttype: activeFont });
+        }
+      }
+
+      // ------------------------------------------------------------------
+      // Inter-Item Separation Gap (Option B: 4.5mm between Item 1 & Item 2; not after the last item)
+      // ------------------------------------------------------------------
+      if (i < itemsToPrint.length - 1) {
+        try {
+          await BluetoothEscposPrinter.printerLineSpace(36); // 4.5mm inter-item gap (36 dots at 203 DPI)
+          await BluetoothEscposPrinter.printText('\n', {});
+          await BluetoothEscposPrinter.printerLineSpace(24); // Return to compact 24 dots for next item's lines
+        } catch {
+          // Ignore if unsupported
+        }
+      }
+
+      // ------------------------------------------------------------------
+      // Inter-Item Separation Gap (Option B: 4.5mm between Item 1 & Item 2; not after the last item)
+      // ------------------------------------------------------------------
+      if (i < itemsToPrint.length - 1) {
+        try {
+          await BluetoothEscposPrinter.printerLineSpace(36); // 4.5mm inter-item gap (36 dots at 203 DPI)
+          await BluetoothEscposPrinter.printText('\n', {});
+          await BluetoothEscposPrinter.printerLineSpace(24); // Return to compact 24 dots for next item's lines
+        } catch {
+          // Ignore if unsupported
         }
       }
     }
