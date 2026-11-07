@@ -14,6 +14,14 @@ export function formatItemName(name?: string | null): string {
 }
 
 /**
+ * Standardizes customer names to clean Title-Casing (e.g. "basir khan" -> "Basir Khan").
+ */
+export function formatCustomerName(name?: string | null): string {
+  if (!name) return '';
+  return name.trim().replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+/**
  * Standardizes measurement units to clean Title-Casing (e.g. KG -> Kg, PCS -> Pcs).
  * Special handling:
  * - Volume: "L", "Ml"

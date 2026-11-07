@@ -19,3 +19,4 @@ export interface CustomerSuggestionItem {
   isPreset?: boolean;
   canDelete: boolean;
 }
+

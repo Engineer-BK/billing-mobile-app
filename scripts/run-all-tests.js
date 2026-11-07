@@ -516,6 +516,145 @@ assertEqual(receiptRowUpper58.substring(3, 17), 'BASMATI RICE  ', 'Uppercase ite
 assertEqual(receiptRowUpper58.substring(19, 26), '   2 Kg', 'Title-cased unit formatted cleanly in 58mm');
 
 // ------------------------------------------------------------------
+// SUITE 8: STORE CUSTOMERS PERSISTENCE & AUTO-SUGGESTIONS
+// ------------------------------------------------------------------
+console.log('\n--- Suite 8: Customer Suggestions & Deletion Logic ---');
+
+function formatCustomerName(name) {
+  if (!name) return '';
+  return name.trim().replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function mockCustomerEngine() {
+  let savedCustomers = [];
+  let deletedCustomerNames = [];
+
+  function saveCustomer(name, phone) {
+    const formatted = formatCustomerName(name);
+    if (!formatted || formatted.toLowerCase() === 'cash' || formatted.toLowerCase() === 'walk-in customer') {
+      return savedCustomers;
+    }
+
+    // Un-delete if previously deleted
+    deletedCustomerNames = deletedCustomerNames.filter(n => n.toLowerCase() !== formatted.toLowerCase());
+
+    const idx = savedCustomers.findIndex(c => c.name.toLowerCase() === formatted.toLowerCase());
+    if (idx >= 0) {
+      savedCustomers[idx] = {
+        ...savedCustomers[idx],
+        name: formatted,
+        phone: phone ? phone.trim() : savedCustomers[idx].phone,
+        updatedAt: Date.now(),
+      };
+    } else {
+      savedCustomers.unshift({
+        id: `cust_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+        name: formatted,
+        phone: phone ? phone.trim() : undefined,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+    }
+    return [...savedCustomers];
+  }
+
+  function deleteCustomer(nameOrId) {
+    const trimmed = (nameOrId || '').trim();
+    if (!trimmed) return savedCustomers;
+
+    const target = savedCustomers.find(c => c.id === trimmed || c.name.toLowerCase() === trimmed.toLowerCase());
+    savedCustomers = savedCustomers.filter(c => c.id !== trimmed && c.name.toLowerCase() !== trimmed.toLowerCase());
+
+    const nameToAdd = target ? target.name.toLowerCase() : trimmed.toLowerCase();
+    if (!deletedCustomerNames.includes(nameToAdd)) {
+      deletedCustomerNames.push(nameToAdd);
+    }
+    return [...savedCustomers];
+  }
+
+  function harvestInvoices(invoices) {
+    const deletedSet = new Set(deletedCustomerNames.map(n => n.toLowerCase()));
+    const existingSet = new Set(savedCustomers.map(c => c.name.toLowerCase()));
+    for (const inv of invoices) {
+      const n = (inv.customerName || '').trim();
+      if (n && n.toLowerCase() !== 'cash' && n.toLowerCase() !== 'walk-in customer' && !deletedSet.has(n.toLowerCase()) && !existingSet.has(n.toLowerCase())) {
+        saveCustomer(n, inv.customerPhone);
+        existingSet.add(n.toLowerCase());
+      }
+    }
+  }
+
+  function getSuggestions(query) {
+    const q = (query || '').trim().toLowerCase();
+    const presets = [
+      { name: 'Cash', canDelete: false, isPreset: true },
+      { name: 'Walk-in Customer', canDelete: false, isPreset: true },
+    ];
+
+    if (!q) {
+      const recent = savedCustomers.slice(0, 5).map(c => ({ id: c.id, name: c.name, phone: c.phone, canDelete: true }));
+      return [...presets, ...recent];
+    }
+
+    const matchedPresets = presets.filter(p => p.name.toLowerCase() !== q && p.name.toLowerCase().includes(q));
+    const matchedSaved = savedCustomers
+      .filter(c => c.name.toLowerCase() !== q && (c.name.toLowerCase().includes(q) || (c.phone && c.phone.includes(q))))
+      .map(c => ({ id: c.id, name: c.name, phone: c.phone, canDelete: true }));
+
+    const combined = [...matchedPresets, ...matchedSaved];
+    combined.sort((a, b) => {
+      const aStarts = a.name.toLowerCase().startsWith(q) ? 0 : 1;
+      const bStarts = b.name.toLowerCase().startsWith(q) ? 0 : 1;
+      return aStarts - bStarts;
+    });
+    return combined;
+  }
+
+  return { saveCustomer, deleteCustomer, harvestInvoices, getSuggestions, getSaved: () => savedCustomers };
+}
+
+const engine = mockCustomerEngine();
+
+// Test 8A: Saving customers
+engine.saveCustomer('Basir Khan', '9876543210');
+engine.saveCustomer('Rahul Sharma', '9123456789');
+assertEqual(engine.getSaved().length, 2, '2 unique customers saved successfully');
+assertEqual(engine.getSaved()[0].name, 'Rahul Sharma', 'Most recently added customer is at index 0');
+
+// Test 8B: Deduplication on repeat customer
+engine.saveCustomer('basir khan', '9999999999'); // case-insensitive update with new phone
+assertEqual(engine.getSaved().length, 2, 'Deduplication prevents duplicate entries for same customer');
+assertEqual(engine.getSaved().find(c => c.name.toLowerCase() === 'basir khan').phone, '9999999999', 'Customer phone successfully updated');
+
+// Test 8C: Presets ignored from customer database
+engine.saveCustomer('Cash');
+engine.saveCustomer('Walk-in Customer');
+assertEqual(engine.getSaved().length, 2, '"Cash" and "Walk-in Customer" are never added as custom database records');
+
+// Test 8D: Autocomplete filtering
+const suggestionsC = engine.getSuggestions('c');
+assertEqual(suggestionsC.some(s => s.name === 'Cash'), true, 'Typing "c" suggests "Cash"');
+
+const suggestionsB = engine.getSuggestions('bas');
+assertEqual(suggestionsB.length, 1, 'Typing "bas" filters to "Basir Khan"');
+assertEqual(suggestionsB[0].name, 'Basir Khan', 'Suggestion name is Basir Khan');
+assertEqual(suggestionsB[0].canDelete, true, 'Saved customer has canDelete: true');
+
+// Test 8E: Cross symbol deletion
+engine.deleteCustomer('Basir Khan');
+assertEqual(engine.getSaved().length, 1, 'Customer deleted from saved list');
+const suggestionsAfterDel = engine.getSuggestions('bas');
+assertEqual(suggestionsAfterDel.length, 0, 'Deleted customer no longer appears in suggestions');
+
+// Test 8F: Automatic past-invoice harvest respects deletion
+engine.harvestInvoices([
+  { customerName: 'Basir Khan', customerPhone: '9876543210' }, // deleted -> should NOT resurrect
+  { customerName: 'Amit Patel', customerPhone: '9822001122' },  // new -> should harvest
+]);
+assertEqual(engine.getSaved().find(c => c.name === 'Basir Khan'), undefined, 'Deleted customer is not resurrected by past invoice harvest');
+assertEqual(engine.getSaved().some(c => c.name === 'Amit Patel'), true, 'New past customer Amit Patel is harvested from invoices');
+
+// ------------------------------------------------------------------
 // FINAL SUMMARY
 // ------------------------------------------------------------------
 console.log('\n====================================================');

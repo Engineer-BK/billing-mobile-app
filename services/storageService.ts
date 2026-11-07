@@ -21,6 +21,7 @@ import { DEMO_GUEST_INVOICES } from '../constants/receipt';
 import { PresetItem } from '../types/item';
 import { DEFAULT_PRESET_ITEMS } from '../constants/presetItems';
 import { SavedCustomer } from '../types/customer';
+import { formatCustomerName } from '../utils/formatters';
 
 const STORAGE_KEYS = {
   INVOICES: '@flashbill:invoices_v1',
@@ -640,8 +641,8 @@ export const storageService = {
    * If new, adds to list. Also removes from deleted list if present.
    */
   async saveCustomer(name: string, phone?: string): Promise<SavedCustomer[]> {
-    const trimmedName = name.trim();
-    if (!trimmedName || trimmedName.toLowerCase() === 'cash' || trimmedName.toLowerCase() === 'walk-in customer') {
+    const formattedName = formatCustomerName(name);
+    if (!formattedName || formattedName.toLowerCase() === 'cash' || formattedName.toLowerCase() === 'walk-in customer') {
       return this.loadSavedCustomers();
     }
 
@@ -651,14 +652,14 @@ export const storageService = {
 
       // Remove from deleted list if previously deleted
       const updatedDeleted = deletedNames.filter(
-        (n) => n.toLowerCase() !== trimmedName.toLowerCase()
+        (n) => n.toLowerCase() !== formattedName.toLowerCase()
       );
       if (updatedDeleted.length !== deletedNames.length) {
         await AsyncStorage.setItem(STORAGE_KEYS.DELETED_CUSTOMERS, JSON.stringify(updatedDeleted));
       }
 
       const existingIndex = current.findIndex(
-        (c) => c.name.toLowerCase() === trimmedName.toLowerCase()
+        (c) => c.name.toLowerCase() === formattedName.toLowerCase()
       );
 
       const now = Date.now();
@@ -669,7 +670,7 @@ export const storageService = {
         const existing = current[existingIndex];
         const updatedCustomer: SavedCustomer = {
           ...existing,
-          name: trimmedName,
+          name: formattedName,
           phone: phone ? phone.trim() : existing.phone,
           updatedAt: now,
         };
@@ -681,7 +682,7 @@ export const storageService = {
         // Create new customer
         const newCustomer: SavedCustomer = {
           id: `cust_${now}_${Math.random().toString(36).substr(2, 4)}`,
-          name: trimmedName,
+          name: formattedName,
           phone: phone ? phone.trim() : undefined,
           createdAt: now,
           updatedAt: now,

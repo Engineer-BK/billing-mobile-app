@@ -568,6 +568,12 @@ function MainScreen(): React.JSX.Element {
       }
     }
 
+    // Save customer name & phone to customer database for future suggestions
+    const rawCustName = savedInvoice.customerName?.trim();
+    if (rawCustName && rawCustName.toLowerCase() !== 'cash' && rawCustName.toLowerCase() !== 'walk-in customer') {
+      customerService.saveCustomer(rawCustName, savedInvoice.customerPhone?.trim() || undefined, user?.uid);
+    }
+
     // Background non-blocking push to Cloud Firestore (Real stores only)
     if (user?.uid && !user.isGuest) {
       syncService.pushInvoice(user.uid, savedInvoice);
