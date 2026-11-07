@@ -87,11 +87,9 @@ export function ReceiptPreview({
     };
   }, [invoice.date, invoice.time]);
 
-  // Alphabetical items sorting (A to Z)
-  const sortedItems = useMemo(() => {
-    return [...invoice.items].sort((a, b) =>
-      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
-    );
+  // Preserve items order as added (chronological insertion order)
+  const displayItems = useMemo(() => {
+    return invoice.items || [];
   }, [invoice.items]);
 
   const customerName = invoice.customerName?.trim() || 'Walk-in Customer';
@@ -227,9 +225,9 @@ export function ReceiptPreview({
 
         <DashedDivider />
 
-        {/* Alphabetically Ordered Items Loop with Multi-Line Word-Wrapping & Compact 2-3mm Spacing */}
-        {sortedItems.map((it, idx) => {
-          const sNo = String(idx + 1);
+        {/* Items List in Order Added (Zero Inter-Item Dashed Dividers, Matching 7mm Print Spacing) */}
+        {displayItems.map((it, idx) => {
+          const sNo = it.sNo || String(idx + 1);
           const formattedQty = String(it.qty).trim();
           const unitCased = formatUnit(it.unit);
           const unitStr = unitCased ? ` ${unitCased}` : '';

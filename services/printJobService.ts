@@ -315,10 +315,8 @@ export async function dispatchPrintReceipt(
     await BluetoothEscposPrinter.printText(tableHeader, { fonttype: activeFont });
     await BluetoothEscposPrinter.printText(dividerLine, { fonttype: activeFont });
 
-    // --- 6. Items List Loop (Alphabetical A-Z, Tight 2-3mm Spacing, Zero Inter-Item Dividers) ---
-    const sortedItems = [...invoice.items].sort((a, b) =>
-      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
-    );
+    // --- 6. Items List Loop (Order as Added, Zero Inter-Item Dividers) ---
+    const itemsToPrint = invoice.items || [];
 
     const nameColWidth = is80mm ? 18 : 14;
 
@@ -329,9 +327,9 @@ export async function dispatchPrintReceipt(
       // Ignore if unsupported by printer
     }
 
-    for (let i = 0; i < sortedItems.length; i++) {
-      const record = sortedItems[i];
-      const sNo = String(i + 1);
+    for (let i = 0; i < itemsToPrint.length; i++) {
+      const record = itemsToPrint[i];
+      const sNo = record.sNo || String(i + 1);
       const formattedQty = String(record.qty).trim();
       const unitCased = formatUnit(record.unit);
       const unitText = unitCased ? ` ${unitCased}` : '';
