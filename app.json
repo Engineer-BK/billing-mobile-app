@@ -1,8 +1,7 @@
 {
   "expo": {
     "name": "CounterPress",
-    "slug": "billing-mobile-app",
-    "owner": "basirexpos-team",
+    "slug": "counterpress",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/counter-press-app-icon.png",
@@ -46,8 +45,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "d799a663-b1dc-48fd-9d51-66c81c912ea0"
+        "projectId": "0ba0093e-7fea-4fd6-8267-344a0939716f"
       }
-    }
+    },
+    "owner": "sahidexpos-team"
   }
 }

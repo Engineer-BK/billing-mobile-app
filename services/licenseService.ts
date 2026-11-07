@@ -12,6 +12,7 @@ import {
   doc,
   getDoc,
   updateDoc,
+  setDoc,
   onSnapshot,
   Unsubscribe,
 } from 'firebase/firestore';
@@ -327,14 +328,18 @@ export const licenseService = {
     const plan = license.plan || 'LIFETIME';
     const expiresAt = license.expiresAt || null;
 
-    await updateDoc(userRef, {
-      isActivated: true,
-      canPrint: true,
-      plan: plan,
-      licenseKey: key,
-      activatedAt: Date.now(),
-      expiresAt: expiresAt,
-    });
+    await setDoc(
+      userRef,
+      {
+        isActivated: true,
+        canPrint: true,
+        plan: plan,
+        licenseKey: key,
+        activatedAt: Date.now(),
+        expiresAt: expiresAt,
+      },
+      { merge: true }
+    );
 
     const verification: LicenseVerificationResult = {
       isActivated: true,

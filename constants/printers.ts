@@ -36,7 +36,7 @@ export const PRINTER_PROFILES: Record<PrinterProfileId, PrinterProfile> = {
     ],
     // Clean margin without paper waste
     feedLines: {
-      topSpace: 10,    // 0 lines at top: starts at top edge without paper waste
+      topSpace: 2,    // 0 lines at top: starts at top edge without paper waste
       bottomSpace: 10, // 4 lines at bottom: clears manual tear bar
     },
   },
@@ -66,7 +66,7 @@ export const PRINTER_PROFILES: Record<PrinterProfileId, PrinterProfile> = {
     ],
     // Clean margin without paper waste
     feedLines: {
-      topSpace: 4,    // 0 lines at top: starts at top edge without paper waste
+      topSpace: 0,    // 0 lines at top: starts at top edge without paper waste
       bottomSpace: 10, // 4 lines at bottom: clears motorized auto-cutter blade
     },
   },

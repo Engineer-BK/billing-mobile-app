@@ -84,7 +84,26 @@ export function SaleScreen({
   // Customer Details
   const [customerName, setCustomerName] = useState<string>('');
   const [phoneNumber, setPhoneNumber] = useState<string>('');
+  const [isCustomerFocused, setIsCustomerFocused] = useState<boolean>(false);
   const phoneInputRef = useRef<TextInput>(null);
+
+  // Common customer suggestions (Cash is primary for quick retail billing)
+  const CUSTOMER_SUGGESTIONS = useMemo(() => ['Cash', 'Walk-in Customer'], []);
+
+  // Filtered customer suggestions when typing (e.g. typing "C" shows "Cash")
+  const filteredCustomerSuggestions = useMemo(() => {
+    const q = customerName.trim().toLowerCase();
+    if (!q) return [];
+    const matches = CUSTOMER_SUGGESTIONS.filter(
+      (item) => item.toLowerCase() !== q && item.toLowerCase().includes(q)
+    );
+    matches.sort((a, b) => {
+      const aStarts = a.toLowerCase().startsWith(q) ? 0 : 1;
+      const bStarts = b.toLowerCase().startsWith(q) ? 0 : 1;
+      return aStarts - bStarts;
+    });
+    return matches;
+  }, [customerName, CUSTOMER_SUGGESTIONS]);
 
   // Cart / Items
   const [items, setItems] = useState<InvoiceItem[]>([]);
@@ -284,14 +303,32 @@ export function SaleScreen({
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Customer Input Card */}
+        {/* Customer Input Card with Quick Cash Suggestion & Dropdown */}
         <View style={styles.fieldGroup}>
           <View style={styles.labelRow}>
-            <MaterialCommunityIcons name="account-outline" size={16} color={colors.primary} />
-            <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
-              CUSTOMER NAME
-            </Text>
-            <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '700' }}>*</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+              <MaterialCommunityIcons name="account-outline" size={16} color={colors.primary} />
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                CUSTOMER NAME
+              </Text>
+              <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '700' }}>*</Text>
+            </View>
+            {customerName !== 'Cash' && (
+              <TouchableOpacity
+                style={[
+                  styles.quickCashChip,
+                  { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.16)' : '#DCFCE7' },
+                ]}
+                onPress={() => {
+                  setCustomerName('Cash');
+                  phoneInputRef.current?.focus();
+                }}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons name="cash" size={13} color="#16A34A" />
+                <Text style={styles.quickCashTxt}>Cash</Text>
+              </TouchableOpacity>
+            )}
           </View>
           <View
             style={[
@@ -305,9 +342,16 @@ export function SaleScreen({
             <TextInput
               style={[styles.inputText, { color: colors.textPrimary }]}
               value={customerName}
-              onChangeText={(text) => setCustomerName(capitalizeWords(text))}
+              onChangeText={(text) => {
+                setCustomerName(capitalizeWords(text));
+                setIsCustomerFocused(true);
+              }}
+              onFocus={() => setIsCustomerFocused(true)}
+              onBlur={() => {
+                setTimeout(() => setIsCustomerFocused(false), 250);
+              }}
               autoCapitalize="words"
-              placeholder="e.g. Basir Khan (or Walk-in)"
+              placeholder="e.g. Cash (or Basir Khan)"
               placeholderTextColor={colors.textMuted}
               returnKeyType="next"
               blurOnSubmit={false}
@@ -319,6 +363,53 @@ export function SaleScreen({
               </TouchableOpacity>
             )}
           </View>
+
+          {/* Autocomplete Dropdown Suggestions (e.g. typing "C" shows "Cash") */}
+          {isCustomerFocused && filteredCustomerSuggestions.length > 0 && (
+            <View
+              style={[
+                styles.customerSuggestionsCard,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.borderLight,
+                  shadowColor: isDark ? '#000000' : '#8899A6',
+                },
+              ]}
+            >
+              <View style={styles.customerSuggestionHeader}>
+                <Text style={[styles.customerSuggestionHeaderTxt, { color: colors.textMuted }]}>
+                  SUGGESTIONS (TAP TO SELECT)
+                </Text>
+              </View>
+              {filteredCustomerSuggestions.map((sug) => (
+                <TouchableOpacity
+                  key={sug}
+                  style={[
+                    styles.customerSuggestionItem,
+                    { borderTopColor: colors.borderLight },
+                  ]}
+                  onPress={() => {
+                    setCustomerName(sug);
+                    setIsCustomerFocused(false);
+                    phoneInputRef.current?.focus();
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <MaterialCommunityIcons
+                      name={sug === 'Cash' ? 'cash' : 'account-outline'}
+                      size={18}
+                      color={sug === 'Cash' ? '#16A34A' : colors.primary}
+                    />
+                    <Text style={[styles.customerSuggestionTxt, { color: colors.textPrimary }]}>
+                      {sug}
+                    </Text>
+                  </View>
+                  <MaterialCommunityIcons name="chevron-right" size={16} color={colors.textMuted} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
         </View>
 
         {/* Phone Number Input Card */}
@@ -478,5 +569,49 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     paddingVertical: 0,
+  },
+  quickCashChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  quickCashTxt: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#16A34A',
+  },
+  customerSuggestionsCard: {
+    borderWidth: 1,
+    borderRadius: 10,
+    marginTop: 6,
+    overflow: 'hidden',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  customerSuggestionHeader: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  customerSuggestionHeaderTxt: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  customerSuggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+  },
+  customerSuggestionTxt: {
+    fontSize: 13.5,
+    fontWeight: '700',
   },
 });

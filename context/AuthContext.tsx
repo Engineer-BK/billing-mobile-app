@@ -199,6 +199,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
           lastLoginAt: new Date().toISOString(),
         };
 
+        // Guarantee user profile document exists in Firestore
+        if (!cloudProfile) {
+          await syncService.saveUserProfile(uid, activeProfile);
+        }
+
         // Cache session locally
         await storageService.saveUserSession(activeProfile);
         setUser(activeProfile);
