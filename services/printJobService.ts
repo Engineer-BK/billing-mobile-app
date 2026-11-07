@@ -102,6 +102,26 @@ export function formatReceiptRow(params: ReceiptRowParams): string {
   }
 }
 
+/**
+ * Formats the summary Total Items/Qty line so the quantity value aligns
+ * strictly under the 'Qty' column rather than the 'Amount' column.
+ * 58mm: [Total Items/Qty: (19)] + [Qty (7)] + [Empty Padding (16)] = 42 cols
+ * 80mm: [Total Items/Qty: (23)] + [Qty (7)] + [Empty Padding (18)] = 48 cols
+ */
+export function formatTotalQtyRow(totalQty: string | number, is80mm: boolean): string {
+  const label = 'Total Items/Qty:';
+  // Columns preceding Qty: sNo (3) + Name (14/18) + gap1 (2) = 19 (58mm) or 23 (80mm)
+  const leftWidth = is80mm ? 23 : 19;
+  const qtyColWidth = 7;
+  const totalLineWidth = is80mm ? 48 : 42;
+
+  const leftPart = padCell(label, leftWidth, 'left');
+  const qtyPart = padCell(String(totalQty), qtyColWidth, 'right');
+  const rowContent = `${leftPart}${qtyPart}`;
+  const rightPad = ' '.repeat(Math.max(0, totalLineWidth - rowContent.length));
+  return `${rowContent}${rightPad}\n`;
+}
+
 export interface ColumnSpec {
   text: string;
   width: number;
@@ -388,8 +408,8 @@ export async function dispatchPrintReceipt(
     const discountValue = Math.round(Math.abs(discountNum));
     const finalAmountValue = roundMoney(invoice.finalAmount || invoice.grandTotal);
 
-    // Exact quantity (fractional allowed, e.g. 0.5 ml)
-    const lineQty = formatTwoColumns('Total Items/Qty:', String(invoice.totalQty), activeConfig.lineWidth);
+    // Exact quantity (fractional allowed, e.g. 0.5 ml) aligned strictly under Qty column
+    const lineQty = formatTotalQtyRow(invoice.totalQty, is80mm);
     const lineSub = formatTwoColumns('Subtotal:', subtotalValue, activeConfig.lineWidth);
     const lineDisc = formatTwoColumns('Total Discount:', discountValue > 0 ? `-${discountValue}` : '0', activeConfig.lineWidth);
     const lineFinal = formatTwoColumns('Final Amount:', finalAmountValue, activeConfig.lineWidth);

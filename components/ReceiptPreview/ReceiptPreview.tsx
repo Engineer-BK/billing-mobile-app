@@ -378,14 +378,34 @@ export function ReceiptPreview({
           );
         })}
 
-        {/* Dynamic Summary Block: Total Items/Qty, Subtotal, Total Discount, Final Amount */}
-        <View style={styles.summaryRow}>
-          <Text allowFontScaling={false} style={styles.summaryLabel}>
+        {/* Dynamic Summary Block: Total Items/Qty aligned strictly below Qty column */}
+        <View style={styles.tableRow}>
+          <Text
+            allowFontScaling={false}
+            style={[
+              styles.summaryLabel,
+              {
+                flex: activeConfig.gridMetrics[0] + activeConfig.gridMetrics[1],
+                fontSize: is58mm ? 9.5 : 11,
+              },
+            ]}
+          >
             Total Items/Qty:
           </Text>
-          <Text allowFontScaling={false} style={styles.summaryValue}>
+          <Text
+            allowFontScaling={false}
+            style={[
+              styles.summaryValue,
+              styles.txtRight,
+              {
+                flex: activeConfig.gridMetrics[2],
+                fontSize: is58mm ? 9.5 : 11,
+              },
+            ]}
+          >
             {invoice.totalQty}
           </Text>
+          <View style={{ flex: activeConfig.gridMetrics[3] + activeConfig.gridMetrics[4] }} />
         </View>
 
         <View style={styles.summaryRow}>

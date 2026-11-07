@@ -249,6 +249,26 @@ const row80mm = formatReceiptRow({
 });
 assertEqual(row80mm.length, 48, '80mm row formats to exactly 48 monospace columns');
 
+function formatTotalQtyRow(totalQty, is80mm) {
+  const label = 'Total Items/Qty:';
+  const leftWidth = is80mm ? 23 : 19;
+  const qtyColWidth = 7;
+  const totalLineWidth = is80mm ? 48 : 42;
+  const leftPart = padCell(label, leftWidth, 'left');
+  const qtyPart = padCell(String(totalQty), qtyColWidth, 'right');
+  const rowContent = `${leftPart}${qtyPart}`;
+  const rightPad = ' '.repeat(Math.max(0, totalLineWidth - rowContent.length));
+  return `${rowContent}${rightPad}`;
+}
+
+const totalQty58mm = formatTotalQtyRow('55', false);
+assertEqual(totalQty58mm.length, 42, '58mm Total Items/Qty line formats to exactly 42 monospace columns');
+assertEqual(totalQty58mm.substring(19, 26), '     55', '58mm Total Items/Qty aligns precisely inside the 7-col Qty boundary (col 19-25)');
+
+const totalQty80mm = formatTotalQtyRow('55', true);
+assertEqual(totalQty80mm.length, 48, '80mm Total Items/Qty line formats to exactly 48 monospace columns');
+assertEqual(totalQty80mm.substring(23, 30), '     55', '80mm Total Items/Qty aligns precisely inside the 7-col Qty boundary (col 23-29)');
+
 // ------------------------------------------------------------------
 // SUITE 5: SCHEMA & FIRESTORE PAYLOAD INTEGRITY
 // ------------------------------------------------------------------
