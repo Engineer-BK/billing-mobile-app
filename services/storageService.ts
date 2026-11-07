@@ -20,6 +20,7 @@ import { LicenseVerificationResult } from '../types/license';
 import { DEMO_GUEST_INVOICES } from '../constants/receipt';
 import { PresetItem } from '../types/item';
 import { DEFAULT_PRESET_ITEMS } from '../constants/presetItems';
+import { SavedCustomer } from '../types/customer';
 
 const STORAGE_KEYS = {
   INVOICES: '@flashbill:invoices_v1',
@@ -34,6 +35,8 @@ const STORAGE_KEYS = {
   STORE_LICENSE: '@flashbill:store_license_v1',
   SALE_DRAFT: '@flashbill:sale_draft_v1',
   RECEIPT_FOOTER: '@flashbill:receipt_footer_v1',
+  SAVED_CUSTOMERS: '@flashbill:saved_customers_v1',
+  DELETED_CUSTOMERS: '@flashbill:deleted_customers_v1',
 } as const;
 
 export interface SaleDraft {
@@ -413,6 +416,7 @@ export const storageService = {
         STORAGE_KEYS.INVOICES,
         STORAGE_KEYS.NEXT_INVOICE_NUM,
         STORAGE_KEYS.STORE_LICENSE,
+        STORAGE_KEYS.SAVED_CUSTOMERS,
       ]);
       return true;
     } catch (err) {
@@ -580,6 +584,150 @@ export const storageService = {
     } catch (err) {
       console.warn('storageService.saveReceiptFooter error:', err);
       return false;
+    }
+  },
+
+  // ==========================================
+  // 9. SAVED STORE CUSTOMERS PERSISTENCE
+  // ==========================================
+
+  /**
+   * Load saved store customers from local offline cache.
+   */
+  async loadSavedCustomers(): Promise<SavedCustomer[]> {
+    try {
+      const json = await AsyncStorage.getItem(STORAGE_KEYS.SAVED_CUSTOMERS);
+      if (!json) return [];
+      const parsed = JSON.parse(json);
+      return Array.isArray(parsed) ? (parsed as SavedCustomer[]) : [];
+    } catch (err) {
+      console.warn('storageService.loadSavedCustomers error:', err);
+      return [];
+    }
+  },
+
+  /**
+   * Load list of customer names that were explicitly deleted by the user.
+   */
+  async loadDeletedCustomerNames(): Promise<string[]> {
+    try {
+      const json = await AsyncStorage.getItem(STORAGE_KEYS.DELETED_CUSTOMERS);
+      if (!json) return [];
+      const parsed = JSON.parse(json);
+      return Array.isArray(parsed) ? (parsed as string[]) : [];
+    } catch (err) {
+      console.warn('storageService.loadDeletedCustomerNames error:', err);
+      return [];
+    }
+  },
+
+  /**
+   * Save complete list of saved customers to local offline cache.
+   */
+  async saveSavedCustomers(customers: SavedCustomer[]): Promise<boolean> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.SAVED_CUSTOMERS, JSON.stringify(customers));
+      return true;
+    } catch (err) {
+      console.warn('storageService.saveSavedCustomers error:', err);
+      return false;
+    }
+  },
+
+  /**
+   * Save or update an individual customer record.
+   * If customer exists by case-insensitive name match, updates phone & timestamp.
+   * If new, adds to list. Also removes from deleted list if present.
+   */
+  async saveCustomer(name: string, phone?: string): Promise<SavedCustomer[]> {
+    const trimmedName = name.trim();
+    if (!trimmedName || trimmedName.toLowerCase() === 'cash' || trimmedName.toLowerCase() === 'walk-in customer') {
+      return this.loadSavedCustomers();
+    }
+
+    try {
+      const current = await this.loadSavedCustomers();
+      const deletedNames = await this.loadDeletedCustomerNames();
+
+      // Remove from deleted list if previously deleted
+      const updatedDeleted = deletedNames.filter(
+        (n) => n.toLowerCase() !== trimmedName.toLowerCase()
+      );
+      if (updatedDeleted.length !== deletedNames.length) {
+        await AsyncStorage.setItem(STORAGE_KEYS.DELETED_CUSTOMERS, JSON.stringify(updatedDeleted));
+      }
+
+      const existingIndex = current.findIndex(
+        (c) => c.name.toLowerCase() === trimmedName.toLowerCase()
+      );
+
+      const now = Date.now();
+      let updatedList: SavedCustomer[];
+
+      if (existingIndex >= 0) {
+        // Update existing customer
+        const existing = current[existingIndex];
+        const updatedCustomer: SavedCustomer = {
+          ...existing,
+          name: trimmedName,
+          phone: phone ? phone.trim() : existing.phone,
+          updatedAt: now,
+        };
+        updatedList = [
+          updatedCustomer,
+          ...current.filter((_, idx) => idx !== existingIndex),
+        ];
+      } else {
+        // Create new customer
+        const newCustomer: SavedCustomer = {
+          id: `cust_${now}_${Math.random().toString(36).substr(2, 4)}`,
+          name: trimmedName,
+          phone: phone ? phone.trim() : undefined,
+          createdAt: now,
+          updatedAt: now,
+        };
+        updatedList = [newCustomer, ...current];
+      }
+
+      await this.saveSavedCustomers(updatedList);
+      return updatedList;
+    } catch (err) {
+      console.warn('storageService.saveCustomer error:', err);
+      return this.loadSavedCustomers();
+    }
+  },
+
+  /**
+   * Delete a customer by id or name. Also records in deleted list so
+   * automatic invoice history sync won't resurrect it.
+   */
+  async deleteCustomer(nameOrId: string): Promise<SavedCustomer[]> {
+    const trimmed = nameOrId.trim();
+    if (!trimmed) return this.loadSavedCustomers();
+
+    try {
+      const current = await this.loadSavedCustomers();
+      const target = current.find(
+        (c) => c.id === trimmed || c.name.toLowerCase() === trimmed.toLowerCase()
+      );
+
+      const updatedList = current.filter(
+        (c) => c.id !== trimmed && c.name.toLowerCase() !== trimmed.toLowerCase()
+      );
+
+      // Record in deleted names list
+      const deletedNames = await this.loadDeletedCustomerNames();
+      const nameToAdd = target ? target.name.toLowerCase() : trimmed.toLowerCase();
+      if (!deletedNames.includes(nameToAdd)) {
+        deletedNames.push(nameToAdd);
+        await AsyncStorage.setItem(STORAGE_KEYS.DELETED_CUSTOMERS, JSON.stringify(deletedNames));
+      }
+
+      await this.saveSavedCustomers(updatedList);
+      return updatedList;
+    } catch (err) {
+      console.warn('storageService.deleteCustomer error:', err);
+      return this.loadSavedCustomers();
     }
   },
 };

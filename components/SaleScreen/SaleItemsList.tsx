@@ -15,17 +15,20 @@ import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { InvoiceItem } from '../../types/billing';
+import { formatItemName, formatUnit } from '../../utils/formatters';
 
 interface SaleItemsListProps {
   items: InvoiceItem[];
   onOpenAddItemModal: () => void;
   onRemoveItem: (index: number) => void;
+  onEditItem?: (item: InvoiceItem, index: number) => void;
 }
 
 export function SaleItemsList({
   items,
   onOpenAddItemModal,
   onRemoveItem,
+  onEditItem,
 }: SaleItemsListProps): React.JSX.Element {
   const { colors, isDark } = useTheme();
 
@@ -93,12 +96,12 @@ export function SaleItemsList({
 
       {/* Item Rows with Sequential Numbering (#1, #2, ...) */}
       {items.map((item, index) => {
-        const unitDisplay = item.unit ? ` ${item.unit}` : ' PCS';
+        const unitDisplay = item.unit ? ` ${formatUnit(item.unit)}` : ' Pcs';
         const hasDisc = item.discountPercent && parseFloat(item.discountPercent) > 0;
         const serialNumber = `#${index + 1}`;
 
         return (
-          <View
+          <TouchableOpacity
             key={`${item.sNo}-${index}`}
             style={[
               styles.itemCard,
@@ -107,6 +110,8 @@ export function SaleItemsList({
                 borderColor: colors.border,
               },
             ]}
+            onPress={() => onEditItem?.(item, index)}
+            activeOpacity={0.7}
           >
             {/* Sequential Numbering Badge (#1, #2, ...) */}
             <View
@@ -126,7 +131,7 @@ export function SaleItemsList({
             {/* Item Info */}
             <View style={styles.itemInfo}>
               <Text style={[styles.itemName, { color: colors.textPrimary }]}>
-                {item.name}
+                {formatItemName(item.name)}
               </Text>
               <View style={styles.itemMetaRow}>
                 <Text style={[styles.itemFormula, { color: colors.textSecondary }]}>
@@ -159,7 +164,7 @@ export function SaleItemsList({
                 />
               </TouchableOpacity>
             </View>
-          </View>
+          </TouchableOpacity>
         );
       })}
 

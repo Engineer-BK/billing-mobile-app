@@ -38,6 +38,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { PresetItem } from '../../types/item';
 import { ItemEditModal } from './ItemEditModal';
+import { formatItemName, formatUnit } from '../../utils/formatters';
 
 interface ItemsScreenProps {
   items: PresetItem[];
@@ -388,10 +389,10 @@ export function ItemsScreen({
               <View style={styles.cardHeaderRow}>
                 <View style={styles.nameContainer}>
                   <Text style={[styles.itemNameTxt, { color: colors.textPrimary }]}>
-                    {item.name}
+                    {formatItemName(item.name)}
                   </Text>
                   <Text style={[styles.itemSubDetail, { color: colors.textSecondary }]}>
-                    {`Unit: ${item.unit}`}
+                    {`Unit: ${formatUnit(item.unit)}`}
                   </Text>
                 </View>
 
@@ -475,7 +476,7 @@ export function ItemsScreen({
                         {item.price}
                       </Text>
                       <Text style={[styles.perUnitTxt, { color: colors.textMuted }]}>
-                        /{item.unit}
+                        /{formatUnit(item.unit)}
                       </Text>
                     </View>
                   </View>
@@ -495,7 +496,7 @@ export function ItemsScreen({
                       </Text>
                       {item.purchasePrice ? (
                         <Text style={[styles.perUnitTxt, { color: colors.textMuted }]}>
-                          /{item.unit}
+                          /{formatUnit(item.unit)}
                         </Text>
                       ) : null}
                     </View>

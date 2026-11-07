@@ -19,6 +19,7 @@ import { BluetoothEscposPrinter } from './bluetoothPrinter';
 import { PrinterProfile } from '../types/printer';
 import { InvoiceData } from '../types/billing';
 import { storageService } from './storageService';
+import { formatItemName, formatUnit } from '../utils/formatters';
 
 export interface PrintJobResult {
   success: boolean;
@@ -314,18 +315,26 @@ export async function dispatchPrintReceipt(
     await BluetoothEscposPrinter.printText(tableHeader, { fonttype: activeFont });
     await BluetoothEscposPrinter.printText(dividerLine, { fonttype: activeFont });
 
-    // --- 6. Items List Loop (Alphabetical A-Z, Multi-Line Word Wrap & Per-Item Dashed Divider) ---
+    // --- 6. Items List Loop (Alphabetical A-Z, Tight 2-3mm Spacing, Zero Inter-Item Dividers) ---
     const sortedItems = [...invoice.items].sort((a, b) =>
       a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
     );
 
     const nameColWidth = is80mm ? 18 : 14;
 
+    // Set tight line spacing (~24 dots = ~3mm) to reduce paper waste
+    try {
+      await BluetoothEscposPrinter.printerLineSpace(24);
+    } catch {
+      // Ignore if unsupported by printer
+    }
+
     for (let i = 0; i < sortedItems.length; i++) {
       const record = sortedItems[i];
       const sNo = String(i + 1);
       const formattedQty = String(record.qty).trim();
-      const unitText = record.unit ? ` ${record.unit.trim()}` : '';
+      const unitCased = formatUnit(record.unit);
+      const unitText = unitCased ? ` ${unitCased}` : '';
       const qtyWithUnit = `${formattedQty}${unitText}`.trim();
 
       // Clean whole-number representation to fit columns neatly & free up space
@@ -334,8 +343,9 @@ export async function dispatchPrintReceipt(
       const p = parseFloat(record.price) || 0;
       const grossAmt = roundMoney(q * p);
 
-      // Word-wrap item name without breaking words mid-character
-      const nameLines = wrapTextToWords(record.name, nameColWidth);
+      // Word-wrap UPPERCASE item name without breaking words mid-character
+      const upperItemName = formatItemName(record.name);
+      const nameLines = wrapTextToWords(upperItemName, nameColWidth);
 
       // Line 1: SNo + First line of Name + Qty + Price + Amount
       const firstRow = formatReceiptRow({
@@ -396,10 +406,17 @@ export async function dispatchPrintReceipt(
           await BluetoothEscposPrinter.printText(finalLine, { fonttype: activeFont });
         }
       }
-
-      // Separator dashed line between each item (as requested by user)
-      await BluetoothEscposPrinter.printText(dividerLine, { fonttype: activeFont });
     }
+
+    // Reset back to standard line spacing for totals
+    try {
+      await BluetoothEscposPrinter.printerLineSpace(30);
+    } catch {
+      // Ignore
+    }
+
+    // Single divider line closing items table before totals
+    await BluetoothEscposPrinter.printText(dividerLine, { fonttype: activeFont });
 
     // --- 7. Summary Totals (Clean integer rounding) ---
     const subtotalValue = roundMoney(invoice.subtotal || invoice.grandTotal);
@@ -474,7 +491,7 @@ export async function dispatchTestPrint(
         sNo: '1',
         name: is80mm ? '80MM HIGH-DENSITY LINE' : '58MM STANDARD LINE',
         qty: '1',
-        unit: 'PCS',
+        unit: 'Pcs',
         price: '50.00',
         amt: '50.00',
       },
@@ -482,7 +499,7 @@ export async function dispatchTestPrint(
         sNo: '2',
         name: 'FONT & CUTTER CHECK',
         qty: '2',
-        unit: 'KG',
+        unit: 'Kg',
         price: '25.00',
         amt: '50.00',
       },

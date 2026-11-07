@@ -387,6 +387,135 @@ const oversell = deductInventoryStock([{ id: 'biscuit-1', name: 'Parle-G', stock
 assertEqual(oversell[0].stockQuantity, -3, 'Oversold inventory gracefully tracks negative stock (-3)');
 
 // ------------------------------------------------------------------
+// SUITE 7: UNIVERSAL UPPERCASE ITEMS & CAPITALIZED UNITS
+// ------------------------------------------------------------------
+console.log('\n--- Suite 7: Item Name Uppercase & Unit Title-Casing ---');
+
+function formatItemName(name) {
+  if (!name) return '';
+  return name.trim().toUpperCase();
+}
+
+function formatUnit(unit) {
+  if (!unit) return '';
+  const trimmed = unit.trim();
+  const upper = trimmed.toUpperCase();
+
+  switch (upper) {
+    case 'KG':
+    case 'KGS':
+    case 'KILOGRAM':
+      return 'Kg';
+    case 'GM':
+    case 'GMS':
+    case 'GRAM':
+    case 'GRAMS':
+      return 'Gm';
+    case 'G':
+      return 'G';
+    case 'L':
+    case 'LTR':
+    case 'LITRE':
+    case 'LITER':
+      return 'L';
+    case 'ML':
+    case 'MILLILITRE':
+    case 'MILLILITER':
+      return 'Ml';
+    case 'PCS':
+    case 'PC':
+    case 'PIECE':
+    case 'PIECES':
+      return 'Pcs';
+    case 'PKT':
+    case 'PACKET':
+    case 'PACKETS':
+      return 'Pkt';
+    case 'DZ':
+    case 'DOZ':
+    case 'DOZEN':
+      return 'Doz';
+    case 'BOX':
+    case 'BOXES':
+      return 'Box';
+    case 'BAG':
+    case 'BAGS':
+      return 'Bag';
+    case 'BTL':
+    case 'BOTTLE':
+    case 'BOTTLES':
+      return 'Btl';
+    case 'TIN':
+    case 'TINS':
+      return 'Tin';
+    case 'CAN':
+    case 'CANS':
+      return 'Can';
+    case 'CTN':
+    case 'CARTON':
+      return 'Ctn';
+    case 'ROLL':
+    case 'ROLLS':
+      return 'Roll';
+    case 'QTL':
+    case 'QUINTAL':
+      return 'Qtl';
+    case 'TON':
+    case 'TONS':
+      return 'Ton';
+    case 'PLT':
+    case 'PLATE':
+      return 'Plt';
+    case 'CUP':
+    case 'CUPS':
+      return 'Cup';
+    case 'PR':
+    case 'PAIR':
+    case 'PAIRS':
+      return 'Pr';
+    case 'SET':
+    case 'SETS':
+      return 'Set';
+    case 'M':
+    case 'METER':
+    case 'METERS':
+      return 'M';
+    case 'SQFT':
+    case 'SQ FT':
+      return 'Sqft';
+    default:
+      if (upper.length === 1) return upper;
+      return upper.charAt(0) + upper.slice(1).toLowerCase();
+  }
+}
+
+assertEqual(formatItemName('basmati rice'), 'BASMATI RICE', 'Item name lowercase converted to UPPERCASE');
+assertEqual(formatItemName('  Sunflower Oil  '), 'SUNFLOWER OIL', 'Item name with whitespace trimmed and UPPERCASE');
+assertEqual(formatItemName('TOOR DAL'), 'TOOR DAL', 'Already uppercase remains unchanged');
+
+assertEqual(formatUnit('KG'), 'Kg', 'KG standardizes to Kg');
+assertEqual(formatUnit('kg'), 'Kg', 'kg standardizes to Kg');
+assertEqual(formatUnit('PCS'), 'Pcs', 'PCS standardizes to Pcs');
+assertEqual(formatUnit('l'), 'L', 'l standardizes to L');
+assertEqual(formatUnit('ml'), 'Ml', 'ml standardizes to Ml');
+assertEqual(formatUnit('gm'), 'Gm', 'gm standardizes to Gm');
+assertEqual(formatUnit('PKT'), 'Pkt', 'PKT standardizes to Pkt');
+assertEqual(formatUnit('BOX'), 'Box', 'BOX standardizes to Box');
+
+// Test thermal line formatting with uppercase name and formatted unit
+const receiptRowUpper58 = formatReceiptRow({
+  sNo: '1',
+  name: formatItemName('Basmati Rice'),
+  qty: `2 ${formatUnit('KG')}`,
+  price: '80',
+  amount: '160',
+  is80mm: false,
+});
+assertEqual(receiptRowUpper58.length, 42, '58mm row with formatted item/unit preserves exact 42-col width');
+assertEqual(receiptRowUpper58.substring(3, 17), 'BASMATI RICE  ', 'Uppercase item name formatted correctly in 58mm');
+assertEqual(receiptRowUpper58.substring(19, 26), '   2 Kg', 'Title-cased unit formatted cleanly in 58mm');
+
+// ------------------------------------------------------------------
 // FINAL SUMMARY
 // ------------------------------------------------------------------
 console.log('\n====================================================');

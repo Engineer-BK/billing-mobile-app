@@ -27,6 +27,7 @@ import { db } from '../config/firebase';
 import { InvoiceData } from '../types/billing';
 import { UserProfile } from '../types/auth';
 import { PresetItem } from '../types/item';
+import { SavedCustomer } from '../types/customer';
 import { storageService } from './storageService';
 
 export type CloudSyncStatus = 'synced' | 'syncing' | 'offline';
@@ -547,6 +548,77 @@ export const syncService = {
     } catch (err) {
       console.warn('subscribeToPresetItems error:', err);
       return () => {};
+    }
+  },
+
+  // ==========================================
+  // STORE CUSTOMERS DUAL-SYNC ENGINE
+  // ==========================================
+
+  /**
+   * Background Push: Save or update a single customer in Cloud Firestore.
+   */
+  async pushCustomer(userId: string, customer: SavedCustomer): Promise<{ success: boolean; error?: string }> {
+    if (!userId || userId === 'guest_user' || !customer.id) {
+      return { success: false, error: 'Guest or invalid user' };
+    }
+
+    try {
+      const customerRef = doc(db, 'users', userId, 'customers', customer.id);
+      const payload: Record<string, any> = {
+        id: customer.id,
+        name: customer.name || '',
+        phone: customer.phone || '',
+        createdAt: customer.createdAt || Date.now(),
+        updatedAt: customer.updatedAt || Date.now(),
+      };
+
+      await setDoc(customerRef, payload, { merge: true });
+      return { success: true };
+    } catch (err: any) {
+      console.warn('syncService.pushCustomer notice:', err?.message || err);
+      return { success: false, error: err?.message || 'Sync queued offline' };
+    }
+  },
+
+  /**
+   * Background Delete: Remove a customer from Cloud Firestore.
+   */
+  async deleteCustomer(userId: string, customerId: string): Promise<boolean> {
+    if (!userId || userId === 'guest_user' || !customerId) return false;
+    try {
+      const customerRef = doc(db, 'users', userId, 'customers', customerId);
+      await deleteDoc(customerRef);
+      return true;
+    } catch (err) {
+      console.warn('syncService.deleteCustomer notice:', err);
+      return false;
+    }
+  },
+
+  /**
+   * Multi-Device Restore: Pull all customers from Cloud Firestore.
+   */
+  async pullAllCustomers(userId: string): Promise<SavedCustomer[]> {
+    if (!userId || userId === 'guest_user') return [];
+    try {
+      const colRef = collection(db, 'users', userId, 'customers');
+      const snap = await getDocs(colRef);
+      const customers: SavedCustomer[] = [];
+      snap.forEach((d) => {
+        const data = d.data();
+        customers.push({
+          id: data.id || d.id,
+          name: data.name || '',
+          phone: data.phone || undefined,
+          createdAt: data.createdAt || Date.now(),
+          updatedAt: data.updatedAt || Date.now(),
+        });
+      });
+      return customers;
+    } catch (err) {
+      console.warn('syncService.pullAllCustomers notice:', err);
+      return [];
     }
   },
 };

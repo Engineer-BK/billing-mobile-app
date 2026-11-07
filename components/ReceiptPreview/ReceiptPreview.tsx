@@ -20,6 +20,7 @@ import { DashedDivider } from './DashedDivider';
 import { useTheme } from '../../hooks/useTheme';
 import { storageService } from '../../services/storageService';
 import { wrapTextToWords, roundMoney } from '../../services/printJobService';
+import { formatItemName, formatUnit } from '../../utils/formatters';
 
 interface ReceiptPreviewProps {
   activeConfig: PrinterProfile;
@@ -226,11 +227,12 @@ export function ReceiptPreview({
 
         <DashedDivider />
 
-        {/* Alphabetically Ordered Items Loop with Multi-Line Word-Wrapping & Per-Item Dashed Dividers */}
+        {/* Alphabetically Ordered Items Loop with Multi-Line Word-Wrapping & Compact 2-3mm Spacing */}
         {sortedItems.map((it, idx) => {
           const sNo = String(idx + 1);
           const formattedQty = String(it.qty).trim();
-          const unitStr = it.unit ? ` ${it.unit.trim()}` : '';
+          const unitCased = formatUnit(it.unit);
+          const unitStr = unitCased ? ` ${unitCased}` : '';
           const qtyUnitStr = `${formattedQty}${unitStr}`.trim();
 
           const cleanPrice = roundMoney(it.price);
@@ -249,13 +251,14 @@ export function ReceiptPreview({
           const finalItemAmt = Math.round(grossVal - roundedDiscAmt);
 
           const nameColWidth = is58mm ? 14 : 18;
-          const nameLines = wrapTextToWords(it.name, nameColWidth);
+          const upperItemName = formatItemName(it.name);
+          const nameLines = wrapTextToWords(upperItemName, nameColWidth);
           const cellFontSize = is58mm ? 9.5 : 11.5;
 
           return (
-            <View key={`${it.sNo}_${idx}`}>
+            <View key={`${it.sNo}_${idx}`} style={{ marginVertical: 1 }}>
               {/* Line 1: # + First Line of Name + Qty + Price + Amount */}
-              <View style={styles.tableRow}>
+              <View style={[styles.tableRow, { marginVertical: 1 }]}>
                 <Text
                   allowFontScaling={false}
                   style={[
@@ -310,7 +313,7 @@ export function ReceiptPreview({
               {nameLines.slice(1).map((lineTxt, lineIdx) => (
                 <View
                   key={`line_${lineIdx}`}
-                  style={[styles.tableRow, { paddingLeft: is58mm ? 16 : 20 }]}
+                  style={[styles.tableRow, { paddingLeft: is58mm ? 16 : 20, marginVertical: 0.5 }]}
                 >
                   <Text
                     allowFontScaling={false}
@@ -327,7 +330,7 @@ export function ReceiptPreview({
               {/* Client Receipt Style Discount Breakdown (Matching client's Item #6) */}
               {hasDiscount && (
                 <>
-                  <View style={[styles.tableRow, { paddingLeft: is58mm ? 16 : 20, justifyContent: 'space-between' }]}>
+                  <View style={[styles.tableRow, { paddingLeft: is58mm ? 16 : 20, justifyContent: 'space-between', marginVertical: 0.5 }]}>
                     <Text
                       allowFontScaling={false}
                       style={[
@@ -348,7 +351,7 @@ export function ReceiptPreview({
                       {`-${roundedDiscAmt}`}
                     </Text>
                   </View>
-                  <View style={[styles.tableRow, { paddingLeft: is58mm ? 16 : 20, justifyContent: 'space-between' }]}>
+                  <View style={[styles.tableRow, { paddingLeft: is58mm ? 16 : 20, justifyContent: 'space-between', marginVertical: 0.5 }]}>
                     <Text
                       allowFontScaling={false}
                       style={[
@@ -371,12 +374,12 @@ export function ReceiptPreview({
                   </View>
                 </>
               )}
-
-              {/* Dashed line divider between each item */}
-              <DashedDivider />
             </View>
           );
         })}
+
+        {/* Dashed line closing table before Summary Totals */}
+        <DashedDivider />
 
         {/* Dynamic Summary Block: Total Items/Qty aligned strictly below Qty column */}
         <View style={styles.tableRow}>

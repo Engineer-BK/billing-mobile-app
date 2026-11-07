@@ -28,6 +28,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { PresetItem } from '../../types/item';
 import { RETAIL_UNITS } from '../SaleScreen/AddItemModal';
+import { formatItemName, formatUnit } from '../../utils/formatters';
 
 export const COMMON_CATEGORIES = [
   'Rice & Grains',
@@ -64,7 +65,7 @@ export function ItemEditModal({
   const [price, setPrice] = useState<string>(''); // Sale Price
   const [purchasePrice, setPurchasePrice] = useState<string>(''); // Purchase Price
   const [stockQuantity, setStockQuantity] = useState<string>(''); // In Stock
-  const [unit, setUnit] = useState<string>('KG');
+  const [unit, setUnit] = useState<string>('Kg');
   const [discount, setDiscount] = useState<string>('');
   const [category, setCategory] = useState<string>('General');
 
@@ -86,11 +87,11 @@ export function ItemEditModal({
   // Initialize or reset form fields whenever modal opens
   useEffect(() => {
     if (item) {
-      setName(item.name || '');
+      setName(formatItemName(item.name || ''));
       setPrice(item.price || '');
       setPurchasePrice(item.purchasePrice || '');
       setStockQuantity(item.stockQuantity !== undefined ? String(item.stockQuantity) : '');
-      setUnit(item.unit || 'KG');
+      setUnit(formatUnit(item.unit || 'Kg'));
       setDiscount(item.defaultDiscount || '');
       setCategory(item.category || 'General');
     } else {
@@ -98,7 +99,7 @@ export function ItemEditModal({
       setPrice('');
       setPurchasePrice('');
       setStockQuantity('');
-      setUnit('KG');
+      setUnit('Kg');
       setDiscount('');
       setCategory('General');
     }
@@ -178,7 +179,7 @@ export function ItemEditModal({
   }, [categorySearch]);
 
   const handleSave = () => {
-    const trimmedName = name.trim();
+    const trimmedName = formatItemName(name);
     const cleanPrice = parseFloat(price.trim());
 
     if (!trimmedName) {
@@ -209,7 +210,7 @@ export function ItemEditModal({
         stockQuantity: cleanStock,
         previousPrice: priceChanged ? item.price : item.previousPrice,
         priceChangedAt: priceChanged ? now : item.priceChangedAt,
-        unit: unit.trim().toUpperCase() || 'PCS',
+        unit: formatUnit(unit) || 'Pcs',
         defaultDiscount: discount.trim() ? Math.min(100, Math.max(0, parseFloat(discount) || 0)).toString() : undefined,
         category: category.trim() || 'General',
         updatedAt: now,
@@ -222,7 +223,7 @@ export function ItemEditModal({
         price: priceStr,
         purchasePrice: cleanPurchase,
         stockQuantity: cleanStock,
-        unit: unit.trim().toUpperCase() || 'PCS',
+        unit: formatUnit(unit) || 'Pcs',
         defaultDiscount: discount.trim() ? Math.min(100, Math.max(0, parseFloat(discount) || 0)).toString() : undefined,
         category: category.trim() || 'General',
         updatedAt: now,
@@ -325,9 +326,9 @@ export function ItemEditModal({
                     ref={nameRef}
                     style={[styles.textInput, { color: colors.textPrimary }]}
                     value={name}
-                    onChangeText={(txt) => setName(txt.replace(/\b\w/g, (char) => char.toUpperCase()))}
-                    autoCapitalize="words"
-                    placeholder="e.g. Basmati Rice, Sunflower Oil"
+                    onChangeText={(txt) => setName(txt.toUpperCase())}
+                    autoCapitalize="characters"
+                    placeholder="e.g. BASMATI RICE, SUNFLOWER OIL"
                     placeholderTextColor={colors.textMuted}
                     autoFocus={!item}
                     returnKeyType="next"
@@ -461,7 +462,7 @@ export function ItemEditModal({
                     }}
                     activeOpacity={0.8}
                   >
-                    <Text style={[styles.dropdownBtnTxt, { color: colors.textPrimary }]}>{unit}</Text>
+                    <Text style={[styles.dropdownBtnTxt, { color: colors.textPrimary }]}>{formatUnit(unit)}</Text>
                     <MaterialCommunityIcons name="chevron-down" size={20} color={colors.primary} />
                   </TouchableOpacity>
                 </View>

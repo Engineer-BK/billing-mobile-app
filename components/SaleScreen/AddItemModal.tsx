@@ -16,7 +16,7 @@
  * - Bound directly to FlashBill branding colors (constants/theme.ts)
  */
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -35,6 +35,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { InvoiceItem } from '../../types/billing';
 import { PresetItem } from '../../types/item';
+import { formatItemName, formatUnit } from '../../utils/formatters';
 
 export interface UnitOption {
   label: string;
@@ -44,51 +45,57 @@ export interface UnitOption {
 
 export const RETAIL_UNITS: UnitOption[] = [
   // Common Retail Units
-  { label: 'Kilogram', code: 'KG', category: 'Weight' },
-  { label: 'Gram', code: 'G', category: 'Weight' },
-  { label: 'Piece', code: 'PCS', category: 'Count' },
-  { label: 'Packet', code: 'PKT', category: 'Count' },
-  { label: 'Dozen', code: 'DZ', category: 'Count' },
+  { label: 'Kilogram', code: 'Kg', category: 'Weight' },
+  { label: 'Gram', code: 'Gm', category: 'Weight' },
+  { label: 'Piece', code: 'Pcs', category: 'Count' },
+  { label: 'Packet', code: 'Pkt', category: 'Count' },
+  { label: 'Dozen', code: 'Doz', category: 'Count' },
   { label: 'Litre', code: 'L', category: 'Volume' },
-  { label: 'Millilitre', code: 'ML', category: 'Volume' },
-  { label: 'Box', code: 'BOX', category: 'Count' },
-  { label: 'Bag', code: 'BAG', category: 'Count' },
-  { label: 'Bundle', code: 'BDL', category: 'Count' },
-  { label: 'Bottle', code: 'BTL', category: 'Volume' },
-  { label: 'Can', code: 'CAN', category: 'Volume' },
-  { label: 'Tin', code: 'TIN', category: 'Volume' },
-  { label: 'Carton', code: 'CTN', category: 'Count' },
-  { label: 'Roll', code: 'ROLL', category: 'Count' },
-  { label: 'Quintal', code: 'QTL', category: 'Weight' },
-  { label: 'Metric Ton', code: 'TON', category: 'Weight' },
-  { label: 'Plate', code: 'PLT', category: 'Count' },
-  { label: 'Cup', code: 'CUP', category: 'Count' },
-  { label: 'Pair', code: 'PR', category: 'Count' },
-  { label: 'Set', code: 'SET', category: 'Count' },
+  { label: 'Millilitre', code: 'Ml', category: 'Volume' },
+  { label: 'Box', code: 'Box', category: 'Count' },
+  { label: 'Bag', code: 'Bag', category: 'Count' },
+  { label: 'Bundle', code: 'Bdl', category: 'Count' },
+  { label: 'Bottle', code: 'Btl', category: 'Volume' },
+  { label: 'Can', code: 'Can', category: 'Volume' },
+  { label: 'Tin', code: 'Tin', category: 'Volume' },
+  { label: 'Carton', code: 'Ctn', category: 'Count' },
+  { label: 'Roll', code: 'Roll', category: 'Count' },
+  { label: 'Quintal', code: 'Qtl', category: 'Weight' },
+  { label: 'Metric Ton', code: 'Ton', category: 'Weight' },
+  { label: 'Plate', code: 'Plt', category: 'Count' },
+  { label: 'Cup', code: 'Cup', category: 'Count' },
+  { label: 'Pair', code: 'Pr', category: 'Count' },
+  { label: 'Set', code: 'Set', category: 'Count' },
   { label: 'Meter', code: 'M', category: 'Length' },
-  { label: 'Square Feet', code: 'SQFT', category: 'Area' },
+  { label: 'Square Feet', code: 'Sqft', category: 'Area' },
 ];
 
 interface AddItemModalProps {
   visible: boolean;
   itemIndex: number;
   presetItems?: PresetItem[];
+  editingItem?: InvoiceItem | null;
+  editingIndex?: number | null;
   onClose: () => void;
   onAddItem: (item: InvoiceItem) => void;
+  onUpdateItem?: (item: InvoiceItem, index: number) => void;
 }
 
 export function AddItemModal({
   visible,
   itemIndex,
   presetItems = [],
+  editingItem,
+  editingIndex,
   onClose,
   onAddItem,
+  onUpdateItem,
 }: AddItemModalProps): React.JSX.Element {
   const { colors, isDark } = useTheme();
 
   const [itemName, setItemName] = useState<string>('');
-  const [qty, setQty] = useState<string>('1');
-  const [unit, setUnit] = useState<string>('KG');
+  const [qty, setQty] = useState<string>('');
+  const [unit, setUnit] = useState<string>('Kg');
   const [price, setPrice] = useState<string>('');
   const [discountPercent, setDiscountPercent] = useState<string>('');
 
@@ -102,6 +109,29 @@ export function AddItemModal({
   const [showSuggestions, setShowSuggestions] = useState<boolean>(true);
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
 
+  // Synchronize state when modal opens or editingItem changes
+  useEffect(() => {
+    if (visible) {
+      if (editingItem) {
+        setItemName(formatItemName(editingItem.name || ''));
+        setQty(editingItem.qty || '');
+        setUnit(formatUnit(editingItem.unit || 'Kg'));
+        setPrice(editingItem.price || '');
+        setDiscountPercent(editingItem.discountPercent || '');
+        setSelectedPresetId(editingItem.itemId || null);
+        setShowSuggestions(false);
+      } else {
+        setItemName('');
+        setQty('');
+        setUnit('Kg');
+        setPrice('');
+        setDiscountPercent('');
+        setSelectedPresetId(null);
+        setShowSuggestions(true);
+      }
+    }
+  }, [visible, editingItem]);
+
   // Live filtered suggestions from catalog presets
   const suggestions = useMemo(() => {
     if (!itemName.trim() || !presetItems || presetItems.length === 0) return [];
@@ -113,8 +143,8 @@ export function AddItemModal({
 
   const handleSelectSuggestion = (selected: PresetItem) => {
     setSelectedPresetId(selected.id);
-    setItemName(selected.name);
-    setUnit(selected.unit || 'KG');
+    setItemName(formatItemName(selected.name));
+    setUnit(formatUnit(selected.unit || 'Kg'));
     setPrice(selected.price || '');
     setDiscountPercent(selected.defaultDiscount || '');
     setShowSuggestions(false);
@@ -168,11 +198,15 @@ export function AddItemModal({
     };
   }, [qty, price, discountPercent]);
 
-  // Add Item to Bill
+  // Add or Update Item in Bill
   const handleAdd = () => {
-    const finalName = itemName.trim() || 'General Item';
-    const finalQty = qty.trim() || '1';
-    const finalUnit = unit.trim().toUpperCase() || 'PCS';
+    const finalName = formatItemName(itemName) || 'GENERAL ITEM';
+    const cleanQty = qty.trim();
+    if (!cleanQty || parseFloat(cleanQty) <= 0) {
+      qtyRef.current?.focus();
+      return;
+    }
+    const finalUnit = formatUnit(unit) || 'Pcs';
     const finalPrice = price.trim() || '0';
     const finalAmt = calcs.netAmount || '0';
 
@@ -185,25 +219,31 @@ export function AddItemModal({
       if (match) linkedId = match.id;
     }
 
-    onAddItem({
-      sNo: itemIndex.toString(),
+    const payload: InvoiceItem = {
+      sNo: (editingItem && editingIndex !== null && editingIndex !== undefined ? editingIndex + 1 : itemIndex).toString(),
       itemId: linkedId || undefined,
       name: finalName,
-      qty: finalQty,
+      qty: cleanQty,
       unit: finalUnit,
       price: finalPrice,
       discountPercent: calcs.hasDiscount ? calcs.discountPercentNum.toString() : undefined,
       discountAmount: calcs.hasDiscount ? calcs.discountAmount : undefined,
       amt: finalAmt,
-    });
+    };
+
+    if (editingItem && onUpdateItem && editingIndex !== null && editingIndex !== undefined) {
+      onUpdateItem(payload, editingIndex);
+    } else {
+      onAddItem(payload);
+    }
 
     // Reset fields and close
     setSelectedPresetId(null);
     setItemName('');
-    setQty('1');
+    setQty('');
     setPrice('');
     setDiscountPercent('');
-    setUnit('KG');
+    setUnit('Kg');
     setShowSuggestions(true);
     onClose();
   };
@@ -243,13 +283,15 @@ export function AddItemModal({
                 <View style={styles.titleRow}>
                   <View style={[styles.headerIconCircle, { backgroundColor: colors.primaryLight }]}>
                     <MaterialCommunityIcons
-                      name="cart-plus"
+                      name={editingItem ? 'pencil' : 'cart-plus'}
                       size={20}
                       color={colors.primary}
                     />
                   </View>
                   <Text style={[styles.title, { color: colors.textPrimary }]}>
-                    Add Item to Sale
+                    {editingItem
+                      ? `Edit Item #${(editingIndex !== null && editingIndex !== undefined ? editingIndex + 1 : itemIndex)}`
+                      : 'Add Item to Sale'}
                   </Text>
                 </View>
                 <TouchableOpacity onPress={onClose} activeOpacity={0.7}>
@@ -285,13 +327,12 @@ export function AddItemModal({
                     ]}
                     value={itemName}
                     onChangeText={(txt) => {
-                      const formatted = txt.replace(/\b\w/g, (char) => char.toUpperCase());
-                      setItemName(formatted);
+                      setItemName(txt.toUpperCase());
                       setSelectedPresetId(null);
                       setShowSuggestions(true);
                     }}
-                    autoCapitalize="words"
-                    placeholder="e.g. Basmati Rice, Sunflower Oil"
+                    autoCapitalize="characters"
+                    placeholder="e.g. BASMATI RICE, SUNFLOWER OIL"
                     placeholderTextColor={colors.textMuted}
                     autoFocus
                     returnKeyType="next"
@@ -337,7 +378,7 @@ export function AddItemModal({
                           >
                             <View style={{ flex: 1, marginRight: 8 }}>
                               <Text style={[styles.suggestionItemName, { color: colors.textPrimary }]}>
-                                {sug.name}
+                                {formatItemName(sug.name)}
                               </Text>
                               <View style={styles.suggestionMetaRow}>
                                 <Text style={[styles.suggestionItemCat, { color: colors.textSecondary }]}>
@@ -356,14 +397,14 @@ export function AddItemModal({
                                       },
                                     ]}
                                   >
-                                    • {isOutOfStock ? 'Out of stock' : `Stock: ${stock} ${sug.unit}`}
+                                    • {isOutOfStock ? 'Out of stock' : `Stock: ${stock} ${formatUnit(sug.unit)}`}
                                   </Text>
                                 )}
                               </View>
                             </View>
                             <View style={styles.suggestionRightCol}>
                               <Text style={[styles.suggestionItemPrice, { color: colors.primary }]}>
-                                ₹{sug.price} <Text style={{ fontSize: 11, color: colors.textMuted }}>/{sug.unit}</Text>
+                                ₹{sug.price} <Text style={{ fontSize: 11, color: colors.textMuted }}>/{formatUnit(sug.unit)}</Text>
                               </Text>
                               {sug.defaultDiscount && parseFloat(sug.defaultDiscount) > 0 ? (
                                 <Text style={[styles.suggestionItemDisc, { color: '#8B5CF6' }]}>
@@ -426,7 +467,7 @@ export function AddItemModal({
                       activeOpacity={0.8}
                     >
                       <Text style={[styles.unitBtnTxt, { color: colors.textPrimary }]}>
-                        {unit}
+                        {formatUnit(unit)}
                       </Text>
                       <MaterialCommunityIcons
                         name="chevron-down"
@@ -581,12 +622,12 @@ export function AddItemModal({
                   activeOpacity={0.8}
                 >
                   <MaterialCommunityIcons
-                    name="plus"
+                    name={editingItem ? 'check' : 'plus'}
                     size={22}
                     color="#FFFFFF"
                   />
                   <Text style={styles.addBtnTxt}>
-                    Add to Bill {calcs.hasCalculations ? `• ₹${calcs.netAmount}` : ''}
+                    {editingItem ? 'Save Changes' : 'Add to Bill'} {calcs.hasCalculations ? `• ₹${calcs.netAmount}` : ''}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -667,7 +708,7 @@ export function AddItemModal({
                       { backgroundColor: colors.primaryLight, borderColor: colors.primary },
                     ]}
                     onPress={() => {
-                      setUnit(unitSearch.trim().toUpperCase());
+                      setUnit(formatUnit(unitSearch.trim()));
                       setShowUnitPicker(false);
                     }}
                     activeOpacity={0.7}
@@ -678,7 +719,7 @@ export function AddItemModal({
                       color={colors.primary}
                     />
                     <Text style={[styles.customUnitTxt, { color: colors.primary }]}>
-                      Use Custom Unit: "{unitSearch.trim().toUpperCase()}"
+                      Use Custom Unit: "{formatUnit(unitSearch.trim())}"
                     </Text>
                   </TouchableOpacity>
                 ) : null}

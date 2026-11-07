@@ -26,9 +26,12 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
+import { useAuth } from '../../context/AuthContext';
 import { InvoiceData, InvoiceItem } from '../../types/billing';
 import { PresetItem } from '../../types/item';
+import { SavedCustomer, CustomerSuggestionItem } from '../../types/customer';
 import { storageService } from '../../services/storageService';
+import { customerService } from '../../services/customerService';
 import { SaleTopBar } from './SaleTopBar';
 import { SaleInvoiceSubheader } from './SaleInvoiceSubheader';
 import { SaleItemsList } from './SaleItemsList';
@@ -60,6 +63,7 @@ export function SaleScreen({
   onSaveInvoice,
 }: SaleScreenProps): React.JSX.Element {
   const { colors, isDark } = useTheme();
+  const { user } = useAuth();
 
   // Invoice Number & Prefix state (starts from 1 by default)
   const [invoiceNo, setInvoiceNo] = useState<string>(initialInvoiceNo.toString());
@@ -81,29 +85,92 @@ export function SaleScreen({
   // Date state
   const [saleDate, setSaleDate] = useState<Date>(new Date());
 
-  // Customer Details
+  // Customer Details & Suggestions State
   const [customerName, setCustomerName] = useState<string>('');
   const [phoneNumber, setPhoneNumber] = useState<string>('');
   const [isCustomerFocused, setIsCustomerFocused] = useState<boolean>(false);
+  const [savedCustomers, setSavedCustomers] = useState<SavedCustomer[]>([]);
   const phoneInputRef = useRef<TextInput>(null);
 
-  // Common customer suggestions (Cash is primary for quick retail billing)
-  const CUSTOMER_SUGGESTIONS = useMemo(() => ['Cash', 'Walk-in Customer'], []);
+  // Load saved customers from database on mount or session change
+  useEffect(() => {
+    customerService.getCustomers(user?.uid).then((list) => {
+      setSavedCustomers(list);
+    });
+  }, [user?.uid]);
 
-  // Filtered customer suggestions when typing (e.g. typing "C" shows "Cash")
-  const filteredCustomerSuggestions = useMemo(() => {
+  // Dynamic customer suggestions: System presets ("Cash", "Walk-in") + Saved Customers
+  const filteredCustomerSuggestions = useMemo((): CustomerSuggestionItem[] => {
     const q = customerName.trim().toLowerCase();
-    if (!q) return [];
-    const matches = CUSTOMER_SUGGESTIONS.filter(
-      (item) => item.toLowerCase() !== q && item.toLowerCase().includes(q)
+
+    const presets: CustomerSuggestionItem[] = [
+      { name: 'Cash', canDelete: false, isPreset: true },
+      { name: 'Walk-in Customer', canDelete: false, isPreset: true },
+    ];
+
+    if (!q) {
+      // When field is focused but empty, show presets + up to 5 most recent customers
+      const recent = savedCustomers.slice(0, 5).map((c) => ({
+        id: c.id,
+        name: c.name,
+        phone: c.phone,
+        canDelete: true,
+      }));
+      return [...presets, ...recent];
+    }
+
+    // Filter presets
+    const matchedPresets = presets.filter(
+      (p) => p.name.toLowerCase() !== q && p.name.toLowerCase().includes(q)
     );
-    matches.sort((a, b) => {
-      const aStarts = a.toLowerCase().startsWith(q) ? 0 : 1;
-      const bStarts = b.toLowerCase().startsWith(q) ? 0 : 1;
+
+    // Filter saved customers by name or phone
+    const matchedSaved = savedCustomers
+      .filter((c) => {
+        if (c.name.toLowerCase() === q) return false;
+        const nameMatches = c.name.toLowerCase().includes(q);
+        const phoneMatches = c.phone ? c.phone.includes(q) : false;
+        return nameMatches || phoneMatches;
+      })
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        phone: c.phone,
+        canDelete: true,
+      }));
+
+    const combined = [...matchedPresets, ...matchedSaved];
+    combined.sort((a, b) => {
+      const aStarts = a.name.toLowerCase().startsWith(q) ? 0 : 1;
+      const bStarts = b.name.toLowerCase().startsWith(q) ? 0 : 1;
       return aStarts - bStarts;
     });
-    return matches;
-  }, [customerName, CUSTOMER_SUGGESTIONS]);
+
+    return combined.slice(0, 7);
+  }, [customerName, savedCustomers]);
+
+  // Select a suggestion and auto-populate name & phone
+  const handleSelectCustomer = (sug: CustomerSuggestionItem) => {
+    setCustomerName(sug.name);
+    if (sug.phone) {
+      setPhoneNumber(sug.phone);
+    }
+    setIsCustomerFocused(false);
+    phoneInputRef.current?.focus();
+  };
+
+  // Delete a customer with the cross (✕) button
+  const handleDeleteCustomer = (sug: CustomerSuggestionItem) => {
+    const target = sug.id || sug.name;
+    // Optimistic UI update
+    setSavedCustomers((prev) =>
+      prev.filter((c) => c.id !== target && c.name.toLowerCase() !== sug.name.toLowerCase())
+    );
+    // Persist deletion locally and in Firestore
+    customerService.deleteCustomer(target, user?.uid).then((updated) => {
+      setSavedCustomers(updated);
+    }).catch((e) => console.warn('Customer deletion notice:', e));
+  };
 
   // Cart / Items
   const [items, setItems] = useState<InvoiceItem[]>([]);
@@ -130,6 +197,7 @@ export function SaleScreen({
   const [showInvoiceModal, setShowInvoiceModal] = useState<boolean>(false);
   const [showCalendarModal, setShowCalendarModal] = useState<boolean>(false);
   const [showAddItemModal, setShowAddItemModal] = useState<boolean>(false);
+  const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
   const [showOptionsModal, setShowOptionsModal] = useState<boolean>(false);
 
   // Format date as DD/MM/YYYY
@@ -180,6 +248,26 @@ export function SaleScreen({
       ...prev,
       { ...newItem, sNo: (prev.length + 1).toString() },
     ]);
+  };
+
+  // Edit Item from cart (opens AddItemModal in edit mode)
+  const handleEditItem = (item: InvoiceItem, index: number) => {
+    setEditingItemIndex(index);
+    setShowAddItemModal(true);
+  };
+
+  // Update existing Item in cart
+  const handleUpdateItem = (updatedItem: InvoiceItem, index: number) => {
+    setItems((prev) => {
+      const updated = [...prev];
+      updated[index] = {
+        ...updatedItem,
+        sNo: (index + 1).toString(),
+      };
+      return updated;
+    });
+    setEditingItemIndex(null);
+    setShowAddItemModal(false);
   };
 
   // Remove Item with automatic renumbering of remaining items (#1, #2, ...)
@@ -235,6 +323,14 @@ export function SaleScreen({
 
   // Handle Save
   const handleSave = (andNew = false) => {
+    // Save customer to database for future auto-suggestions
+    const cleanCustName = customerName.trim();
+    if (cleanCustName && cleanCustName.toLowerCase() !== 'cash' && cleanCustName.toLowerCase() !== 'walk-in customer') {
+      customerService.saveCustomer(cleanCustName, phoneNumber.trim() || undefined, user?.uid).then((updated) => {
+        setSavedCustomers(updated);
+      }).catch((e) => console.warn('Customer save notice:', e));
+    }
+
     const invoice = buildInvoicePayload();
     const nextNum = (parseInt(invoiceNo, 10) || 1) + 1;
     storageService.saveNextInvoiceNumber(nextNum);
@@ -364,7 +460,7 @@ export function SaleScreen({
             )}
           </View>
 
-          {/* Autocomplete Dropdown Suggestions (e.g. typing "C" shows "Cash") */}
+          {/* Autocomplete Dropdown Suggestions with Tap-to-Select and Cross (✕) to Delete */}
           {isCustomerFocused && filteredCustomerSuggestions.length > 0 && (
             <View
               style={[
@@ -378,35 +474,84 @@ export function SaleScreen({
             >
               <View style={styles.customerSuggestionHeader}>
                 <Text style={[styles.customerSuggestionHeaderTxt, { color: colors.textMuted }]}>
-                  SUGGESTIONS (TAP TO SELECT)
+                  {customerName.trim() ? 'SUGGESTIONS (TAP TO SELECT)' : 'SAVED CUSTOMERS (TAP TO SELECT)'}
                 </Text>
               </View>
               {filteredCustomerSuggestions.map((sug) => (
-                <TouchableOpacity
-                  key={sug}
+                <View
+                  key={sug.id || sug.name}
                   style={[
                     styles.customerSuggestionItem,
                     { borderTopColor: colors.borderLight },
                   ]}
-                  onPress={() => {
-                    setCustomerName(sug);
-                    setIsCustomerFocused(false);
-                    phoneInputRef.current?.focus();
-                  }}
-                  activeOpacity={0.7}
                 >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  {/* Left Touch Area: Selects customer name & auto-fills phone */}
+                  <TouchableOpacity
+                    style={styles.customerSuggestionLeft}
+                    onPress={() => handleSelectCustomer(sug)}
+                    activeOpacity={0.7}
+                  >
+                    <View
+                      style={[
+                        styles.customerIconCircle,
+                        {
+                          backgroundColor:
+                            sug.name === 'Cash'
+                              ? isDark
+                                ? 'rgba(16, 185, 129, 0.15)'
+                                : '#DCFCE7'
+                              : colors.primaryLight,
+                        },
+                      ]}
+                    >
+                      <MaterialCommunityIcons
+                        name={sug.name === 'Cash' ? 'cash' : 'account-outline'}
+                        size={17}
+                        color={sug.name === 'Cash' ? '#16A34A' : colors.primary}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.customerSuggestionTxt, { color: colors.textPrimary }]}>
+                        {sug.name}
+                      </Text>
+                      {sug.phone ? (
+                        <Text style={[styles.customerSuggestionPhone, { color: colors.textSecondary }]}>
+                          📞 {sug.phone}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </TouchableOpacity>
+
+                  {/* Right Touch Area: Cross (✕) to Delete Saved Customer, or Chevron for Presets */}
+                  {sug.canDelete ? (
+                    <TouchableOpacity
+                      style={[
+                        styles.deleteCustomerBtn,
+                        {
+                          backgroundColor: isDark
+                            ? 'rgba(239, 68, 68, 0.15)'
+                            : '#FEE2E2',
+                        },
+                      ]}
+                      onPress={() => handleDeleteCustomer(sug)}
+                      activeOpacity={0.7}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      accessibilityLabel={`Delete ${sug.name} from saved customers`}
+                    >
+                      <MaterialCommunityIcons
+                        name="close"
+                        size={15}
+                        color={colors.error || '#EF4444'}
+                      />
+                    </TouchableOpacity>
+                  ) : (
                     <MaterialCommunityIcons
-                      name={sug === 'Cash' ? 'cash' : 'account-outline'}
-                      size={18}
-                      color={sug === 'Cash' ? '#16A34A' : colors.primary}
+                      name="chevron-right"
+                      size={16}
+                      color={colors.textMuted}
                     />
-                    <Text style={[styles.customerSuggestionTxt, { color: colors.textPrimary }]}>
-                      {sug}
-                    </Text>
-                  </View>
-                  <MaterialCommunityIcons name="chevron-right" size={16} color={colors.textMuted} />
-                </TouchableOpacity>
+                  )}
+                </View>
               ))}
             </View>
           )}
@@ -452,8 +597,12 @@ export function SaleScreen({
         {/* Dynamic Items List with Numbering */}
         <SaleItemsList
           items={items}
-          onOpenAddItemModal={() => setShowAddItemModal(true)}
+          onOpenAddItemModal={() => {
+            setEditingItemIndex(null);
+            setShowAddItemModal(true);
+          }}
           onRemoveItem={handleRemoveItem}
+          onEditItem={handleEditItem}
         />
 
         {/* Summary Breakdown & Notice Banner */}
@@ -494,10 +643,16 @@ export function SaleScreen({
 
       <AddItemModal
         visible={showAddItemModal}
-        itemIndex={items.length + 1}
+        itemIndex={editingItemIndex !== null ? editingItemIndex + 1 : items.length + 1}
         presetItems={presetItems}
-        onClose={() => setShowAddItemModal(false)}
+        editingItem={editingItemIndex !== null ? items[editingItemIndex] : null}
+        editingIndex={editingItemIndex}
+        onClose={() => {
+          setShowAddItemModal(false);
+          setEditingItemIndex(null);
+        }}
         onAddItem={handleAddItem}
+        onUpdateItem={handleUpdateItem}
       />
 
       {/* 3-Dot More Options Popup Modal (Disappears on outside click) */}
@@ -508,6 +663,12 @@ export function SaleScreen({
         itemsCount={items.length}
         onClose={() => setShowOptionsModal(false)}
         onPrintDirectly={() => {
+          const cleanCustName = customerName.trim();
+          if (cleanCustName && cleanCustName.toLowerCase() !== 'cash' && cleanCustName.toLowerCase() !== 'walk-in customer') {
+            customerService.saveCustomer(cleanCustName, phoneNumber.trim() || undefined, user?.uid).then((updated) => {
+              setSavedCustomers(updated);
+            }).catch((e) => console.warn('Customer save notice:', e));
+          }
           const invoice = buildInvoicePayload();
           const nextNum = (parseInt(invoiceNo, 10) || 1) + 1;
           storageService.saveNextInvoiceNumber(nextNum);
@@ -610,8 +771,34 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderTopWidth: 1,
   },
+  customerSuggestionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+    marginRight: 8,
+  },
+  customerIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   customerSuggestionTxt: {
     fontSize: 13.5,
     fontWeight: '700',
+  },
+  customerSuggestionPhone: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  deleteCustomerBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

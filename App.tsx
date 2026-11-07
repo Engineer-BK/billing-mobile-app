@@ -39,6 +39,7 @@ import { InvoiceData } from './types/billing';
 import { useBluetoothScanner } from './hooks/useBluetoothScanner';
 import { storageService } from './services/storageService';
 import { syncService } from './services/syncService';
+import { customerService } from './services/customerService';
 import {
   dispatchPrintReceipt,
   dispatchTestPrint,
